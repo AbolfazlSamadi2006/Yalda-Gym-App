@@ -1,0 +1,167 @@
+from yalda.database.connection import get_session
+from yalda.models.database_models import Member, HealthRecord
+from yalda.utils.jalali_date import get_today_shamsi, is_membership_active
+from sqlalchemy import or_
+
+class MemberService:
+    @staticmethod
+    def get_all_members(search_query: str = None, status_filter: str = "active"):
+        session = get_session()
+        try:
+            query = session.query(Member)
+            
+            if status_filter and status_filter != "all":
+                query = query.filter(Member.status == status_filter)
+
+            if search_query:
+                pattern = f"%{search_query.strip()}%"
+                query = query.filter(
+                    or_(
+                        Member.first_name.like(pattern),
+                        Member.last_name.like(pattern),
+                        Member.phone.like(pattern)
+                    )
+                )
+
+            members = query.order_by(Member.id.desc()).all()
+            
+            # Check for expired memberships dynamically
+            today_str = get_today_shamsi()
+            for m in members:
+                if m.status == "active" and not is_membership_active(m.membership_expire_shamsi):
+                    m.status = "expired"
+            session.commit()
+            return members
+        finally:
+            session.close()
+
+    @staticmethod
+    def get_member_by_id(member_id: int):
+        session = get_session()
+        try:
+            return session.query(Member).filter(Member.id == member_id).first()
+        finally:
+            session.close()
+
+    @staticmethod
+    def create_member(data: dict) -> Member:
+        session = get_session()
+        try:
+            member = Member(
+                first_name=data.get("first_name"),
+                last_name=data.get("last_name"),
+                phone=data.get("phone"),
+                gender=data.get("gender", "male"),
+                birth_date_shamsi=data.get("birth_date_shamsi"),
+                height_cm=float(data.get("height_cm", 0.0) or 0.0),
+                initial_weight_kg=float(data.get("initial_weight_kg", 0.0) or 0.0),
+                membership_type=data.get("membership_type", "12_sessions"),
+                membership_start_shamsi=data.get("membership_start_shamsi") or get_today_shamsi(),
+                membership_expire_shamsi=data.get("membership_expire_shamsi"),
+                photo_path=data.get("photo_path"),
+                notes=data.get("notes"),
+                status="active"
+            )
+            session.add(member)
+            session.flush()
+
+            # Create default empty health record
+            health_rec = HealthRecord(member_id=member.id)
+            session.add(health_rec)
+
+            session.commit()
+            return member
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    @staticmethod
+    def update_member(member_id: int, data: dict):
+        session = get_session()
+        try:
+            member = session.query(Member).filter(Member.id == member_id).first()
+            if not member:
+                raise ValueError("ورزشکار یافت نشد.")
+            
+            for key, val in data.items():
+                if hasattr(member, key):
+                    setattr(member, key, val)
+            
+            session.commit()
+            return member
+        finally:
+            session.close()
+
+    @staticmethod
+    def archive_member(member_id: int):
+        return MemberService.update_member(member_id, {"status": "archived"})
+
+    @staticmethod
+    def delete_member(member_id: int):
+        session = get_session()
+        try:
+            from yalda.models.database_models import WorkoutAssignment, NutritionAssignment, WorkoutPlan, NutritionPlan
+            member = session.query(Member).filter(Member.id == member_id).first()
+            if member:
+                # Find plan IDs associated with member's assignments before deletion
+                w_plan_ids = [a.plan_id for a in member.workout_assignments]
+                n_plan_ids = [a.plan_id for a in member.nutrition_assignments]
+
+                session.delete(member)
+                session.flush()
+
+                # Clean up orphan workout plans
+                for pid in w_plan_ids:
+                    if session.query(WorkoutAssignment).filter(WorkoutAssignment.plan_id == pid).count() == 0:
+                        orphan_w = session.query(WorkoutPlan).filter(WorkoutPlan.id == pid).first()
+                        if orphan_w:
+                            session.delete(orphan_w)
+
+                # Clean up orphan nutrition plans
+                for pid in n_plan_ids:
+                    if session.query(NutritionAssignment).filter(NutritionAssignment.plan_id == pid).count() == 0:
+                        orphan_n = session.query(NutritionPlan).filter(NutritionPlan.id == pid).first()
+                        if orphan_n:
+                            session.delete(orphan_n)
+
+                session.commit()
+                return True
+            return False
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    @staticmethod
+    def get_health_record(member_id: int) -> HealthRecord:
+        session = get_session()
+        try:
+            rec = session.query(HealthRecord).filter(HealthRecord.member_id == member_id).first()
+            if not rec:
+                rec = HealthRecord(member_id=member_id)
+                session.add(rec)
+                session.commit()
+            return rec
+        finally:
+            session.close()
+
+    @staticmethod
+    def update_health_record(member_id: int, data: dict):
+        session = get_session()
+        try:
+            rec = session.query(HealthRecord).filter(HealthRecord.member_id == member_id).first()
+            if not rec:
+                rec = HealthRecord(member_id=member_id)
+                session.add(rec)
+            
+            for key, val in data.items():
+                if hasattr(rec, key):
+                    setattr(rec, key, val)
+            
+            session.commit()
+            return rec
+        finally:
+            session.close()

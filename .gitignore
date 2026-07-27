@@ -1,0 +1,26 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# PyInstaller & Build outputs
+build/
+dist/
+*.spec
+
+# Database & SQLite files
+*.db
+*.sqlite3
+
+# Antigravity & IDE settings
+.idea/
+.vscode/
+.user_uploaded/
+scratch/
+*.log

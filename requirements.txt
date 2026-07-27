@@ -1,0 +1,8 @@
+PyQt6>=6.6.0
+SQLAlchemy>=2.0.0
+jdatetime>=5.0.0
+reportlab>=4.0.0
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+Pillow>=10.0.0
+pyinstaller>=6.0.0

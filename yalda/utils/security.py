@@ -1,0 +1,21 @@
+import hashlib
+import secrets
+
+def hash_password(password: str) -> str:
+    """Hashes a password using SHA-256 with a random salt."""
+    salt = secrets.token_hex(16)
+    pwd_bytes = (password + salt).encode('utf-8')
+    h = hashlib.sha256(pwd_bytes).hexdigest()
+    return f"{salt}:{h}"
+
+def verify_password(password: str, hashed_str: str) -> bool:
+    """Verifies a password against a stored salt:hash string."""
+    if not hashed_str or ":" not in hashed_str:
+        return False
+    try:
+        salt, stored_hash = hashed_str.split(":", 1)
+        pwd_bytes = (password + salt).encode('utf-8')
+        computed_hash = hashlib.sha256(pwd_bytes).hexdigest()
+        return secrets.compare_digest(stored_hash, computed_hash)
+    except Exception:
+        return False

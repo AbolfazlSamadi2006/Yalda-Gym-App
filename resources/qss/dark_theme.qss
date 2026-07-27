@@ -1,0 +1,290 @@
+/* Dark Red and Black Theme for Yalda Gym Application */
+
+QWidget {
+    background-color: #121212;
+    color: #FFFFFF;
+    font-family: "Vazirmatn", "Segoe UI", sans-serif;
+    font-size: 13px;
+}
+
+QMainWindow, QDialog {
+    background-color: #121212;
+}
+
+/* Header Bar & Frames */
+QFrame#sidebar {
+    background-color: #181818;
+    border-left: 1px solid #282828;
+}
+
+QFrame#card {
+    background-color: #1E1E1E;
+    border: 1px solid #2A2A2A;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* Headings & Labels */
+QLabel#h1 {
+    font-size: 20px;
+    font-weight: bold;
+    color: #FFFFFF;
+}
+
+QLabel#h2 {
+    font-size: 16px;
+    font-weight: bold;
+    color: #8B0000;
+}
+
+QLabel#accent_text {
+    color: #A91D22;
+    font-weight: bold;
+}
+
+QLabel#muted_text {
+    color: #888888;
+}
+
+/* Buttons */
+QPushButton {
+    background-color: #8B0000;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #A91D22;
+}
+
+QPushButton:pressed {
+    background-color: #660000;
+}
+
+QPushButton:disabled {
+    background-color: #333333;
+    color: #666666;
+}
+
+QPushButton#secondary_button {
+    background-color: #2D2D2D;
+    color: #CCCCCC;
+    border: 1px solid #444444;
+}
+
+QPushButton#secondary_button:hover {
+    background-color: #3D3D3D;
+    color: #FFFFFF;
+}
+
+QPushButton#danger_button {
+    background-color: #D32F2F;
+}
+
+QPushButton#danger_button:hover {
+    background-color: #B71C1C;
+}
+
+/* Inputs & ComboBox */
+QLineEdit, QTextEdit, QPlainTextEdit, QDateEdit, QComboBox {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 6px 12px;
+    selection-background-color: #8B0000;
+}
+
+QLineEdit:focus, QTextEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 1px solid #8B0000;
+}
+
+QComboBox {
+    padding-left: 32px;
+    padding-right: 12px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top left;
+    width: 28px;
+    border-right: 1px solid #3A3A3A;
+    background-color: #262626;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+
+QComboBox::down-arrow {
+    image: url(resources/images/arrow_down.svg);
+    width: 14px;
+    height: 14px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    selection-background-color: #8B0000;
+    padding: 4px;
+}
+
+/* SpinBox & DoubleSpinBox Styling */
+QSpinBox, QDoubleSpinBox {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border: 1px solid #333333;
+    border-radius: 6px;
+    padding: 6px 12px;
+    padding-left: 32px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top left;
+    width: 24px;
+    border-right: 1px solid #3A3A3A;
+    border-bottom: 1px solid #3A3A3A;
+    background-color: #262626;
+    border-top-left-radius: 5px;
+}
+
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+    image: url(resources/images/arrow_up.svg);
+    width: 12px;
+    height: 12px;
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom left;
+    width: 24px;
+    border-right: 1px solid #3A3A3A;
+    background-color: #262626;
+    border-bottom-left-radius: 5px;
+}
+
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+    image: url(resources/images/arrow_down.svg);
+    width: 12px;
+    height: 12px;
+}
+
+/* Tables */
+QTableWidget {
+    background-color: #141414;
+    gridline-color: #282828;
+    border: 1px solid #282828;
+    border-radius: 6px;
+    selection-background-color: #8B0000;
+    selection-color: #FFFFFF;
+    outline: 0;
+}
+
+QTableWidget::item {
+    padding: 6px 8px;
+    color: #FFFFFF;
+    font-size: 13px;
+}
+
+QTableWidget::item:selected {
+    background-color: #4A1113;
+    color: #FFFFFF;
+}
+
+QHeaderView::section {
+    background-color: #222222;
+    color: #FFFFFF;
+    padding: 10px 6px;
+    font-weight: bold;
+    font-size: 13px;
+    border: none;
+    border-bottom: 2px solid #8B0000;
+}
+
+/* Specific styling for inputs embedded inside QTableWidget */
+QTableWidget QLineEdit {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border: 1px solid #3A3A3A;
+    border-radius: 4px;
+    padding: 2px 4px;
+    min-height: 32px;
+    font-size: 13px;
+}
+
+QTableWidget QLineEdit:focus {
+    border: 1px solid #E53935;
+    background-color: #252525;
+}
+
+QTableWidget QComboBox {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border: 1px solid #3A3A3A;
+    border-radius: 4px;
+    padding: 2px 4px;
+    min-height: 32px;
+    font-size: 13px;
+}
+
+QTableWidget QComboBox:focus {
+    border: 1px solid #E53935;
+}
+
+QTableWidget QPushButton {
+    min-height: 30px;
+    padding: 2px 4px;
+    font-size: 12px;
+}
+
+/* Tab Widget */
+QTabWidget::pane {
+    border: 1px solid #2A2A2A;
+    background-color: #1E1E1E;
+    border-radius: 6px;
+}
+
+QTabBar::tab {
+    background-color: #121212;
+    color: #AAAAAA;
+    padding: 10px 20px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+    margin-left: 2px;
+}
+
+QTabBar::tab:selected {
+    background-color: #1E1E1E;
+    color: #FFFFFF;
+    border-top: 3px solid #8B0000;
+    font-weight: bold;
+}
+
+/* Scrollbars */
+QScrollBar:vertical {
+    background: #121212;
+    width: 10px;
+}
+
+QScrollBar::handle:vertical {
+    background: #333333;
+    border-radius: 5px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #8B0000;
+}
+
+QScrollBar:horizontal {
+    background: #121212;
+    height: 10px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #333333;
+    border-radius: 5px;
+}

@@ -105,7 +105,10 @@ class MemberDetailView(QWidget):
         member = MemberService.get_member_by_id(self.member_id)
         if member:
             self.lbl_title.setText(f"پرونده جامع: {member.full_name}")
-            info_str = f"<b>کد عضویت:</b> {member.id}  |  <b>تلفن:</b> {member.phone}  |  <b>قد/وزن:</b> {int(member.height_cm or 0)}cm / {int(member.initial_weight_kg or 0)}kg  |  <b>تاریخ انقضا:</b> <font color='#8B0000'>{member.membership_expire_shamsi}</font>"
+            from yalda.utils.bmi_calculator import calculate_bmi_info
+            bmi, cat, color = calculate_bmi_info(member.height_cm, member.initial_weight_kg)
+            bmi_str = f"<font color='{color}'><b>{bmi}</b> ({cat})</font>" if bmi > 0 else "-"
+            info_str = f"<b>کد عضویت:</b> {member.id}  |  <b>تلفن:</b> {member.phone}  |  <b>قد/وزن:</b> {int(member.height_cm or 0)}cm / {int(member.initial_weight_kg or 0)}kg  |  <b>شاخص BMI:</b> {bmi_str}  |  <b>تاریخ انقضا:</b> <font color='#8B0000'>{member.membership_expire_shamsi}</font>"
             self.lbl_member_details.setText(info_str)
 
             if member.photo_path and os.path.exists(member.photo_path):

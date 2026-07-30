@@ -95,7 +95,15 @@ class AssessmentView(QWidget):
         row1.addWidget(self.spin_weight)
         row1.addWidget(QLabel("درصد چربی (%):"))
         row1.addWidget(self.spin_fat)
+
+        self.lbl_live_bmi = QLabel("BMI: -")
+        self.lbl_live_bmi.setStyleSheet("font-weight: bold; padding: 4px 10px; border-radius: 6px; background-color: #10B981; color: white;")
+        row1.addWidget(self.lbl_live_bmi)
+
+        self.spin_weight.valueChanged.connect(self.update_live_bmi)
         layout_form.addLayout(row1)
+
+        self.update_live_bmi()
 
         row2 = QHBoxLayout()
         self.spin_arm = QDoubleSpinBox()
@@ -193,16 +201,38 @@ class AssessmentView(QWidget):
         self.load_history()
         QMessageBox.information(self, "موفقیت", "ارزیابی فیزیکی جدید ذخیره شد.")
 
+    def update_live_bmi(self):
+        from yalda.services.member_service import MemberService
+        from yalda.utils.bmi_calculator import calculate_bmi_info
+        member = MemberService.get_member_by_id(self.member_id)
+        height_cm = member.height_cm if member else 175.0
+        weight_kg = self.spin_weight.value()
+        bmi, cat, color = calculate_bmi_info(height_cm, weight_kg)
+        if bmi > 0:
+            self.lbl_live_bmi.setText(f"BMI: {bmi} ({cat})")
+            self.lbl_live_bmi.setStyleSheet(f"font-weight: bold; padding: 4px 10px; border-radius: 6px; background-color: {color}; color: white;")
+        else:
+            self.lbl_live_bmi.setText("BMI: -")
+            self.lbl_live_bmi.setStyleSheet("font-weight: bold; padding: 4px 10px; border-radius: 6px; background-color: #555555; color: white;")
+
     def load_history(self):
+        from yalda.services.member_service import MemberService
+        from yalda.utils.bmi_calculator import calculate_bmi_info
+        member = MemberService.get_member_by_id(self.member_id)
+        height_cm = member.height_cm if member else 175.0
+
         records = AssessmentService.get_member_assessments(self.member_id)
         self.table.setRowCount(len(records))
         self.records_list = records
 
         for row, rec in enumerate(records):
+            bmi, cat, _ = calculate_bmi_info(height_cm, rec.weight_kg)
+            bmi_text = f"{rec.bmi or bmi} ({cat})" if (rec.bmi or bmi) > 0 else "-"
+
             self.table.setItem(row, 0, QTableWidgetItem(rec.assessment_date_shamsi))
             self.table.setItem(row, 1, QTableWidgetItem(str(rec.weight_kg)))
             self.table.setItem(row, 2, QTableWidgetItem(str(rec.body_fat_percentage or "-")))
-            self.table.setItem(row, 3, QTableWidgetItem(str(rec.bmi or "-")))
+            self.table.setItem(row, 3, QTableWidgetItem(bmi_text))
             self.table.setItem(row, 4, QTableWidgetItem(str(rec.arm_circ or "-")))
             self.table.setItem(row, 5, QTableWidgetItem(str(rec.chest_circ or "-")))
             self.table.setItem(row, 6, QTableWidgetItem(str(rec.waist_circ or "-")))

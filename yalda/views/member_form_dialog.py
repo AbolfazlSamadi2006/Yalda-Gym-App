@@ -73,21 +73,31 @@ class MemberFormDialog(QDialog):
         self.spin_height.setValue(175.0)
         self.spin_height.setDecimals(0)
         self.spin_height.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.spin_height.setMinimumWidth(110)
+        self.spin_height.setMinimumWidth(90)
 
         self.spin_weight = QDoubleSpinBox()
         self.spin_weight.setRange(30.0, 200.0)
         self.spin_weight.setValue(75.0)
         self.spin_weight.setDecimals(1)
         self.spin_weight.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.spin_weight.setMinimumWidth(110)
+        self.spin_weight.setMinimumWidth(90)
+
+        self.lbl_bmi_badge = QLabel("BMI: 24.5 (طبیعی)")
+        self.lbl_bmi_badge.setStyleSheet("font-weight: bold; padding: 4px 10px; border-radius: 6px; background-color: #10B981; color: white;")
+
+        self.spin_height.valueChanged.connect(self.update_bmi_display)
+        self.spin_weight.valueChanged.connect(self.update_bmi_display)
 
         row_stats.addWidget(QLabel("قد (cm):"))
         row_stats.addWidget(self.spin_height)
-        row_stats.addSpacing(15)
+        row_stats.addSpacing(10)
         row_stats.addWidget(QLabel("وزن (kg):"))
         row_stats.addWidget(self.spin_weight)
+        row_stats.addSpacing(10)
+        row_stats.addWidget(self.lbl_bmi_badge)
         layout.addLayout(row_stats)
+
+        self.update_bmi_display()
 
         # Membership Type Row
         row4 = QHBoxLayout()
@@ -148,6 +158,18 @@ class MemberFormDialog(QDialog):
             self.photo_path = filepath
             self.lbl_photo_status.setText(f"عکس: {os.path.basename(filepath)}")
             self.lbl_photo_status.setStyleSheet("color: #4CAF50; font-size: 11px;")
+
+    def update_bmi_display(self):
+        from yalda.utils.bmi_calculator import calculate_bmi_info
+        h = self.spin_height.value()
+        w = self.spin_weight.value()
+        bmi, cat, color = calculate_bmi_info(h, w)
+        if bmi > 0:
+            self.lbl_bmi_badge.setText(f"BMI: {bmi} ({cat})")
+            self.lbl_bmi_badge.setStyleSheet(f"font-weight: bold; padding: 4px 10px; border-radius: 6px; background-color: {color}; color: white;")
+        else:
+            self.lbl_bmi_badge.setText("BMI: -")
+            self.lbl_bmi_badge.setStyleSheet("font-weight: bold; padding: 4px 10px; border-radius: 6px; background-color: #555555; color: white;")
 
     def recalculate_expiry(self):
         start_date = self.picker_start.text()
@@ -220,3 +242,4 @@ class MemberFormDialog(QDialog):
             self.picker_expire.setText(m.membership_expire_shamsi)
         if m.notes:
             self.txt_notes.setText(m.notes)
+        self.update_bmi_display()

@@ -52,6 +52,7 @@ class MemberService:
                 last_name=data.get("last_name"),
                 phone=data.get("phone"),
                 gender=data.get("gender", "male"),
+                job=data.get("job"),
                 birth_date_shamsi=data.get("birth_date_shamsi"),
                 height_cm=float(data.get("height_cm", 0.0) or 0.0),
                 initial_weight_kg=float(data.get("initial_weight_kg", 0.0) or 0.0),

@@ -29,6 +29,7 @@ class Member(Base):
     last_name = Column(String(50), nullable=False)
     phone = Column(String(20), nullable=False, index=True)
     gender = Column(String(10), default="male")  # 'male', 'female'
+    job = Column(String(100), nullable=True)
     birth_date_shamsi = Column(String(10), nullable=True)
     height_cm = Column(Float, nullable=True)
     initial_weight_kg = Column(Float, nullable=True)

@@ -18,7 +18,7 @@ def calculate_bmi_info(height_cm: float, weight_kg: float):
         category = "کم‌وزن"
         color = "#3B82F6" # Blue
     elif 18.5 <= bmi < 25.0:
-        category = "وزن طبیعی (نرمال)"
+        category = "وزن طبیعی"
         color = "#10B981" # Green
     elif 25.0 <= bmi < 30.0:
         category = "اضافه وزن"

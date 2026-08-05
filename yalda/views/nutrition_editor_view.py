@@ -35,6 +35,17 @@ class NutritionEditorView(QWidget):
         goal_box = QGroupBox("اهداف فیزیکی و درشت‌مغذی‌های رژیم (Macronutrients)")
         layout_goal = QVBoxLayout(goal_box)
 
+        # Template Picker Row
+        row_tpl = QHBoxLayout()
+        self.combo_templates = QComboBox()
+        self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده رژیم از بانک ---", None)
+        self.load_template_dropdown()
+        self.combo_templates.currentIndexChanged.connect(self.on_template_selected)
+
+        row_tpl.addWidget(QLabel("📂 الگوهای آماده رژیم بانک:"))
+        row_tpl.addWidget(self.combo_templates)
+        layout_goal.addLayout(row_tpl)
+
         row1 = QHBoxLayout()
         self.txt_title = QLineEdit()
         self.txt_title.setPlaceholderText("عنوان رژیم (مثلاً: رژیم هایپرتروفی ۲۵۰۰ کالری)...")
@@ -92,7 +103,7 @@ class NutritionEditorView(QWidget):
         self.combo_member = QComboBox()
         self.load_members_dropdown()
 
-        btn_save = QPushButton("💾 ذخیره الگوی رژیم")
+        btn_save = QPushButton("💾 ذخیره الگوی رژیم در بانک")
         btn_save.setObjectName("secondary_button")
         btn_save.clicked.connect(self.save_plan)
 
@@ -112,6 +123,87 @@ class NutritionEditorView(QWidget):
         members = MemberService.get_all_members(status_filter="active")
         for m in members:
             self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
+
+    def load_template_dropdown(self):
+        self.combo_templates.blockSignals(True)
+        self.combo_templates.clear()
+        self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده رژیم از بانک ---", None)
+        plans = NutritionService.get_all_plans()
+        for p in plans:
+            goal_title = {
+                "muscle_gain": "عضله‌سازی",
+                "weight_loss": "کاهش وزن",
+                "weight_gain": "افزایش وزن",
+                "maintenance": "تثبیت وزن"
+            }.get(p.goal, p.goal)
+            self.combo_templates.addItem(f"🥗 {p.title} ({int(p.target_calories)} kcal - {goal_title})", p.id)
+        self.combo_templates.blockSignals(False)
+
+    def on_template_selected(self, index: int):
+        try:
+            plan_id = self.combo_templates.currentData()
+            if not plan_id:
+                return
+
+            plan = NutritionService.get_plan_by_id(plan_id)
+            if not plan:
+                return
+
+            self.txt_title.setText(plan.title or "")
+
+            idx_g = self.combo_goal.findData(plan.goal)
+            if idx_g >= 0:
+                self.combo_goal.setCurrentIndex(idx_g)
+
+            self.spin_cal.setValue(plan.target_calories or 2000.0)
+            self.spin_protein.setValue(plan.target_protein or 150.0)
+            self.spin_carbs.setValue(plan.target_carbs or 200.0)
+            self.spin_fat.setValue(plan.target_fat or 60.0)
+
+            # Rebuild meal tabs
+            self.setup_meal_tabs()
+
+            foods_list = NutritionService.get_all_foods()
+
+            # Map meals from loaded plan into meal tables
+            meal_dict = {m.meal_name: m for m in plan.meals}
+
+            for meal_key, table in self.meal_tables:
+                table.setRowCount(0)
+                if meal_key in meal_dict:
+                    m_plan = meal_dict[meal_key]
+                    for item in m_plan.items:
+                        row = table.rowCount()
+                        table.insertRow(row)
+
+                        combo_food = QComboBox()
+                        for f in foods_list:
+                            combo_food.addItem(f"{f.name_fa} ({f.unit} - {int(f.calories)}kcal)", f.id)
+
+                        if item.food_id:
+                            idx_f = combo_food.findData(item.food_id)
+                            if idx_f >= 0:
+                                combo_food.setCurrentIndex(idx_f)
+
+                        txt_amount = QLineEdit(str(item.amount or 1.0))
+                        txt_amount.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                        txt_notes = QLineEdit(item.notes or "")
+                        txt_notes.setPlaceholderText("توضیحات اختصاصی...")
+
+                        btn_del = QPushButton("🗑️")
+                        btn_del.setObjectName("danger_button")
+                        btn_del.setToolTip("حذف ماده غذایی")
+                        btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
+
+                        table.setCellWidget(row, 0, combo_food)
+                        table.setCellWidget(row, 1, txt_amount)
+                        table.setCellWidget(row, 2, txt_notes)
+                        table.setCellWidget(row, 3, btn_del)
+
+            QMessageBox.information(self, "موفقیت", f"الگوی رژیم '{plan.title}' با موفقیت در فرم بارگذاری شد.")
+        except Exception as e:
+            QMessageBox.critical(self, "خطا", f"خطا در بارگذاری الگوی رژیم: {str(e)}")
 
     def setup_meal_tabs(self):
         self.tabs.clear()
@@ -164,6 +256,7 @@ class NutritionEditorView(QWidget):
 
     def refresh_editor(self):
         self.load_members_dropdown()
+        self.load_template_dropdown()
         self.setup_meal_tabs()
 
     def add_food_row(self, table: QTableWidget, foods_list: list = None):
@@ -185,7 +278,7 @@ class NutritionEditorView(QWidget):
         btn_del = QPushButton("🗑️")
         btn_del.setObjectName("danger_button")
         btn_del.setToolTip("حذف ماده غذایی")
-        btn_del.clicked.connect(lambda: table.removeRow(table.currentRow()))
+        btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
 
         table.setCellWidget(row, 0, combo_food)
         table.setCellWidget(row, 1, txt_amount)
@@ -236,7 +329,8 @@ class NutritionEditorView(QWidget):
     def save_plan(self):
         plan_info, meals_data = self.get_plan_data()
         plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
-        QMessageBox.information(self, "موفقیت", "الگوی برنامه غذایی در سیستم ذخیره شد.")
+        self.load_template_dropdown()
+        QMessageBox.information(self, "موفقیت", "الگوی برنامه غذایی با موفقیت در بانک ذخیره شد.")
         return plan
 
     def assign_plan(self):

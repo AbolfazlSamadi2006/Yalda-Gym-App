@@ -1,5 +1,5 @@
 from yalda.database.connection import get_session
-from yalda.models.database_models import Member, HealthRecord
+from yalda.models.database_models import Member, HealthRecord, MedicalDocument
 from yalda.utils.jalali_date import get_today_shamsi, is_membership_active
 from sqlalchemy import or_
 
@@ -164,5 +164,48 @@ class MemberService:
             
             session.commit()
             return rec
+        finally:
+            session.close()
+
+    @staticmethod
+    def get_medical_documents(member_id: int):
+        session = get_session()
+        try:
+            return session.query(MedicalDocument).filter(MedicalDocument.member_id == member_id).order_by(MedicalDocument.id.desc()).all()
+        finally:
+            session.close()
+
+    @staticmethod
+    def add_medical_document(member_id: int, title: str, file_path, notes: str = None) -> MedicalDocument:
+        session = get_session()
+        try:
+            if isinstance(file_path, (list, tuple)):
+                path_str = "||".join([str(p).strip() for p in file_path if p])
+            else:
+                path_str = str(file_path or "").strip()
+
+            doc = MedicalDocument(
+                member_id=member_id,
+                title=title,
+                file_path=path_str,
+                created_at_shamsi=get_today_shamsi(),
+                notes=notes
+            )
+            session.add(doc)
+            session.commit()
+            return doc
+        finally:
+            session.close()
+
+    @staticmethod
+    def delete_medical_document(doc_id: int) -> bool:
+        session = get_session()
+        try:
+            doc = session.query(MedicalDocument).filter(MedicalDocument.id == doc_id).first()
+            if doc:
+                session.delete(doc)
+                session.commit()
+                return True
+            return False
         finally:
             session.close()

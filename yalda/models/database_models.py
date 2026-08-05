@@ -49,6 +49,7 @@ class Member(Base):
     assessments = relationship("PhysicalAssessment", back_populates="member", cascade="all, delete-orphan", order_by="PhysicalAssessment.assessment_date_shamsi.desc()")
     workout_assignments = relationship("WorkoutAssignment", back_populates="member", cascade="all, delete-orphan")
     nutrition_assignments = relationship("NutritionAssignment", back_populates="member", cascade="all, delete-orphan")
+    medical_documents = relationship("MedicalDocument", back_populates="member", cascade="all, delete-orphan", order_by="MedicalDocument.created_at.desc()")
 
     @property
     def full_name(self):
@@ -76,6 +77,25 @@ class HealthRecord(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     member = relationship("Member", back_populates="health_record")
+
+class MedicalDocument(Base):
+    __tablename__ = "medical_documents"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
+    title = Column(String(150), nullable=False)
+    file_path = Column(Text, nullable=False)
+    created_at_shamsi = Column(String(10), nullable=True)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    member = relationship("Member", back_populates="medical_documents")
+
+    @property
+    def file_paths_list(self):
+        if not self.file_path:
+            return []
+        return [p.strip() for p in self.file_path.split("||") if p.strip()]
 
 class PhysicalAssessment(Base):
     __tablename__ = "physical_assessments"

@@ -56,7 +56,7 @@ class DashboardView(QWidget):
         actions_layout.setContentsMargins(12, 12, 12, 12)
 
         lbl_quick = QLabel("دسترسی سریع:")
-        lbl_quick.setStyleSheet("font-weight: bold; color: #FFFFFF;")
+        lbl_quick.setStyleSheet("font-weight: bold; color: #FFFFFF; background: transparent;")
 
         btn_add_member = QPushButton("➕ ثبت عضو جدید")
         btn_add_member.clicked.connect(lambda: self.navigate_to.emit("add_member"))

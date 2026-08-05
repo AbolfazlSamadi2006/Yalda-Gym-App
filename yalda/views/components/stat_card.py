@@ -14,6 +14,10 @@ class StatCard(QFrame):
                 border-radius: 8px;
                 padding: 12px;
             }
+            QLabel {
+                background: transparent;
+                background-color: transparent;
+            }
         """)
 
         layout = QVBoxLayout(self)
@@ -23,17 +27,17 @@ class StatCard(QFrame):
         header_layout = QHBoxLayout()
         
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #A0A0A0; font-size: 13px; font-weight: bold;")
+        lbl_title.setStyleSheet("color: #A0A0A0; font-size: 13px; font-weight: bold; background: transparent;")
         
         lbl_icon = QLabel(icon)
-        lbl_icon.setStyleSheet("font-size: 20px;")
+        lbl_icon.setStyleSheet("font-size: 20px; background: transparent;")
         
         header_layout.addWidget(lbl_title)
         header_layout.addStretch()
         header_layout.addWidget(lbl_icon)
 
         self.lbl_value = QLabel(value)
-        self.lbl_value.setStyleSheet("color: #FFFFFF; font-size: 28px; font-weight: bold; margin-top: 4px;")
+        self.lbl_value.setStyleSheet("color: #FFFFFF; font-size: 28px; font-weight: bold; margin-top: 4px; background: transparent;")
 
         layout.addLayout(header_layout)
         layout.addWidget(self.lbl_value)

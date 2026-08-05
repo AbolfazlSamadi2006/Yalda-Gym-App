@@ -25,6 +25,10 @@ QFrame#card {
 }
 
 /* Headings & Labels */
+QLabel {
+    background-color: transparent;
+}
+
 QLabel#h1 {
     font-size: 20px;
     font-weight: bold;

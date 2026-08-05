@@ -84,8 +84,26 @@ class Sidebar(QFrame):
 
         # Logout Button
         btn_logout = QPushButton("🚪  خروج از حساب")
-        btn_logout.setObjectName("danger_button")
         btn_logout.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_logout.setStyleSheet("""
+            QPushButton {
+                background-color: #DC2626;
+                color: #FFFFFF;
+                font-weight: bold;
+                text-align: right;
+                padding: 10px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #B91C1C;
+                color: #FFFFFF;
+            }
+            QPushButton:pressed {
+                background-color: #991B1B;
+            }
+        """)
         btn_logout.clicked.connect(self.logout_requested.emit)
         layout.addWidget(btn_logout)
 

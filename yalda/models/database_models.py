@@ -104,6 +104,7 @@ class PhysicalAssessment(Base):
     member_id = Column(Integer, ForeignKey("members.id"), nullable=False)
     assessment_date_shamsi = Column(String(10), nullable=False)
     
+    height_cm = Column(Float, nullable=True)
     weight_kg = Column(Float, nullable=False)
     body_fat_percentage = Column(Float, nullable=True)
     bmi = Column(Float, nullable=True)

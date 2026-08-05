@@ -8,7 +8,8 @@ class AssessmentService:
         session = get_session()
         try:
             member = session.query(Member).filter(Member.id == member_id).first()
-            height_cm = member.height_cm if member else 0.0
+            input_height = float(data.get("height_cm", 0.0) or 0.0)
+            height_cm = input_height if input_height > 0 else (member.height_cm if member else 0.0)
             
             weight_kg = float(data.get("weight_kg", 0.0) or 0.0)
             bmi = 0.0
@@ -19,6 +20,7 @@ class AssessmentService:
             assessment = PhysicalAssessment(
                 member_id=member_id,
                 assessment_date_shamsi=data.get("assessment_date_shamsi") or get_today_shamsi(),
+                height_cm=input_height if input_height > 0 else None,
                 weight_kg=weight_kg,
                 body_fat_percentage=float(data.get("body_fat_percentage", 0.0) or 0.0),
                 bmi=bmi,
@@ -57,6 +59,7 @@ class AssessmentService:
                 return None
             
             diff = {
+                "height_diff": round((getattr(a2, 'height_cm', None) or 0) - (getattr(a1, 'height_cm', None) or 0), 1),
                 "weight_diff": round(a2.weight_kg - a1.weight_kg, 1),
                 "fat_diff": round((a2.body_fat_percentage or 0) - (a1.body_fat_percentage or 0), 1),
                 "bmi_diff": round((a2.bmi or 0) - (a1.bmi or 0), 1),
@@ -66,5 +69,55 @@ class AssessmentService:
                 "thigh_diff": round((a2.thigh_circ or 0) - (a1.thigh_circ or 0), 1),
             }
             return {"first": a1, "second": a2, "diff": diff}
+        finally:
+            session.close()
+
+    @staticmethod
+    def update_assessment(assessment_id: int, data: dict) -> bool:
+        session = get_session()
+        try:
+            assessment = session.query(PhysicalAssessment).filter(PhysicalAssessment.id == assessment_id).first()
+            if not assessment:
+                return False
+            
+            member = session.query(Member).filter(Member.id == assessment.member_id).first()
+            input_height = float(data.get("height_cm", 0.0) or 0.0)
+            height_cm = input_height if input_height > 0 else (member.height_cm if member else 0.0)
+            weight_kg = float(data.get("weight_kg", 0.0) or 0.0)
+            bmi = 0.0
+            if height_cm and height_cm > 0 and weight_kg > 0:
+                height_m = height_cm / 100.0
+                bmi = round(weight_kg / (height_m * height_m), 1)
+
+            if "assessment_date_shamsi" in data and data["assessment_date_shamsi"]:
+                assessment.assessment_date_shamsi = data["assessment_date_shamsi"]
+            assessment.height_cm = input_height if input_height > 0 else None
+            assessment.weight_kg = weight_kg
+            assessment.body_fat_percentage = float(data.get("body_fat_percentage", 0.0) or 0.0)
+            assessment.bmi = bmi
+            assessment.arm_circ = float(data.get("arm_circ", 0.0) or 0.0)
+            assessment.chest_circ = float(data.get("chest_circ", 0.0) or 0.0)
+            assessment.waist_circ = float(data.get("waist_circ", 0.0) or 0.0)
+            assessment.thigh_circ = float(data.get("thigh_circ", 0.0) or 0.0)
+            if "before_photo_path" in data and data["before_photo_path"] is not None:
+                assessment.before_photo_path = data["before_photo_path"]
+            if "after_photo_path" in data and data["after_photo_path"] is not None:
+                assessment.after_photo_path = data["after_photo_path"]
+            
+            session.commit()
+            return True
+        finally:
+            session.close()
+
+    @staticmethod
+    def delete_assessment(assessment_id: int) -> bool:
+        session = get_session()
+        try:
+            assessment = session.query(PhysicalAssessment).filter(PhysicalAssessment.id == assessment_id).first()
+            if assessment:
+                session.delete(assessment)
+                session.commit()
+                return True
+            return False
         finally:
             session.close()

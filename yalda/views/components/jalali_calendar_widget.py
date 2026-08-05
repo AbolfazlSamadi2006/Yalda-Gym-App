@@ -125,7 +125,17 @@ class JalaliCalendarDialog(QDialog):
         for col, h in enumerate(headers):
             lbl = QLabel(h)
             lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl.setStyleSheet("font-weight: bold; color: #FF4D4D; font-size: 14px; margin-bottom: 4px;")
+            lbl.setFixedHeight(28)
+            lbl.setStyleSheet("""
+                QLabel {
+                    background-color: #8B0000;
+                    color: #FFFFFF;
+                    font-size: 13px;
+                    font-weight: bold;
+                    border-radius: 6px;
+                    margin-bottom: 4px;
+                }
+            """)
             self.grid_layout.addWidget(lbl, 0, col)
 
         # Calculate days in month

@@ -53,14 +53,15 @@ class MemberListView(QWidget):
 
         # Members Table
         self.table = QTableWidget()
-        self.table.setColumnCount(8)
+        self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels([
-            "کد", "نام و نام خانوادگی", "شماره تماس", "قد / وزن", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت", "عملیات"
+            "نام و نام خانوادگی", "شماره تماس", "قد / وزن", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت", "عملیات"
         ])
+        self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(54)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(7, 235)
+        self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(6, 235)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -83,13 +84,12 @@ class MemberListView(QWidget):
 
         self.table.setRowCount(len(members))
         for row, m in enumerate(members):
-            self.table.setItem(row, 0, QTableWidgetItem(str(m.id)))
-            self.table.setItem(row, 1, QTableWidgetItem(m.full_name))
-            self.table.setItem(row, 2, QTableWidgetItem(m.phone))
-            self.table.setItem(row, 3, QTableWidgetItem(f"{int(m.height_cm or 0)}cm / {int(m.initial_weight_kg or 0)}kg"))
+            self.table.setItem(row, 0, QTableWidgetItem(m.full_name))
+            self.table.setItem(row, 1, QTableWidgetItem(m.phone))
+            self.table.setItem(row, 2, QTableWidgetItem(f"{int(m.height_cm or 0)}cm / {int(m.initial_weight_kg or 0)}kg"))
             m_type_fa = MEMBERSHIP_TYPE_MAP.get(m.membership_type, m.membership_type or "")
-            self.table.setItem(row, 4, QTableWidgetItem(m_type_fa))
-            self.table.setItem(row, 5, QTableWidgetItem(m.membership_expire_shamsi or ""))
+            self.table.setItem(row, 3, QTableWidgetItem(m_type_fa))
+            self.table.setItem(row, 4, QTableWidgetItem(m.membership_expire_shamsi or ""))
 
             # Status Column
             status_map = {"active": "فعال", "expired": "انقضا یافته", "archived": "آرشیو شده"}
@@ -98,34 +98,37 @@ class MemberListView(QWidget):
                 status_item.setForeground(Qt.GlobalColor.green)
             elif m.status == "expired":
                 status_item.setForeground(Qt.GlobalColor.red)
-            self.table.setItem(row, 6, status_item)
+            self.table.setItem(row, 5, status_item)
 
             # Actions Button Widget (View File, Edit, Delete)
             btn_container = QWidget()
+            btn_container.setStyleSheet("background: transparent;")
             btn_layout = QHBoxLayout(btn_container)
-            btn_layout.setContentsMargins(2, 4, 2, 4)
-            btn_layout.setSpacing(4)
+            btn_layout.setContentsMargins(2, 0, 2, 0)
+            btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            btn_layout.setSpacing(5)
 
             btn_view = QPushButton("📋 پرونده")
-            btn_view.setObjectName("secondary_button")
-            btn_view.setStyleSheet("padding: 4px 6px; font-size: 11px; height: 32px;")
+            btn_view.setFixedHeight(30)
+            btn_view.setStyleSheet("background-color: #374151; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 2px 6px; font-size: 11px;")
             btn_view.clicked.connect(lambda _, mid=m.id: self.open_member_detail.emit(mid))
 
             btn_edit = QPushButton("✏️ ویرایش")
-            btn_edit.setStyleSheet("padding: 4px 6px; font-size: 11px; height: 32px;")
+            btn_edit.setFixedHeight(30)
+            btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 2px 6px; font-size: 11px;")
             btn_edit.clicked.connect(lambda _, member=m: self.open_edit_dialog(member))
 
             btn_delete = QPushButton("🗑️")
-            btn_delete.setObjectName("danger_button")
             btn_delete.setToolTip("حذف پرونده ورزشکار")
-            btn_delete.setStyleSheet("padding: 4px 6px; font-size: 12px; height: 32px; min-width: 32px;")
+            btn_delete.setFixedSize(32, 30)
+            btn_delete.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; font-size: 12px;")
             btn_delete.clicked.connect(lambda _, member=m: self.delete_member(member))
 
             btn_layout.addWidget(btn_view)
             btn_layout.addWidget(btn_edit)
             btn_layout.addWidget(btn_delete)
 
-            self.table.setCellWidget(row, 7, btn_container)
+            self.table.setCellWidget(row, 6, btn_container)
 
     def delete_member(self, member):
         reply = QMessageBox.question(

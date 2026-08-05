@@ -224,14 +224,15 @@ class AddMedicalDocumentDialog(QDialog):
         # Selected Pages Table
         self.table_pages = QTableWidget(0, 3)
         self.table_pages.setHorizontalHeaderLabels(["صفحه", "نام فایل", "حذف"])
-        self.table_pages.verticalHeader().setDefaultSectionSize(36)
+        self.table_pages.verticalHeader().setVisible(False)
+        self.table_pages.verticalHeader().setDefaultSectionSize(44)
         
         header_p = self.table_pages.horizontalHeader()
-        header_p.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)
-        self.table_pages.setColumnWidth(0, 70)
+        header_p.setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        self.table_pages.setColumnWidth(0, 80)
         header_p.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         header_p.setSectionResizeMode(2, QHeaderView.ResizeMode.Fixed)
-        self.table_pages.setColumnWidth(2, 60)
+        self.table_pages.setColumnWidth(2, 65)
 
         # Notes Input
         lbl_notes = QLabel("توضیحات تکمیلی مربی (اختیاری):")
@@ -288,12 +289,21 @@ class AddMedicalDocumentDialog(QDialog):
             item_name.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
             btn_del = QPushButton("🗑️")
-            btn_del.setObjectName("danger_button")
+            btn_del.setToolTip("حذف این صفحه")
+            btn_del.setFixedSize(32, 30)
+            btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; font-size: 12px;")
             btn_del.clicked.connect(lambda _, path=filepath: self.remove_file(path))
+
+            del_widget = QWidget()
+            del_widget.setStyleSheet("background: transparent;")
+            del_layout = QHBoxLayout(del_widget)
+            del_layout.setContentsMargins(0, 0, 0, 0)
+            del_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            del_layout.addWidget(btn_del)
 
             self.table_pages.setItem(row, 0, item_page)
             self.table_pages.setItem(row, 1, item_name)
-            self.table_pages.setCellWidget(row, 2, btn_del)
+            self.table_pages.setCellWidget(row, 2, del_widget)
 
     def remove_file(self, filepath: str):
         if filepath in self.selected_files:

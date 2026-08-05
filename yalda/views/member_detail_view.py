@@ -47,24 +47,25 @@ class MemberDetailView(QWidget):
 
         # Member Quick Info Header Card
         self.card_info = QFrame()
-        self.card_info.setObjectName("card")
+        self.card_info.setStyleSheet("background: transparent; border: none;")
         layout_card = QHBoxLayout(self.card_info)
-        layout_card.setContentsMargins(15, 12, 15, 12)
-        layout_card.setSpacing(15)
+        layout_card.setContentsMargins(5, 10, 5, 15)
+        layout_card.setSpacing(22)
 
         self.lbl_avatar = QLabel()
-        self.lbl_avatar.setFixedSize(64, 64)
-        self.lbl_avatar.setStyleSheet("border-radius: 32px; background-color: #2E2E2E;")
+        self.lbl_avatar.setFixedSize(100, 100)
+        self.lbl_avatar.setStyleSheet("border-radius: 50px; background-color: #2E2E2E; border: 2px solid #555555;")
         self.lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.lbl_member_details = QLabel()
-        self.lbl_member_details.setStyleSheet("font-size: 14px; line-height: 1.6;")
+        self.lbl_member_details.setStyleSheet("font-size: 17px; color: #FFFFFF; line-height: 2.0; background: transparent;")
         
         layout_card.addWidget(self.lbl_avatar)
         layout_card.addWidget(self.lbl_member_details)
         layout_card.addStretch()
 
         layout.addWidget(self.card_info)
+        layout.addSpacing(10)
 
         # Main Tabs Widget
         self.tabs = QTabWidget()
@@ -114,14 +115,14 @@ class MemberDetailView(QWidget):
             if member.photo_path and os.path.exists(member.photo_path):
                 pixmap = QPixmap(member.photo_path)
                 if not pixmap.isNull():
-                    scaled_pix = pixmap.scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+                    scaled_pix = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
                     self.lbl_avatar.setPixmap(scaled_pix)
                 else:
                     self.lbl_avatar.setText("👤")
-                    self.lbl_avatar.setStyleSheet("font-size: 32px; background-color: #2E2E2E; border-radius: 32px;")
+                    self.lbl_avatar.setStyleSheet("font-size: 50px; background-color: #2E2E2E; border-radius: 50px; border: 2px solid #555555;")
             else:
                 self.lbl_avatar.setText("👤")
-                self.lbl_avatar.setStyleSheet("font-size: 32px; background-color: #2E2E2E; border-radius: 32px;")
+                self.lbl_avatar.setStyleSheet("font-size: 50px; background-color: #2E2E2E; border-radius: 50px; border: 2px solid #555555;")
 
     def init_workout_tab(self):
         # Clear previous layout

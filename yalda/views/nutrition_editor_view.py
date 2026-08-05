@@ -34,19 +34,13 @@ class NutritionEditorView(QWidget):
         # Macros Goal Box
         goal_box = QGroupBox("اهداف فیزیکی و درشت‌مغذی‌های رژیم (Macronutrients)")
         layout_goal = QVBoxLayout(goal_box)
+        layout_goal.setSpacing(12)
+        layout_goal.setContentsMargins(12, 12, 12, 12)
 
-        # Template Picker Row
-        row_tpl = QHBoxLayout()
-        self.combo_templates = QComboBox()
-        self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده رژیم از بانک ---", None)
-        self.load_template_dropdown()
-        self.combo_templates.currentIndexChanged.connect(self.on_template_selected)
-
-        row_tpl.addWidget(QLabel("📂 الگوهای آماده رژیم بانک:"))
-        row_tpl.addWidget(self.combo_templates)
-        layout_goal.addLayout(row_tpl)
-
+        # Row 1: Title -> Goal -> Template Picker
         row1 = QHBoxLayout()
+        row1.setSpacing(12)
+
         self.txt_title = QLineEdit()
         self.txt_title.setPlaceholderText("عنوان رژیم (مثلاً: رژیم هایپرتروفی ۲۵۰۰ کالری)...")
 
@@ -56,38 +50,132 @@ class NutritionEditorView(QWidget):
         self.combo_goal.addItem("افزایش وزن (Weight Gain)", "weight_gain")
         self.combo_goal.addItem("تثبیت وزن (Maintenance)", "maintenance")
 
-        row1.addWidget(QLabel("عنوان رژیم:"))
-        row1.addWidget(self.txt_title)
-        row1.addWidget(QLabel("هدف رژیم:"))
-        row1.addWidget(self.combo_goal)
+        self.combo_templates = QComboBox()
+        self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده رژیم از بانک ---", None)
+        self.load_template_dropdown()
+        self.combo_templates.currentIndexChanged.connect(self.on_template_selected)
+
+        h_title = QHBoxLayout()
+        h_title.setSpacing(4)
+        h_title.addWidget(QLabel("عنوان رژیم:"))
+        h_title.addWidget(self.txt_title)
+
+        h_goal = QHBoxLayout()
+        h_goal.setSpacing(4)
+        h_goal.addWidget(QLabel("هدف رژیم:"))
+        h_goal.addWidget(self.combo_goal)
+
+        h_tpl = QHBoxLayout()
+        h_tpl.setSpacing(4)
+        h_tpl.addWidget(QLabel("📂 الگوهای آماده بانک رژیم غذایی:"))
+        h_tpl.addWidget(self.combo_templates)
+
+        row1.addLayout(h_title)
+        row1.addLayout(h_goal)
+        row1.addLayout(h_tpl)
         layout_goal.addLayout(row1)
 
+        # Row 2: Cal, Protein, Carbs, Fat, Total Grams, Calorie Percent
         row2 = QHBoxLayout()
+        row2.setSpacing(8)
+
+        spin_style = "QDoubleSpinBox { padding: 2px 2px; font-size: 13px; font-weight: bold; border-radius: 4px; }"
+
         self.spin_cal = QDoubleSpinBox()
-        self.spin_cal.setRange(800, 5000)
-        self.spin_cal.setValue(2200)
+        self.spin_cal.setRange(0, 5000)
+        self.spin_cal.setSpecialValueText("")
+        self.spin_cal.setValue(0.0)
+        self.spin_cal.setDecimals(0)
+        self.spin_cal.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spin_cal.setFixedWidth(90)
+        self.spin_cal.setStyleSheet(spin_style)
 
         self.spin_protein = QDoubleSpinBox()
-        self.spin_protein.setRange(40, 350)
-        self.spin_protein.setValue(160)
+        self.spin_protein.setRange(0, 500)
+        self.spin_protein.setSpecialValueText("")
+        self.spin_protein.setValue(0.0)
+        self.spin_protein.setDecimals(0)
+        self.spin_protein.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spin_protein.setFixedWidth(78)
+        self.spin_protein.setStyleSheet(spin_style)
 
         self.spin_carbs = QDoubleSpinBox()
-        self.spin_carbs.setRange(50, 600)
-        self.spin_carbs.setValue(220)
+        self.spin_carbs.setRange(0, 1000)
+        self.spin_carbs.setSpecialValueText("")
+        self.spin_carbs.setValue(0.0)
+        self.spin_carbs.setDecimals(0)
+        self.spin_carbs.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spin_carbs.setFixedWidth(78)
+        self.spin_carbs.setStyleSheet(spin_style)
 
         self.spin_fat = QDoubleSpinBox()
-        self.spin_fat.setRange(20, 200)
-        self.spin_fat.setValue(60)
+        self.spin_fat.setRange(0, 500)
+        self.spin_fat.setSpecialValueText("")
+        self.spin_fat.setValue(0.0)
+        self.spin_fat.setDecimals(0)
+        self.spin_fat.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spin_fat.setFixedWidth(78)
+        self.spin_fat.setStyleSheet(spin_style)
 
-        row2.addWidget(QLabel("کالری هدف (kcal):"))
-        row2.addWidget(self.spin_cal)
-        row2.addWidget(QLabel("پروتئین (g):"))
-        row2.addWidget(self.spin_protein)
-        row2.addWidget(QLabel("کربوهیدرات (g):"))
-        row2.addWidget(self.spin_carbs)
-        row2.addWidget(QLabel("چربی (g):"))
-        row2.addWidget(self.spin_fat)
+        self.spin_total_grams = QDoubleSpinBox()
+        self.spin_total_grams.setRange(0, 3000)
+        self.spin_total_grams.setSpecialValueText("")
+        self.spin_total_grams.setValue(0.0)
+        self.spin_total_grams.setDecimals(0)
+        self.spin_total_grams.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.spin_total_grams.setFixedWidth(78)
+        self.spin_total_grams.setStyleSheet(spin_style + " QDoubleSpinBox { color: #00FFC8; }")
+
+        self.txt_calorie_percent = QLineEdit()
+        self.txt_calorie_percent.setReadOnly(True)
+        self.txt_calorie_percent.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.txt_calorie_percent.setFixedWidth(210)
+        self.txt_calorie_percent.setStyleSheet("font-weight: bold; color: #D4AF37; background-color: #1A1A1A; padding: 2px 4px; font-size: 11px;")
+
+        h_cal = QHBoxLayout()
+        h_cal.setSpacing(4)
+        h_cal.addWidget(QLabel("کالری (kcal):"))
+        h_cal.addWidget(self.spin_cal)
+
+        h_pro = QHBoxLayout()
+        h_pro.setSpacing(4)
+        h_pro.addWidget(QLabel("پروتئین (g):"))
+        h_pro.addWidget(self.spin_protein)
+
+        h_carbs = QHBoxLayout()
+        h_carbs.setSpacing(4)
+        h_carbs.addWidget(QLabel("کربوهیدرات (g):"))
+        h_carbs.addWidget(self.spin_carbs)
+
+        h_fat = QHBoxLayout()
+        h_fat.setSpacing(4)
+        h_fat.addWidget(QLabel("چربی (g):"))
+        h_fat.addWidget(self.spin_fat)
+
+        h_total_g = QHBoxLayout()
+        h_total_g.setSpacing(4)
+        h_total_g.addWidget(QLabel("گرم مواد غذایی (g):"))
+        h_total_g.addWidget(self.spin_total_grams)
+
+        h_pct = QHBoxLayout()
+        h_pct.setSpacing(4)
+        h_pct.addWidget(QLabel("درصد کالری (٪):"))
+        h_pct.addWidget(self.txt_calorie_percent)
+
+        row2.addLayout(h_cal)
+        row2.addLayout(h_pro)
+        row2.addLayout(h_carbs)
+        row2.addLayout(h_fat)
+        row2.addLayout(h_total_g)
+        row2.addLayout(h_pct)
+        row2.addStretch()
         layout_goal.addLayout(row2)
+
+        self.spin_cal.valueChanged.connect(self.update_macro_calculations)
+        self.spin_protein.valueChanged.connect(self.update_macro_calculations)
+        self.spin_carbs.valueChanged.connect(self.update_macro_calculations)
+        self.spin_fat.valueChanged.connect(self.update_macro_calculations)
+        self.update_macro_calculations()
 
         layout.addWidget(goal_box)
 
@@ -137,6 +225,7 @@ class NutritionEditorView(QWidget):
                 "maintenance": "تثبیت وزن"
             }.get(p.goal, p.goal)
             self.combo_templates.addItem(f"🥗 {p.title} ({int(p.target_calories)} kcal - {goal_title})", p.id)
+        self.combo_templates.setCurrentIndex(0)
         self.combo_templates.blockSignals(False)
 
     def on_template_selected(self, index: int):
@@ -249,14 +338,31 @@ class NutritionEditorView(QWidget):
             layout_meal.addWidget(table)
             self.tabs.addTab(widget, meal_title)
             self.meal_tables.append((meal_key, table))
+            # بدون ردیف پیش‌فرض - مربی مقادیر را خودش اضافه می‌کند
 
-            # Add 1 initial row for primary meals
-            if meal_key in ["breakfast", "lunch", "dinner"]:
-                self.add_food_row(table, foods_list)
+    def update_macro_calculations(self):
+        cal = self.spin_cal.value()
+        p = self.spin_protein.value()
+        c = self.spin_carbs.value()
+        f = self.spin_fat.value()
+
+        total_g = p + c + f
+        self.spin_total_grams.setValue(total_g if total_g > 0 else 0.0)
+
+        if cal > 0 and total_g > 0:
+            p_pct = (p * 4 / cal) * 100
+            c_pct = (c * 4 / cal) * 100
+            f_pct = (f * 9 / cal) * 100
+            self.txt_calorie_percent.setText(f"{p_pct:.0f}% پروتئین | {c_pct:.0f}% کربوهیدرات | {f_pct:.0f}% چربی")
+        else:
+            self.txt_calorie_percent.setText("")
 
     def refresh_editor(self):
         self.load_members_dropdown()
+        self.combo_templates.blockSignals(True)
         self.load_template_dropdown()
+        self.combo_templates.blockSignals(False)
+        self._do_reset_fields()
         self.setup_meal_tabs()
 
     def add_food_row(self, table: QTableWidget, foods_list: list = None):
@@ -326,12 +432,48 @@ class NutritionEditorView(QWidget):
         }
         return plan_info, meals_data
 
-    def save_plan(self):
+    def save_plan(self, auto_reset: bool = True):
         plan_info, meals_data = self.get_plan_data()
         plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
+        # ابتدا ریست کامل فرم (قبل از بارگذاری دراپ‌داون تا on_template_selected مقادیر را برنگرداند)
+        if auto_reset:
+            self._do_reset_fields()
+        # سپس بارگذاری لیست الگوها با blockSignals کامل
+        self.combo_templates.blockSignals(True)
         self.load_template_dropdown()
+        self.combo_templates.blockSignals(False)
+        # پاکسازی جدول وعده‌ها
+        if auto_reset:
+            self.setup_meal_tabs()
         QMessageBox.information(self, "موفقیت", "الگوی برنامه غذایی با موفقیت در بانک ذخیره شد.")
         return plan
+
+    def _do_reset_fields(self):
+        """فقط پاکسازی فیلدهای کادر اهداف فیزیکی، بدون لمس جدول وعده‌ها"""
+        for w in [self.txt_title, self.combo_goal, self.spin_cal, self.spin_protein,
+                  self.spin_carbs, self.spin_fat, self.spin_total_grams, self.combo_templates]:
+            w.blockSignals(True)
+
+        self.txt_title.setText("")
+        self.combo_goal.setCurrentIndex(0)
+        self.spin_cal.setValue(0.0)
+        self.spin_protein.setValue(0.0)
+        self.spin_carbs.setValue(0.0)
+        self.spin_fat.setValue(0.0)
+        self.spin_total_grams.setValue(0.0)
+        self.txt_calorie_percent.setText("")
+
+        for w in [self.txt_title, self.combo_goal, self.spin_cal, self.spin_protein,
+                  self.spin_carbs, self.spin_fat, self.spin_total_grams, self.combo_templates]:
+            w.blockSignals(False)
+
+    def reset_form(self):
+        self._do_reset_fields()
+        self.combo_templates.blockSignals(True)
+        if self.combo_templates.count() > 0:
+            self.combo_templates.setCurrentIndex(0)
+        self.combo_templates.blockSignals(False)
+        self.setup_meal_tabs()
 
     def assign_plan(self):
         member_id = self.combo_member.currentData()
@@ -339,9 +481,10 @@ class NutritionEditorView(QWidget):
             QMessageBox.warning(self, "خطا", "لطفاً یک ورزشکار را جهت تخصیص انتخاب کنید.")
             return
 
-        plan = self.save_plan()
+        plan = self.save_plan(auto_reset=False)
         NutritionService.assign_nutrition_plan(member_id, plan.id)
         QMessageBox.information(self, "موفقیت", "برنامه غذایی با موفقیت به ورزشکار تخصیص یافت.")
+        self.reset_form()
 
     def open_food_bank(self):
         from yalda.views.food_library_dialog import FoodLibraryDialog

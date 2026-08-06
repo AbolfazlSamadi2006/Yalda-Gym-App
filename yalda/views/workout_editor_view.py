@@ -156,9 +156,7 @@ class WorkoutEditorView(QWidget):
             layout_day.addWidget(table)
             self.tabs.addTab(day_widget, f"روز {d}")
             self.day_tables.append((txt_day_title, table))
-
-            # Add initial empty row
-            self.add_exercise_row(table, exercises_list)
+            # بدون حرکت پیش‌فرض اولیه - مربی خودش حرکات را اضافه می‌کند
 
     def refresh_editor(self):
         self.load_members_dropdown()

@@ -35,6 +35,10 @@ class Member(Base):
     initial_weight_kg = Column(Float, nullable=True)
     photo_path = Column(String(255), nullable=True)
     
+    registration_date_shamsi = Column(String(10), nullable=True)
+    insurance_date_shamsi = Column(String(10), nullable=True)
+    tuition_fee = Column(Float, nullable=True)
+    
     membership_type = Column(String(50), default="12_sessions")
     # '8_sessions', '12_sessions', '16_sessions', '20_sessions', 'daily_access'
     

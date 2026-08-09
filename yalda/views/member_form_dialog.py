@@ -13,7 +13,7 @@ class MemberFormDialog(QDialog):
         self.photo_path = None
         self.setWindowTitle("ثبت / ویرایش ورزشکار جدید")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setFixedSize(540, 500)
+        self.setFixedSize(580, 560)
 
         self.init_ui()
 
@@ -132,56 +132,83 @@ class MemberFormDialog(QDialog):
         layout.addLayout(row_stats_container)
         self.update_bmi_display()
 
-        # Membership Dates & Type Layout
-        grid_mem = QHBoxLayout()
+        # Membership Dates, Fee & Type Layout (3-Row Stacked Grid)
+        vbox_mem = QVBoxLayout()
+        vbox_mem.setSpacing(10)
 
-        # Dates column (Start Date on top, Expiry Date on bottom)
-        vbox_dates = QVBoxLayout()
-        vbox_dates.setSpacing(10)
+        # Row 1: Registration Date (Right) & Sports Insurance Date (Left)
+        row_mem_1 = QHBoxLayout()
+        
+        lbl_reg = QLabel("تاریخ ثبت نام:")
+        lbl_reg.setFixedWidth(80)
+        self.picker_reg = JalaliDatePicker(default_today=True)
+        self.picker_reg.setFixedWidth(135)
 
-        row_s = QHBoxLayout()
+        lbl_ins = QLabel("تاریخ بیمه ورزشی:")
+        lbl_ins.setFixedWidth(90)
+        self.picker_insurance = JalaliDatePicker(default_today=False)
+        self.picker_insurance.setFixedWidth(170)
+
+        row_mem_1.addWidget(lbl_reg)
+        row_mem_1.addWidget(self.picker_reg)
+        row_mem_1.addSpacing(15)
+        row_mem_1.addWidget(lbl_ins)
+        row_mem_1.addWidget(self.picker_insurance)
+        row_mem_1.addStretch()
+        vbox_mem.addLayout(row_mem_1)
+
+        # Row 2: Start Date (Right) & Tuition Fee (Left)
+        row_mem_2 = QHBoxLayout()
+
         lbl_start = QLabel("تاریخ شروع:")
-        lbl_start.setFixedWidth(65)
-        self.picker_start = JalaliDatePicker(default_today=False)
-        self.picker_start.setFixedWidth(155)
+        lbl_start.setFixedWidth(80)
+        self.picker_start = JalaliDatePicker(default_today=True)
+        self.picker_start.setFixedWidth(135)
         self.picker_start.date_changed.connect(self.recalculate_expiry)
-        row_s.addWidget(lbl_start)
-        row_s.addWidget(self.picker_start)
-        vbox_dates.addLayout(row_s)
 
-        row_e = QHBoxLayout()
+        lbl_fee = QLabel("مبلغ شهریه:")
+        lbl_fee.setFixedWidth(90)
+        self.txt_tuition_fee = QLineEdit()
+        self.txt_tuition_fee.setFixedWidth(170)
+        self.txt_tuition_fee.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.txt_tuition_fee.textChanged.connect(self.format_tuition_input)
+
+        row_mem_2.addWidget(lbl_start)
+        row_mem_2.addWidget(self.picker_start)
+        row_mem_2.addSpacing(15)
+        row_mem_2.addWidget(lbl_fee)
+        row_mem_2.addWidget(self.txt_tuition_fee)
+        row_mem_2.addStretch()
+        vbox_mem.addLayout(row_mem_2)
+
+        # Row 3: Expiry Date (Right) & Membership Type (Left)
+        row_mem_3 = QHBoxLayout()
+
         lbl_expire = QLabel("تاریخ انقضا:")
-        lbl_expire.setFixedWidth(65)
+        lbl_expire.setFixedWidth(80)
         self.picker_expire = JalaliDatePicker(default_today=False)
-        self.picker_expire.setFixedWidth(155)
-        row_e.addWidget(lbl_expire)
-        row_e.addWidget(self.picker_expire)
-        vbox_dates.addLayout(row_e)
+        self.picker_expire.setFixedWidth(135)
 
-        # Membership Type side-by-side (Label + Dropdown), vertically centered in the middle
-        hbox_type = QHBoxLayout()
-        hbox_type.setSpacing(10)
         lbl_membership_type = QLabel("نوع عضویت:")
-        lbl_membership_type.setFixedWidth(80)
-
+        lbl_membership_type.setFixedWidth(90)
         self.combo_membership = QComboBox()
         self.combo_membership.addItem("۱۲ جلسه در ماه", "12_sessions")
         self.combo_membership.addItem("۸ جلسه در ماه", "8_sessions")
         self.combo_membership.addItem("۱۶ جلسه در ماه", "16_sessions")
         self.combo_membership.addItem("۲۰ جلسه در ماه", "20_sessions")
-        self.combo_membership.addItem("دسترسی روزانه", "daily_access")
-        self.combo_membership.setFixedWidth(160)
+        self.combo_membership.addItem("همه روزه", "daily_access")
+        self.combo_membership.setFixedWidth(170)
         self.combo_membership.currentIndexChanged.connect(self.on_membership_type_changed)
 
-        hbox_type.addWidget(lbl_membership_type)
-        hbox_type.addWidget(self.combo_membership)
+        row_mem_3.addWidget(lbl_expire)
+        row_mem_3.addWidget(self.picker_expire)
+        row_mem_3.addSpacing(15)
+        row_mem_3.addWidget(lbl_membership_type)
+        row_mem_3.addWidget(self.combo_membership)
+        row_mem_3.addStretch()
+        vbox_mem.addLayout(row_mem_3)
 
-        grid_mem.addLayout(vbox_dates)
-        grid_mem.addSpacing(15)
-        grid_mem.addLayout(hbox_type)
-        grid_mem.addStretch()
-
-        layout.addLayout(grid_mem)
+        layout.addLayout(vbox_mem)
 
         # Notes Section (Higher label & expanded text edit)
         layout.addSpacing(4)
@@ -232,6 +259,22 @@ class MemberFormDialog(QDialog):
         else:
             self.lbl_bmi_badge.setText("BMI: -")
             self.lbl_bmi_badge.setStyleSheet("font-size: 13px; font-weight: bold; padding: 10px; border-radius: 8px; background-color: #555555; color: white;")
+
+    def format_tuition_input(self, text: str):
+        persian_to_eng = str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789')
+        raw = text.translate(persian_to_eng).replace(',', '').replace(' ', '').strip()
+        if raw.isdigit():
+            val = int(raw)
+            formatted = f"{val:,}"
+            if text != formatted:
+                self.txt_tuition_fee.blockSignals(True)
+                self.txt_tuition_fee.setText(formatted)
+                self.txt_tuition_fee.blockSignals(False)
+        elif not raw:
+            if text != "":
+                self.txt_tuition_fee.blockSignals(True)
+                self.txt_tuition_fee.setText("")
+                self.txt_tuition_fee.blockSignals(False)
 
     def recalculate_expiry(self):
         start_date = self.picker_start.text().strip()
@@ -298,6 +341,11 @@ class MemberFormDialog(QDialog):
             persian_to_eng = str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789')
             phone_val = phone_val.translate(persian_to_eng)
 
+        raw_fee = self.txt_tuition_fee.text().strip()
+        persian_to_eng = str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789')
+        raw_fee_clean = raw_fee.translate(persian_to_eng).replace(',', '').replace(' ', '')
+        tuition_val = float(raw_fee_clean) if raw_fee_clean.isdigit() else None
+
         return {
             "first_name": self.txt_first_name.text().strip(),
             "last_name": self.txt_last_name.text().strip(),
@@ -307,6 +355,9 @@ class MemberFormDialog(QDialog):
             "birth_date_shamsi": self.picker_birth.text(),
             "height_cm": self.spin_height.value(),
             "initial_weight_kg": self.spin_weight.value(),
+            "registration_date_shamsi": self.picker_reg.text(),
+            "insurance_date_shamsi": self.picker_insurance.text(),
+            "tuition_fee": tuition_val,
             "membership_type": self.combo_membership.currentData(),
             "membership_start_shamsi": self.picker_start.text(),
             "membership_expire_shamsi": self.picker_expire.text(),
@@ -334,6 +385,14 @@ class MemberFormDialog(QDialog):
         idx_m = self.combo_membership.findData(m.membership_type)
         if idx_m >= 0:
             self.combo_membership.setCurrentIndex(idx_m)
+
+        if hasattr(m, 'registration_date_shamsi') and m.registration_date_shamsi:
+            self.picker_reg.setText(m.registration_date_shamsi)
+        if hasattr(m, 'insurance_date_shamsi') and m.insurance_date_shamsi:
+            self.picker_insurance.setText(m.insurance_date_shamsi)
+        if hasattr(m, 'tuition_fee') and m.tuition_fee is not None:
+            val = int(m.tuition_fee)
+            self.txt_tuition_fee.setText(f"{val:,}")
 
         if m.birth_date_shamsi:
             self.picker_birth.setText(m.birth_date_shamsi)

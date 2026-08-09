@@ -79,7 +79,7 @@ class MemberListView(QWidget):
             "8_sessions": "۸ جلسه در ماه",
             "16_sessions": "۱۶ جلسه در ماه",
             "20_sessions": "۲۰ جلسه در ماه",
-            "daily_access": "دسترسی روزانه"
+            "daily_access": "همه روزه"
         }
 
         self.table.setRowCount(len(members))

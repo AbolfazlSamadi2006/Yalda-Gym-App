@@ -23,7 +23,18 @@ def check_and_migrate_db():
                 conn.execute(text("ALTER TABLE members ADD COLUMN insurance_date_shamsi VARCHAR(10);"))
             if "tuition_fee" not in columns:
                 conn.execute(text("ALTER TABLE members ADD COLUMN tuition_fee FLOAT;"))
+            if "job" not in columns:
+                conn.execute(text("ALTER TABLE members ADD COLUMN job VARCHAR(100);"))
             conn.commit()
+
+    if "physical_assessments" in inspector.get_table_names():
+        pa_columns = [c["name"] for c in inspector.get_columns("physical_assessments")]
+        with engine.connect() as conn:
+            if "height_cm" not in pa_columns:
+                conn.execute(text("ALTER TABLE physical_assessments ADD COLUMN height_cm FLOAT;"))
+            conn.commit()
+
+
 
 def init_db():
     """Creates database tables and seeds initial default data if needed."""

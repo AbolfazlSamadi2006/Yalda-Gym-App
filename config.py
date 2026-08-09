@@ -3,8 +3,25 @@ from pathlib import Path
 
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+
+# Permanent User Data Directory in AppData/Roaming/YaldaGym
+APPDATA_DIR = Path(os.environ.get("APPDATA", Path.home())) / "YaldaGym"
+DATA_DIR = APPDATA_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+# Automatic One-Time Migration from local data directory if exists
+LOCAL_DATA_DIR = BASE_DIR / "data"
+if LOCAL_DATA_DIR.exists() and LOCAL_DATA_DIR.resolve() != DATA_DIR.resolve():
+    import shutil
+    try:
+        for item in LOCAL_DATA_DIR.iterdir():
+            dest = DATA_DIR / item.name
+            if item.is_dir() and not dest.exists():
+                shutil.copytree(item, dest)
+            elif item.is_file() and not dest.exists():
+                shutil.copy2(item, dest)
+    except Exception:
+        pass
 
 # Sub-directories for uploads and data
 UPLOADS_DIR = DATA_DIR / "uploads"
@@ -21,10 +38,12 @@ for folder in [UPLOADS_DIR, PROFILE_PHOTOS_DIR, PROGRESS_PHOTOS_DIR, EXERCISE_ME
 DB_PATH = DATA_DIR / "yalda.db"
 DATABASE_URI = f"sqlite:///{DB_PATH}"
 
+
 # App Details
 APP_NAME = "یلدا"
 APP_ENGLISH_NAME = "Yalda Gym"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.1"
+
 
 # Styling & Colors (Dark Red & Black Theme)
 COLOR_BACKGROUND = "#121212"

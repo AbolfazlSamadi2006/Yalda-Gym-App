@@ -5,7 +5,8 @@ from sqlalchemy import or_
 
 class MemberService:
     @staticmethod
-    def get_all_members(search_query: str = None, status_filter: str = "active"):
+    def get_all_members(search_query: str = None, status_filter: str = "all"):
+
         session = get_session()
         try:
             query = session.query(Member)
@@ -25,11 +26,13 @@ class MemberService:
 
             members = query.order_by(Member.id.desc()).all()
             
-            # Check for expired memberships dynamically
-            today_str = get_today_shamsi()
+            # Check for active vs expired memberships dynamically
             for m in members:
-                if m.status == "active" and not is_membership_active(m.membership_expire_shamsi):
-                    m.status = "expired"
+                if m.status != "archived" and m.membership_expire_shamsi:
+                    if is_membership_active(m.membership_expire_shamsi):
+                        m.status = "active"
+                    else:
+                        m.status = "expired"
             session.commit()
             return members
         finally:
@@ -39,7 +42,14 @@ class MemberService:
     def get_member_by_id(member_id: int):
         session = get_session()
         try:
-            return session.query(Member).filter(Member.id == member_id).first()
+            member = session.query(Member).filter(Member.id == member_id).first()
+            if member and member.status != "archived" and member.membership_expire_shamsi:
+                if is_membership_active(member.membership_expire_shamsi):
+                    member.status = "active"
+                else:
+                    member.status = "expired"
+                session.commit()
+            return member
         finally:
             session.close()
 
@@ -47,6 +57,14 @@ class MemberService:
     def create_member(data: dict) -> Member:
         session = get_session()
         try:
+            h_val = float(data.get("height_cm")) if data.get("height_cm") is not None and float(data.get("height_cm", 0)) > 0 else None
+            w_val = float(data.get("initial_weight_kg")) if data.get("initial_weight_kg") is not None and float(data.get("initial_weight_kg", 0)) > 0 else None
+            
+            exp_date = data.get("membership_expire_shamsi")
+            status_val = "active"
+            if exp_date and not is_membership_active(exp_date):
+                status_val = "expired"
+
             member = Member(
                 first_name=data.get("first_name"),
                 last_name=data.get("last_name"),
@@ -54,17 +72,17 @@ class MemberService:
                 gender=data.get("gender", "male"),
                 job=data.get("job"),
                 birth_date_shamsi=data.get("birth_date_shamsi"),
-                height_cm=float(data.get("height_cm", 0.0) or 0.0),
-                initial_weight_kg=float(data.get("initial_weight_kg", 0.0) or 0.0),
+                height_cm=h_val,
+                initial_weight_kg=w_val,
                 registration_date_shamsi=data.get("registration_date_shamsi") or get_today_shamsi(),
                 insurance_date_shamsi=data.get("insurance_date_shamsi"),
                 tuition_fee=float(data.get("tuition_fee", 0.0) or 0.0) if data.get("tuition_fee") is not None else None,
                 membership_type=data.get("membership_type", "12_sessions"),
                 membership_start_shamsi=data.get("membership_start_shamsi") or get_today_shamsi(),
-                membership_expire_shamsi=data.get("membership_expire_shamsi"),
+                membership_expire_shamsi=exp_date,
                 photo_path=data.get("photo_path"),
                 notes=data.get("notes"),
-                status="active"
+                status=status_val
             )
             session.add(member)
             session.flush()
@@ -93,10 +111,17 @@ class MemberService:
                 if hasattr(member, key):
                     setattr(member, key, val)
             
+            if member.status != "archived" and member.membership_expire_shamsi:
+                if is_membership_active(member.membership_expire_shamsi):
+                    member.status = "active"
+                else:
+                    member.status = "expired"
+
             session.commit()
             return member
         finally:
             session.close()
+
 
     @staticmethod
     def archive_member(member_id: int):
@@ -212,3 +237,29 @@ class MemberService:
             return False
         finally:
             session.close()
+
+    @staticmethod
+    def get_upcoming_birthday_members(days_ahead: int = 1):
+        """Returns active members whose birthday is in `days_ahead` days."""
+        import jdatetime
+        from yalda.utils.jalali_date import parse_shamsi
+
+        session = get_session()
+        try:
+            members = session.query(Member).filter(Member.status == "active").all()
+            target_date = jdatetime.date.today() + jdatetime.timedelta(days=days_ahead)
+            
+            upcoming = []
+            for m in members:
+                if not m.birth_date_shamsi:
+                    continue
+                try:
+                    b_date = parse_shamsi(m.birth_date_shamsi)
+                    if b_date.month == target_date.month and b_date.day == target_date.day:
+                        upcoming.append(m)
+                except Exception:
+                    continue
+            return upcoming
+        finally:
+            session.close()
+

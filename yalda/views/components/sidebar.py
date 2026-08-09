@@ -7,6 +7,7 @@ import config
 class Sidebar(QFrame):
     page_changed = pyqtSignal(str) # Emits view name, e.g. "dashboard", "members"
     logout_requested = pyqtSignal()
+    member_birthday_clicked = pyqtSignal(int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -39,6 +40,7 @@ class Sidebar(QFrame):
 
         self.buttons = {}
         self.init_ui()
+        self.refresh_notifications()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -80,7 +82,38 @@ class Sidebar(QFrame):
             layout.addWidget(btn)
             self.buttons[nav_id] = btn
 
-        layout.addSpacerItem(QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+        layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
+        # Birthday Notification Panel (Bottom Right Corner)
+        self.notification_frame = QFrame()
+        self.notification_frame.setObjectName("birthdayNotificationFrame")
+        self.notification_frame.setStyleSheet("""
+            QFrame#birthdayNotificationFrame {
+                background-color: #241607;
+                border: 1px solid #D97706;
+                border-radius: 8px;
+            }
+        """)
+        self.notification_layout = QVBoxLayout(self.notification_frame)
+        self.notification_layout.setContentsMargins(8, 8, 8, 8)
+        self.notification_layout.setSpacing(6)
+
+        notif_header = QHBoxLayout()
+        icon_lbl = QLabel("🎂")
+        icon_lbl.setStyleSheet("font-size: 15px;")
+        title_lbl = QLabel("یادآوری تولد (۱ روز مانده)")
+        title_lbl.setStyleSheet("color: #FBBF24; font-size: 11px; font-weight: bold;")
+        notif_header.addWidget(icon_lbl)
+        notif_header.addWidget(title_lbl)
+        notif_header.addStretch()
+        self.notification_layout.addLayout(notif_header)
+
+        self.notif_list_layout = QVBoxLayout()
+        self.notif_list_layout.setSpacing(4)
+        self.notification_layout.addLayout(self.notif_list_layout)
+
+        layout.addWidget(self.notification_frame)
+        self.notification_frame.setVisible(False)
 
         # Logout Button
         btn_logout = QPushButton("🚪  خروج از حساب")
@@ -110,6 +143,43 @@ class Sidebar(QFrame):
         # Set default active page
         self.set_active("dashboard")
 
+    def refresh_notifications(self):
+        while self.notif_list_layout.count() > 0:
+            item = self.notif_list_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        try:
+            from yalda.services.member_service import MemberService
+            upcoming_members = MemberService.get_upcoming_birthday_members(days_ahead=1)
+            
+            if upcoming_members:
+                for member in upcoming_members:
+                    btn = QPushButton(f"🎉 فردا تولد {member.full_name} است")
+                    btn.setCursor(Qt.CursorShape.PointingHandCursor)
+                    btn.setStyleSheet("""
+                        QPushButton {
+                            background-color: #3B240B;
+                            color: #FEF3C7;
+                            border: 1px solid #92400E;
+                            border-radius: 5px;
+                            padding: 6px 8px;
+                            font-size: 11px;
+                            text-align: right;
+                        }
+                        QPushButton:hover {
+                            background-color: #78350F;
+                            color: #FFFFFF;
+                        }
+                    """)
+                    btn.clicked.connect(lambda _, m_id=member.id: self.member_birthday_clicked.emit(m_id))
+                    self.notif_list_layout.addWidget(btn)
+                self.notification_frame.setVisible(True)
+            else:
+                self.notification_frame.setVisible(False)
+        except Exception:
+            self.notification_frame.setVisible(False)
+
     def navigate(self, nav_id: str):
         self.set_active(nav_id)
         self.page_changed.emit(nav_id)
@@ -120,3 +190,4 @@ class Sidebar(QFrame):
             btn.setProperty("active", is_active)
             btn.style().unpolish(btn)
             btn.style().polish(btn)
+

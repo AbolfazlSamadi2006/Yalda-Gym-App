@@ -356,8 +356,8 @@ class MemberFormDialog(QDialog):
             "job": self.txt_job.text().strip(),
             "gender": self.combo_gender.currentData(),
             "birth_date_shamsi": self.picker_birth.text(),
-            "height_cm": self.spin_height.value(),
-            "initial_weight_kg": self.spin_weight.value(),
+            "height_cm": self.spin_height.value() if self.spin_height.value() > 0 else None,
+            "initial_weight_kg": self.spin_weight.value() if self.spin_weight.value() > 0 else None,
             "registration_date_shamsi": self.picker_reg.text(),
             "insurance_date_shamsi": self.picker_insurance.text(),
             "tuition_fee": tuition_val,
@@ -375,8 +375,9 @@ class MemberFormDialog(QDialog):
         self.txt_phone.setText(m.phone)
         if hasattr(m, 'job') and m.job:
             self.txt_job.setText(m.job)
-        self.spin_height.setValue(m.height_cm or 175.0)
-        self.spin_weight.setValue(m.initial_weight_kg or 75.0)
+        self.spin_height.setValue(m.height_cm or 0.0)
+        self.spin_weight.setValue(m.initial_weight_kg or 0.0)
+
         self.photo_path = m.photo_path
         if self.photo_path and os.path.exists(self.photo_path):
             self.btn_photo.setText(f"📷 عکس: {os.path.basename(self.photo_path)[:15]}")

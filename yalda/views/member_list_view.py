@@ -39,11 +39,12 @@ class MemberListView(QWidget):
         self.txt_search.textChanged.connect(self.load_members)
 
         self.combo_status = QComboBox()
+        self.combo_status.addItem("همه اعضا", "all")
         self.combo_status.addItem("اعضای فعال", "active")
         self.combo_status.addItem("اعضای انقضا یافته", "expired")
         self.combo_status.addItem("اعضای آرشیو شده", "archived")
-        self.combo_status.addItem("همه اعضا", "all")
         self.combo_status.currentIndexChanged.connect(self.load_members)
+
 
         controls.addWidget(QLabel("جستجو:"))
         controls.addWidget(self.txt_search)
@@ -86,7 +87,11 @@ class MemberListView(QWidget):
         for row, m in enumerate(members):
             self.table.setItem(row, 0, QTableWidgetItem(m.full_name))
             self.table.setItem(row, 1, QTableWidgetItem(m.phone))
-            self.table.setItem(row, 2, QTableWidgetItem(f"{int(m.height_cm or 0)}cm / {int(m.initial_weight_kg or 0)}kg"))
+            h_text = f"{int(m.height_cm)}cm" if m.height_cm else "-"
+            w_text = f"{int(m.initial_weight_kg)}kg" if m.initial_weight_kg else "-"
+            hw_display = "-" if (not m.height_cm and not m.initial_weight_kg) else f"{h_text} / {w_text}"
+            self.table.setItem(row, 2, QTableWidgetItem(hw_display))
+
             m_type_fa = MEMBERSHIP_TYPE_MAP.get(m.membership_type, m.membership_type or "")
             self.table.setItem(row, 3, QTableWidgetItem(m_type_fa))
             self.table.setItem(row, 4, QTableWidgetItem(m.membership_expire_shamsi or ""))

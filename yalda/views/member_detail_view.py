@@ -112,9 +112,14 @@ class MemberDetailView(QWidget):
             reg_str = member.registration_date_shamsi if hasattr(member, 'registration_date_shamsi') and member.registration_date_shamsi else "-"
             ins_str = member.insurance_date_shamsi if hasattr(member, 'insurance_date_shamsi') and member.insurance_date_shamsi else "-"
             fee_str = f"{int(member.tuition_fee):,} تومان" if hasattr(member, 'tuition_fee') and member.tuition_fee else "-"
+            h_text = f"{int(member.height_cm)}cm" if member.height_cm else "-"
+            w_text = f"{int(member.initial_weight_kg)}kg" if member.initial_weight_kg else "-"
+            hw_display = "-" if (not member.height_cm and not member.initial_weight_kg) else f"{h_text} / {w_text}"
 
-            info_str = f"<b>کد عضویت:</b> {member.id}  |  <b>تلفن:</b> {member.phone}  |  <b>ثبت نام:</b> {reg_str}  |  <b>بیمه:</b> {ins_str}  |  <b>شهریه:</b> {fee_str}<br><b>قد/وزن:</b> {int(member.height_cm or 0)}cm / {int(member.initial_weight_kg or 0)}kg  |  <b>شاخص BMI:</b> {bmi_str}  |  <b>تاریخ انقضا:</b> <font color='#8B0000'>{member.membership_expire_shamsi}</font>"
+            info_str = f"<b>کد عضویت:</b> {member.id}  |  <b>تلفن:</b> {member.phone}  |  <b>ثبت نام:</b> {reg_str}  |  <b>بیمه:</b> {ins_str}  |  <b>شهریه:</b> {fee_str}<br><b>قد/وزن:</b> {hw_display}  |  <b>شاخص BMI:</b> {bmi_str}  |  <b>تاریخ انقضا:</b> <font color='#8B0000'>{member.membership_expire_shamsi}</font>"
             self.lbl_member_details.setText(info_str)
+
+
 
             if member.photo_path and os.path.exists(member.photo_path):
                 pixmap = QPixmap(member.photo_path)

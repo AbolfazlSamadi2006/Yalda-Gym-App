@@ -19,7 +19,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"{config.APP_NAME} - نرم‌افزار مدیریت باشگاه بدنسازی (نسخه ۱.۰.۰)")
+        self.setWindowTitle(f"{config.APP_NAME} - نرم‌افزار مدیریت باشگاه بدنسازی (نسخه ۱.۱.۱)")
+
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.resize(1280, 800)
         self.setMinimumSize(1024, 700)
@@ -38,7 +39,9 @@ class MainWindow(QMainWindow):
         self.sidebar = Sidebar()
         self.sidebar.page_changed.connect(self.switch_page)
         self.sidebar.logout_requested.connect(self.logout)
+        self.sidebar.member_birthday_clicked.connect(self.open_member_detail)
         main_layout.addWidget(self.sidebar)
+
 
         # Stacked Container for Views
         self.stack = QStackedWidget()
@@ -66,7 +69,9 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.view_backup)    # Index 6
 
     def switch_page(self, page_id: str):
+        self.sidebar.refresh_notifications()
         page_map = {
+
             "dashboard": 0,
             "members": 1,
             "workouts": 2,

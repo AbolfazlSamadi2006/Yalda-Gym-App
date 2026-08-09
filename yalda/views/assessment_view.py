@@ -406,7 +406,8 @@ class AssessmentView(QWidget):
         layout.addWidget(self.table)
 
     def select_before_photo(self):
-        fp, _ = QFileDialog.getOpenFileName(self, "عکس قبل", "", "Images (*.png *.jpg *.jpeg *.bmp *.webp)")
+        from yalda.utils.image_source_chooser import get_image_file_path
+        fp = get_image_file_path(self, dialog_title="انتخاب یا ثبت عکس قبل (Before)")
         if fp:
             dest = config.PROGRESS_PHOTOS_DIR / f"before_{os.path.basename(fp)}"
             shutil.copy2(fp, dest)
@@ -414,7 +415,8 @@ class AssessmentView(QWidget):
             self.btn_before.setText(f"📷 عکس قبل: {os.path.basename(fp)[:12]}")
 
     def select_after_photo(self):
-        fp, _ = QFileDialog.getOpenFileName(self, "عکس بعد", "", "Images (*.png *.jpg *.jpeg *.bmp *.webp)")
+        from yalda.utils.image_source_chooser import get_image_file_path
+        fp = get_image_file_path(self, dialog_title="انتخاب یا ثبت عکس بعد (After)")
         if fp:
             dest = config.PROGRESS_PHOTOS_DIR / f"after_{os.path.basename(fp)}"
             shutil.copy2(fp, dest)

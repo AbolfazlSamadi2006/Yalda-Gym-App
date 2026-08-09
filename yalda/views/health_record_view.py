@@ -264,17 +264,30 @@ class AddMedicalDocumentDialog(QDialog):
         layout.addLayout(btn_box)
 
     def choose_files(self):
-        filepaths, _ = QFileDialog.getOpenFileNames(
-            self,
-            "انتخاب یک یا چند عکس/صفحه برای مدرک پزشکی",
-            "",
-            "تصاویر و مدارک (*.png *.jpg *.jpeg *.bmp *.webp *.pdf *.gif)"
-        )
-        if filepaths:
-            for p in filepaths:
-                if p not in self.selected_files:
-                    self.selected_files.append(p)
-            self.refresh_pages_table()
+        from yalda.utils.image_source_chooser import ImageSourceChoiceDialog
+        choice_dlg = ImageSourceChoiceDialog(self, title="انتخاب روش افزودن مدرک پزشکی")
+        if choice_dlg.exec() == QDialog.DialogCode.Accepted:
+            choice = choice_dlg.selected_choice
+            if choice == 'file':
+                filepaths, _ = QFileDialog.getOpenFileNames(
+                    self,
+                    "انتخاب یک یا چند عکس/صفحه برای مدرک پزشکی",
+                    "",
+                    "تصاویر و مدارک (*.png *.jpg *.jpeg *.bmp *.webp *.pdf *.gif)"
+                )
+                if filepaths:
+                    for p in filepaths:
+                        if p not in self.selected_files:
+                            self.selected_files.append(p)
+                    self.refresh_pages_table()
+            elif choice == 'camera':
+                from yalda.views.camera_dialog import CameraCaptureDialog
+                cam_dlg = CameraCaptureDialog(self, title="عکس‌برداری از مدرک پزشکی با دوربین")
+                if cam_dlg.exec() == QDialog.DialogCode.Accepted:
+                    p = cam_dlg.captured_file_path
+                    if p and p not in self.selected_files:
+                        self.selected_files.append(p)
+                        self.refresh_pages_table()
 
     def refresh_pages_table(self):
         self.table_pages.setRowCount(0)

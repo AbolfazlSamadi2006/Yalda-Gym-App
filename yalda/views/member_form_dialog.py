@@ -237,8 +237,11 @@ class MemberFormDialog(QDialog):
             self.load_member_data()
 
     def choose_photo(self):
-        filepath, _ = QFileDialog.getOpenFileName(
-            self, "انتخاب تصویر پروفایل ورزشکار", "", "فایل‌های تصویری (*.png *.jpg *.jpeg *.bmp *.webp)"
+        from yalda.utils.image_source_chooser import get_image_file_path
+        filepath = get_image_file_path(
+            self,
+            dialog_title="انتخاب یا ثبت تصویر پروفایل ورزشکار",
+            file_filter="فایل‌های تصویری (*.png *.jpg *.jpeg *.bmp *.webp)"
         )
         if filepath:
             self.photo_path = filepath

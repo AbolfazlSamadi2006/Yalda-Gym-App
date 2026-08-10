@@ -19,7 +19,8 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"{config.APP_NAME} - نرم‌افزار مدیریت باشگاه بدنسازی (نسخه ۱.۱.۱)")
+        self.setWindowTitle(f"{config.APP_NAME} - نرم‌افزار مدیریت باشگاه بدنسازی (نسخه ۱.۲.۰)")
+
 
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.resize(1280, 800)

@@ -11,10 +11,16 @@ class YaldaApplication:
     def __init__(self):
         self.app = QApplication(sys.argv)
         self.app.setApplicationName(config.APP_NAME)
-        self.app.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        # Check for Database presence (Portable mode check)
+        db_file = config.DATA_DIR / "yalda.db"
+        if not db_file.exists():
+            from yalda.views.data_migration_dialog import DataMigrationDialog
+            dlg = DataMigrationDialog()
+            dlg.exec()
 
         # Initialize Database
         init_db()
+
 
         # Load Dark Red & Black QSS Theme
         self.load_stylesheet()

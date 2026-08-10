@@ -4,17 +4,18 @@ from pathlib import Path
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
 
-# Permanent User Data Directory in AppData/Roaming/YaldaGym
-APPDATA_DIR = Path(os.environ.get("APPDATA", Path.home())) / "YaldaGym"
-DATA_DIR = APPDATA_DIR / "data"
+# Local Portable User Data Directory (next to executable)
+DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Automatic One-Time Migration from local data directory if exists
-LOCAL_DATA_DIR = BASE_DIR / "data"
-if LOCAL_DATA_DIR.exists() and LOCAL_DATA_DIR.resolve() != DATA_DIR.resolve():
+# AppData fallback path for automatic migration from v1.1.1
+APPDATA_DATA_DIR = Path(os.environ.get("APPDATA", Path.home())) / "YaldaGym" / "data"
+
+# Auto-migration bridge from AppData to local portable data folder
+if not (DATA_DIR / "yalda.db").exists() and (APPDATA_DATA_DIR / "yalda.db").exists():
     import shutil
     try:
-        for item in LOCAL_DATA_DIR.iterdir():
+        for item in APPDATA_DATA_DIR.iterdir():
             dest = DATA_DIR / item.name
             if item.is_dir() and not dest.exists():
                 shutil.copytree(item, dest)
@@ -42,7 +43,8 @@ DATABASE_URI = f"sqlite:///{DB_PATH}"
 # App Details
 APP_NAME = "یلدا"
 APP_ENGLISH_NAME = "Yalda Gym"
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.2.0"
+
 
 
 # Styling & Colors (Dark Red & Black Theme)

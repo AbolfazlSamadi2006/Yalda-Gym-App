@@ -1,0 +1,339 @@
+import os
+from pathlib import Path
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QFrame, QFileDialog, QScrollArea, QWidget
+)
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QPixmap
+import config
+from yalda.auth.authentication import register_trainer, CurrentUser
+from yalda.views.components.jalali_calendar_widget import JalaliDatePicker
+from yalda.utils.image_utils import get_circular_pixmap
+
+
+
+class TrainerRegisterDialog(QDialog):
+    registration_success = pyqtSignal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("ثبت‌نام مربی جدید - نرم‌افزار یلدا")
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.setFixedSize(540, 680)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+
+        self.selected_photo_path = None
+        self.init_ui()
+
+    def init_ui(self):
+        self.setStyleSheet(f"""
+            QDialog {{
+                background-color: #121212;
+                color: #FFFFFF;
+                font-family: 'Vazirmatn', 'Segoe UI', sans-serif;
+            }}
+            QFrame#cardFrame {{
+                background-color: #000000;
+                border: 1px solid #333333;
+                border-radius: 12px;
+                padding: 15px;
+            }}
+            QLabel {{
+                color: #E5E7EB;
+                background: transparent;
+            }}
+            QLineEdit {{
+                background-color: #1E1E1E;
+                color: #FFFFFF;
+                border: 1px solid #333333;
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 13px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid #8B0000;
+            }}
+        """)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(15, 15, 15, 15)
+
+        card = QFrame()
+        card.setObjectName("cardFrame")
+        card_layout = QVBoxLayout(card)
+        card_layout.setSpacing(10)
+
+        # Header Title
+        title_lbl = QLabel("📝 ثبت‌نام مربی جدید در سیستم")
+        title_lbl.setStyleSheet("color: #8B0000; font-size: 20px; font-weight: bold;")
+        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(title_lbl)
+
+        # Scroll Area for inputs
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
+
+        scroll_widget = QWidget()
+        form_layout = QVBoxLayout(scroll_widget)
+        form_layout.setSpacing(8)
+
+        # Row 1: First Name & Last Name
+        row_name = QHBoxLayout()
+        row_name.setSpacing(10)
+
+        v1 = QVBoxLayout()
+        v1.addWidget(QLabel("نام مربی:"))
+        self.txt_first_name = QLineEdit()
+        self.txt_first_name.setFixedHeight(38)
+        self.txt_first_name.setPlaceholderText("نام")
+        v1.addWidget(self.txt_first_name)
+
+        v2 = QVBoxLayout()
+        v2.addWidget(QLabel("نام خانوادگی:"))
+        self.txt_last_name = QLineEdit()
+        self.txt_last_name.setFixedHeight(38)
+        self.txt_last_name.setPlaceholderText("نام خانوادگی")
+        v2.addWidget(self.txt_last_name)
+
+        row_name.addLayout(v1)
+        row_name.addLayout(v2)
+        form_layout.addLayout(row_name)
+
+        # Row 2: Phone & Birthdate
+        row_contact = QHBoxLayout()
+        row_contact.setSpacing(10)
+
+        v3 = QVBoxLayout()
+        v3.addWidget(QLabel("شماره همراه:"))
+        self.txt_phone = QLineEdit()
+        self.txt_phone.setFixedHeight(38)
+        self.txt_phone.setPlaceholderText("09123456789")
+        v3.addWidget(self.txt_phone)
+
+        v4 = QVBoxLayout()
+        v4.addWidget(QLabel("تاریخ تولد (شمسی):"))
+        self.picker_birth_date = JalaliDatePicker(default_today=False)
+        self.picker_birth_date.setFixedHeight(38)
+        v4.addWidget(self.picker_birth_date)
+
+
+        row_contact.addLayout(v3)
+        row_contact.addLayout(v4)
+        form_layout.addLayout(row_contact)
+
+        # Row 3: Photo Selection Preview
+        photo_box = QHBoxLayout()
+        photo_box.setSpacing(12)
+
+        self.lbl_photo_preview = QLabel("📷 بدون عکس")
+        self.lbl_photo_preview.setFixedSize(60, 60)
+        self.lbl_photo_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_photo_preview.setStyleSheet("border: 1px dashed #555; border-radius: 30px; color: #888; font-size: 11px;")
+
+
+        btn_select_photo = QPushButton("📷 انتخاب / ثبت عکس مربی (اختیاری)")
+        btn_select_photo.setFixedHeight(38)
+        btn_select_photo.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_select_photo.setStyleSheet("""
+            QPushButton {
+                background-color: #2D2D2D; color: #EEE; border: 1px solid #444; border-radius: 6px; font-size: 12px;
+            }
+            QPushButton:hover { background-color: #3D3D3D; }
+        """)
+        btn_select_photo.clicked.connect(self.choose_photo)
+
+        photo_box.addWidget(self.lbl_photo_preview)
+        photo_box.addWidget(btn_select_photo)
+        form_layout.addLayout(photo_box)
+
+        # Row 4: Username
+        form_layout.addWidget(QLabel("نام کاربری مربی (جهت ورود):"))
+        self.txt_username = QLineEdit()
+        self.txt_username.setFixedHeight(38)
+        self.txt_username.setPlaceholderText("نام کاربری انگلیسی")
+        form_layout.addWidget(self.txt_username)
+
+        # Row 5: Password & Confirm Password
+        form_layout.addWidget(QLabel("کلمه عبور:"))
+        pass1_box = QHBoxLayout()
+        pass1_box.setSpacing(6)
+        self.txt_password = QLineEdit()
+        self.txt_password.setFixedHeight(38)
+        self.txt_password.setEchoMode(QLineEdit.EchoMode.Password)
+        self.txt_password.setPlaceholderText("کلمه عبور جدید")
+
+        EYE_STYLE = """
+            QPushButton {
+                background-color: #8B0000;
+                color: #FFFFFF;
+                border: 1px solid #A91D22;
+                border-radius: 6px;
+                font-size: 16px;
+                font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background-color: #A91D22;
+            }
+        """
+
+        btn_eye1 = QPushButton("👁️")
+        btn_eye1.setFixedSize(42, 38)
+        btn_eye1.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_eye1.setStyleSheet(EYE_STYLE)
+        btn_eye1.clicked.connect(lambda: self.toggle_eye(self.txt_password, btn_eye1))
+
+        pass1_box.addWidget(self.txt_password)
+        pass1_box.addWidget(btn_eye1)
+        form_layout.addLayout(pass1_box)
+
+        form_layout.addWidget(QLabel("تکرار کلمه عبور:"))
+        pass2_box = QHBoxLayout()
+        pass2_box.setSpacing(6)
+        self.txt_password_confirm = QLineEdit()
+        self.txt_password_confirm.setFixedHeight(38)
+        self.txt_password_confirm.setEchoMode(QLineEdit.EchoMode.Password)
+        self.txt_password_confirm.setPlaceholderText("تکرار کلمه عبور")
+
+        btn_eye2 = QPushButton("👁️")
+        btn_eye2.setFixedSize(42, 38)
+        btn_eye2.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_eye2.setStyleSheet(EYE_STYLE)
+        btn_eye2.clicked.connect(lambda: self.toggle_eye(self.txt_password_confirm, btn_eye2))
+
+        pass2_box.addWidget(self.txt_password_confirm)
+        pass2_box.addWidget(btn_eye2)
+        form_layout.addLayout(pass2_box)
+
+        # Row 6: Recovery Code & Confirm Recovery Code
+        form_layout.addWidget(QLabel("رمز ریکاوری مخفی (جهت فراموشی رمز):"))
+        rec1_box = QHBoxLayout()
+        rec1_box.setSpacing(6)
+        self.txt_recovery_code = QLineEdit()
+        self.txt_recovery_code.setFixedHeight(38)
+        self.txt_recovery_code.setEchoMode(QLineEdit.EchoMode.Password)
+        self.txt_recovery_code.setPlaceholderText("یک رمز مخفی یا PIN چند رقمی یادداشت کنید")
+
+        btn_eye3 = QPushButton("👁️")
+        btn_eye3.setFixedSize(42, 38)
+        btn_eye3.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_eye3.setStyleSheet(EYE_STYLE)
+        btn_eye3.clicked.connect(lambda: self.toggle_eye(self.txt_recovery_code, btn_eye3))
+
+        rec1_box.addWidget(self.txt_recovery_code)
+        rec1_box.addWidget(btn_eye3)
+        form_layout.addLayout(rec1_box)
+
+        form_layout.addWidget(QLabel("تکرار رمز ریکاوری مخفی:"))
+        rec2_box = QHBoxLayout()
+        rec2_box.setSpacing(6)
+        self.txt_recovery_confirm = QLineEdit()
+        self.txt_recovery_confirm.setFixedHeight(38)
+        self.txt_recovery_confirm.setEchoMode(QLineEdit.EchoMode.Password)
+        self.txt_recovery_confirm.setPlaceholderText("تکرار رمز مخفی")
+
+        btn_eye4 = QPushButton("👁️")
+        btn_eye4.setFixedSize(42, 38)
+        btn_eye4.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_eye4.setStyleSheet(EYE_STYLE)
+        btn_eye4.clicked.connect(lambda: self.toggle_eye(self.txt_recovery_confirm, btn_eye4))
+
+        rec2_box.addWidget(self.txt_recovery_confirm)
+        rec2_box.addWidget(btn_eye4)
+        form_layout.addLayout(rec2_box)
+
+
+        scroll.setWidget(scroll_widget)
+        card_layout.addWidget(scroll)
+
+        # Submit Register Button
+        btn_submit = QPushButton("🚀 تکمیل و ثبت‌نام مربی")
+        btn_submit.setFixedHeight(44)
+        btn_submit.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_submit.setStyleSheet("""
+            QPushButton {
+                background-color: #8B0000; color: #FFFFFF; font-size: 15px; font-weight: bold; border-radius: 6px; border: none;
+            }
+            QPushButton:hover { background-color: #A00000; }
+        """)
+        btn_submit.clicked.connect(self.do_register)
+        card_layout.addWidget(btn_submit)
+
+        layout.addWidget(card)
+
+    def toggle_eye(self, field: QLineEdit, btn: QPushButton):
+        if field.echoMode() == QLineEdit.EchoMode.Password:
+            field.setEchoMode(QLineEdit.EchoMode.Normal)
+            btn.setText("🙈")
+        else:
+            field.setEchoMode(QLineEdit.EchoMode.Password)
+            btn.setText("👁️")
+
+    def choose_photo(self):
+        from yalda.utils.image_source_chooser import get_image_file_path
+        temp_path = get_image_file_path(
+            self,
+            dialog_title="انتخاب یا ثبت تصویر مربی",
+            file_filter="فایل‌های تصویری (*.png *.jpg *.jpeg *.bmp *.webp)"
+        )
+        if temp_path and os.path.exists(temp_path):
+            # Copy to profile-photos directory
+            dest_dir = config.PROFILE_PHOTOS_DIR
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            ext = Path(temp_path).suffix or ".jpg"
+            import uuid
+            filename = f"trainer_{uuid.uuid4().hex[:8]}{ext}"
+            dest_path = dest_dir / filename
+            import shutil
+            shutil.copy2(temp_path, dest_path)
+            self.selected_photo_path = str(dest_path)
+
+            pixmap = QPixmap(str(dest_path))
+            circ_pixmap = get_circular_pixmap(pixmap, 60)
+            self.lbl_photo_preview.setPixmap(circ_pixmap)
+            self.lbl_photo_preview.setText("")
+            self.lbl_photo_preview.setStyleSheet("border: none; background: transparent;")
+
+
+    def do_register(self):
+        try:
+            first_name = self.txt_first_name.text().strip()
+            last_name = self.txt_last_name.text().strip()
+            phone = self.txt_phone.text().strip()
+            birth_date = self.picker_birth_date.get_date()
+            username = self.txt_username.text().strip()
+            password = self.txt_password.text().strip()
+            confirm_password = self.txt_password_confirm.text().strip()
+            recovery_code = self.txt_recovery_code.text().strip()
+            confirm_recovery = self.txt_recovery_confirm.text().strip()
+
+            if not first_name or not last_name or not phone or not username or not password or not recovery_code:
+                QMessageBox.warning(self, "خطا در فرم ثبت‌نام", "لطفاً تمامی فیلدهای نام، نام خانوادگی، شماره موبایل، نام کاربری، کلمه عبور و رمز ریکاوری را تکمیل کنید.")
+                return
+
+            if password != confirm_password:
+                QMessageBox.warning(self, "خطا", "کلمه عبور و تکرار آن با یکدیگر مطابقت ندارند.")
+                return
+
+            if recovery_code != confirm_recovery:
+                QMessageBox.warning(self, "خطا", "رمز ریکاوری مخفی و تکرار آن با یکدیگر مطابقت ندارند.")
+                return
+
+            user = register_trainer(
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                birth_date_shamsi=birth_date,
+                username=username,
+                password=password,
+                recovery_code=recovery_code,
+                photo_path=self.selected_photo_path
+            )
+            CurrentUser.set(user)
+            QMessageBox.information(self, "ثبت‌نام موفقیت‌آمیز", f"حساب کاربری مربی با موفقیت ایجاد شد! خوش آمدید {user.display_name} 🌸")
+            self.registration_success.emit()
+            self.accept()
+        except Exception as e:
+            QMessageBox.critical(self, "خطا در ثبت‌نام", str(e))
+

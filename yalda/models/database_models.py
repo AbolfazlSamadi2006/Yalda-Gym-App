@@ -6,19 +6,40 @@ from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
+class SystemSetting(Base):
+    __tablename__ = "system_settings"
+
+    key = Column(String(50), primary_key=True)
+    value = Column(String(255), nullable=True)
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    full_name = Column(String(100), nullable=False)
+    first_name = Column(String(50), nullable=True)
+    last_name = Column(String(50), nullable=True)
+    full_name = Column(String(100), nullable=True)
+    phone = Column(String(20), nullable=True)
+    birth_date_shamsi = Column(String(10), nullable=True)
+    photo_path = Column(String(255), nullable=True)
+    recovery_code = Column(String(100), nullable=True)
     role = Column(String(20), nullable=False, default="trainer")  # 'admin', 'trainer', 'member'
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
     memberships_assigned = relationship("WorkoutAssignment", back_populates="assigned_by_user")
+
+    @property
+    def display_name(self):
+        if self.first_name and self.last_name:
+            return f"{self.first_name} {self.last_name}"
+        elif self.full_name:
+            return self.full_name
+        return self.username
+
 
 class Member(Base):
     __tablename__ = "members"
@@ -49,6 +70,7 @@ class Member(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
+    trainer = relationship("User", foreign_keys=[user_id])
     health_record = relationship("HealthRecord", back_populates="member", uselist=False, cascade="all, delete-orphan")
     assessments = relationship("PhysicalAssessment", back_populates="member", cascade="all, delete-orphan", order_by="PhysicalAssessment.assessment_date_shamsi.desc()")
     workout_assignments = relationship("WorkoutAssignment", back_populates="member", cascade="all, delete-orphan")
@@ -58,6 +80,30 @@ class Member(Base):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def trainer_name(self):
+        try:
+            if self.trainer:
+                return self.trainer.display_name
+        except Exception:
+            pass
+
+        if self.user_id:
+            try:
+                from yalda.database.connection import get_session
+                session = get_session()
+                try:
+                    user = session.query(User).get(self.user_id)
+                    if user:
+                        return user.display_name
+                finally:
+                    session.close()
+            except Exception:
+                pass
+        return "عمومی / ادمین"
+
+
 
 class HealthRecord(Base):
     __tablename__ = "health_records"

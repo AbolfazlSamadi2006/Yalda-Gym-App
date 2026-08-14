@@ -34,6 +34,24 @@ def check_and_migrate_db():
                 conn.execute(text("ALTER TABLE physical_assessments ADD COLUMN height_cm FLOAT;"))
             conn.commit()
 
+    if "users" in inspector.get_table_names():
+        u_columns = [c["name"] for c in inspector.get_columns("users")]
+        with engine.connect() as conn:
+            if "first_name" not in u_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN first_name VARCHAR(50);"))
+            if "last_name" not in u_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN last_name VARCHAR(50);"))
+            if "phone" not in u_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(20);"))
+            if "birth_date_shamsi" not in u_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN birth_date_shamsi VARCHAR(10);"))
+            if "photo_path" not in u_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN photo_path VARCHAR(255);"))
+            if "recovery_code" not in u_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN recovery_code VARCHAR(100);"))
+            conn.commit()
+
+
 
 
 def init_db():

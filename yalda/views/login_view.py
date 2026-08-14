@@ -3,7 +3,9 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import pyqtSignal, Qt
 import config
-from yalda.auth.authentication import authenticate_user
+from yalda.auth.authentication import authenticate_user, is_app_license_active
+from yalda.views.password_recovery_dialog import PasswordRecoveryDialog
+from yalda.views.trainer_register_dialog import TrainerRegisterDialog
 
 class LoginView(QWidget):
     login_success = pyqtSignal()
@@ -15,13 +17,17 @@ class LoginView(QWidget):
         self.setStyleSheet("background-color: #121212;")
         self.init_ui()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.refresh_activation_state()
+
     def init_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Login Card Container (Pure Black Background on Matte Dark Window)
+        # Login Card Container
         card = QFrame()
-        card.setFixedSize(440, 450)
+        card.setFixedSize(480, 520)
         card.setObjectName("login_card")
         card.setStyleSheet("""
             QFrame#login_card {
@@ -37,7 +43,7 @@ class LoginView(QWidget):
         """)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(14)
+        card_layout.setSpacing(12)
 
         # Header Title
         title_lbl = QLabel(config.APP_NAME)
@@ -50,7 +56,7 @@ class LoginView(QWidget):
 
         card_layout.addWidget(title_lbl)
         card_layout.addWidget(sub_lbl)
-        card_layout.addSpacing(10)
+        card_layout.addSpacing(6)
 
         # Username Input
         lbl_user = QLabel("نام کاربری:")
@@ -77,7 +83,7 @@ class LoginView(QWidget):
         card_layout.addWidget(lbl_user)
         card_layout.addWidget(self.txt_username)
 
-        # Password Input Layout with Large Red Square Eye Button
+        # Password Input Layout with Eye Button
         lbl_pass = QLabel("کلمه عبور:")
         lbl_pass.setStyleSheet("color: #DDDDDD; font-weight: bold; background: transparent;")
         
@@ -116,6 +122,7 @@ class LoginView(QWidget):
                 border: 1px solid #A00000;
                 border-radius: 6px;
                 font-size: 16px;
+                font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
                 padding: 0px;
                 margin: 0px;
             }
@@ -123,6 +130,7 @@ class LoginView(QWidget):
                 background-color: #A00000;
             }
         """)
+
         btn_eye.clicked.connect(lambda: self.toggle_password(self.txt_password, btn_eye))
 
         pass_box.addWidget(self.txt_password)
@@ -130,9 +138,41 @@ class LoginView(QWidget):
 
         card_layout.addWidget(lbl_pass)
         card_layout.addLayout(pass_box)
+        card_layout.addSpacing(6)
+
+        # Actions Row: Forgot Password & Register New Trainer
+        row_actions = QHBoxLayout()
+        row_actions.setSpacing(8)
+
+        self.btn_forgot = QPushButton("🔑 فراموشی کلمه عبور")
+        self.btn_forgot.setFixedHeight(36)
+        self.btn_forgot.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_forgot.setStyleSheet("""
+            QPushButton {
+                background-color: #1F2937;
+                color: #9CA3AF;
+                border: 1px solid #374151;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #374151;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_forgot.clicked.connect(self.open_forgot_dialog)
+
+        self.btn_register = QPushButton("📝 ثبت‌نام مربی جدید")
+        self.btn_register.setFixedHeight(36)
+        self.btn_register.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_register.clicked.connect(self.open_register_dialog)
+
+        row_actions.addWidget(self.btn_forgot)
+        row_actions.addWidget(self.btn_register)
+        card_layout.addLayout(row_actions)
         card_layout.addSpacing(10)
 
-        # Submit Button (Red Background)
+        # Submit Login Button
         btn_login = QPushButton("ورود به سیستم")
         btn_login.setFixedHeight(44)
         btn_login.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -153,6 +193,39 @@ class LoginView(QWidget):
         card_layout.addWidget(btn_login)
 
         main_layout.addWidget(card)
+        self.refresh_activation_state()
+
+    def refresh_activation_state(self):
+        active = is_app_license_active()
+        if active:
+            self.btn_register.setEnabled(True)
+            self.btn_register.setToolTip("ثبت‌نام مربی جدید در سیستم")
+            self.btn_register.setStyleSheet("""
+                QPushButton {
+                    background-color: #065F46;
+                    color: #A7F3D0;
+                    border: 1px solid #059669;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #047857;
+                    color: #FFFFFF;
+                }
+            """)
+        else:
+            self.btn_register.setEnabled(False)
+            self.btn_register.setToolTip("⚠️ ثبت‌نام مربی جدید در حال حاضر غیرفعال است.\nجهت فعال‌سازی، ابتدا ادمین کل باید وضعیت برنامه را فعال کند.")
+            self.btn_register.setStyleSheet("""
+                QPushButton {
+                    background-color: #262626;
+                    color: #666666;
+                    border: 1px solid #333333;
+                    border-radius: 6px;
+                    font-size: 12px;
+                }
+            """)
 
     def toggle_password(self, field: QLineEdit, button: QPushButton):
         if field.echoMode() == QLineEdit.EchoMode.Password:
@@ -161,6 +234,19 @@ class LoginView(QWidget):
         else:
             field.setEchoMode(QLineEdit.EchoMode.Password)
             button.setText("👁️")
+
+    def open_forgot_dialog(self):
+        dlg = PasswordRecoveryDialog(self)
+        dlg.recovery_success.connect(self.login_success.emit)
+        dlg.exec()
+
+    def open_register_dialog(self):
+        if not is_app_license_active():
+            QMessageBox.warning(self, "برنامه غیرفعال است", "ثبت‌نام مربی جدید غیرفعال می‌باشد. ادمین باید وضعیت برنامه را به فعال تغییر دهد.")
+            return
+        dlg = TrainerRegisterDialog(self)
+        dlg.registration_success.connect(self.login_success.emit)
+        dlg.exec()
 
     def do_login(self):
         username = self.txt_username.text().strip()

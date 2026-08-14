@@ -72,7 +72,8 @@ class Sidebar(QFrame):
             ("nutrition", "🥗  برنامه‌ریزی تغذیه"),
             ("exercises", "🏃  بانک حرکات ورزشی"),
             ("foods", "🍎  بانک مواد غذایی"),
-            ("backup", "💾  پشتیبان‌گیری و تنظیمات")
+            ("developer", "👨‍💻  درباره برنامه‌نویس"),
+            ("backup", "💾  تنظیمات و پشتیبان‌گیری")
         ]
 
         for nav_id, title in menu_items:
@@ -115,8 +116,11 @@ class Sidebar(QFrame):
         layout.addWidget(self.notification_frame)
         self.notification_frame.setVisible(False)
 
+
+
         # Logout Button
         btn_logout = QPushButton("🚪  خروج از حساب")
+
         btn_logout.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_logout.setStyleSheet("""
             QPushButton {
@@ -180,7 +184,39 @@ class Sidebar(QFrame):
         except Exception:
             self.notification_frame.setVisible(False)
 
+    def refresh_developer_info(self):
+        try:
+            from yalda.auth.authentication import get_developer_info
+            from PyQt6.QtGui import QPixmap
+            import os
+
+            info = get_developer_info()
+            fname = info.get("first_name", "ابوالفضل")
+            lname = info.get("last_name", "صمدی کوچکسرائی")
+            phone = info.get("phone", "09336427711")
+            email = info.get("email", "a.samadi2006@gmail.com")
+            github = info.get("github", "github.com/AbolfazlSamadi2006")
+            photo_path = info.get("photo_path")
+
+            self.lbl_dev_name.setText(f"{fname} {lname}".strip() or "ابوالفضل صمدی")
+            self.lbl_dev_full.setText(f"{fname} {lname}".strip())
+            self.lbl_dev_phone.setText(f"📞 {phone}")
+            self.lbl_dev_email.setText(f"✉️ {email}")
+            self.lbl_dev_github.setText(f"🐙 {github}")
+
+            if photo_path and os.path.exists(photo_path):
+                pixmap = QPixmap(photo_path)
+                self.lbl_dev_photo.setPixmap(pixmap.scaled(42, 42, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation))
+                self.lbl_dev_photo.setFixedSize(42, 42)
+                self.lbl_dev_photo.setStyleSheet("border-radius: 21px; border: 1px solid #8B0000;")
+            else:
+                self.lbl_dev_photo.setText("👨‍💻")
+                self.lbl_dev_photo.setStyleSheet("font-size: 20px;")
+        except Exception:
+            pass
+
     def navigate(self, nav_id: str):
+
         self.set_active(nav_id)
         self.page_changed.emit(nav_id)
 

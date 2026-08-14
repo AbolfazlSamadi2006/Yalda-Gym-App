@@ -1,28 +1,71 @@
 import os
 from pathlib import Path
 
+import sys
+import shutil
+
 # Base directories
 BASE_DIR = Path(__file__).resolve().parent
 
-# Local Portable User Data Directory (next to executable)
-DATA_DIR = BASE_DIR / "data"
+# AppData persistent path
+APPDATA_DATA_DIR = Path(os.environ.get("APPDATA", Path.home())) / "YaldaGym" / "data"
+APPDATA_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+if getattr(sys, 'frozen', False):
+    # Running as compiled PyInstaller EXE: place data folder right next to Yalda.exe
+    EXE_DIR = Path(sys.executable).resolve().parent
+    DATA_DIR = EXE_DIR / "data"
+else:
+    # Running as source python
+    DATA_DIR = BASE_DIR / "data"
+
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# AppData fallback path for automatic migration from v1.1.1
-APPDATA_DATA_DIR = Path(os.environ.get("APPDATA", Path.home())) / "YaldaGym" / "data"
+def sync_data_directories():
+    """Finds the latest yalda.db across all candidate data folders and mirrors it to prevent data loss."""
+    candidate_locations = [
+        DATA_DIR,
+        APPDATA_DATA_DIR,
+        BASE_DIR / "data"
+    ]
+    
+    db_candidates = []
+    for loc in candidate_locations:
+        db_p = loc / "yalda.db"
+        if db_p.exists() and db_p.stat().st_size > 0:
+            db_candidates.append((db_p.stat().st_mtime, db_p, loc))
+            
+    if db_candidates:
+        db_candidates.sort(key=lambda x: x[0], reverse=True)
+        latest_mtime, latest_db, latest_loc = db_candidates[0]
+        
+        # Mirror latest DB to all candidate locations
+        for target_loc in candidate_locations:
+            target_loc.mkdir(parents=True, exist_ok=True)
+            target_db = target_loc / "yalda.db"
+            if not target_db.exists() or target_db.stat().st_mtime < latest_mtime:
+                try:
+                    shutil.copy2(latest_db, target_db)
+                except Exception:
+                    pass
+            
+            # Mirror uploads folder
+            src_uploads = latest_loc / "uploads"
+            tgt_uploads = target_loc / "uploads"
+            if src_uploads.exists():
+                for item in src_uploads.rglob("*"):
+                    if item.is_file():
+                        try:
+                            rel_p = item.relative_to(src_uploads)
+                            dest_p = tgt_uploads / rel_p
+                            dest_p.parent.mkdir(parents=True, exist_ok=True)
+                            if not dest_p.exists() or dest_p.stat().st_mtime < item.stat().st_mtime:
+                                shutil.copy2(item, dest_p)
+                        except Exception:
+                            pass
 
-# Auto-migration bridge from AppData to local portable data folder
-if not (DATA_DIR / "yalda.db").exists() and (APPDATA_DATA_DIR / "yalda.db").exists():
-    import shutil
-    try:
-        for item in APPDATA_DATA_DIR.iterdir():
-            dest = DATA_DIR / item.name
-            if item.is_dir() and not dest.exists():
-                shutil.copytree(item, dest)
-            elif item.is_file() and not dest.exists():
-                shutil.copy2(item, dest)
-    except Exception:
-        pass
+# Execute initial sync
+sync_data_directories()
 
 # Sub-directories for uploads and data
 UPLOADS_DIR = DATA_DIR / "uploads"
@@ -40,10 +83,12 @@ DB_PATH = DATA_DIR / "yalda.db"
 DATABASE_URI = f"sqlite:///{DB_PATH}"
 
 
+
 # App Details
 APP_NAME = "یلدا"
 APP_ENGLISH_NAME = "Yalda Gym"
-APP_VERSION = "1.2.0"
+APP_VERSION = "2.0.0"
+
 
 
 

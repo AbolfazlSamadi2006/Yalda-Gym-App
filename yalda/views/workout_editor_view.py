@@ -12,6 +12,12 @@ class WorkoutEditorView(QWidget):
         self.day_tables = []
         self.init_ui()
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.load_members_dropdown()
+        self.load_template_dropdown()
+
+
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)

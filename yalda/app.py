@@ -1,11 +1,10 @@
 import sys
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 import config
 from yalda.database.connection import init_db
 from yalda.views.login_view import LoginView
-from yalda.views.main_window import MainWindow
 
 class YaldaApplication:
     def __init__(self):
@@ -21,7 +20,6 @@ class YaldaApplication:
         # Initialize Database
         init_db()
 
-
         # Load Dark Red & Black QSS Theme
         self.load_stylesheet()
 
@@ -30,6 +28,7 @@ class YaldaApplication:
         self.main_window = None
 
         self.login_view.login_success.connect(self.on_login_success)
+        self.app.aboutToQuit.connect(config.sync_data_directories)
 
     def load_stylesheet(self):
         qss_path = config.BASE_DIR / "resources" / "qss" / "dark_theme.qss"
@@ -44,14 +43,45 @@ class YaldaApplication:
 
     def run(self):
         self.login_view.showMaximized()
+        # Schedule deferred background pre-rendering of MainWindow 1 second after login UI appears
+        QTimer.singleShot(1000, self.preload_main_window)
         return self.app.exec()
+
+    def preload_main_window(self):
+        """Asynchronously pre-instantiates MainWindow and OpenCV in background while user types credentials."""
+        if not self.main_window:
+            try:
+                from yalda.views.main_window import MainWindow
+                self.main_window = MainWindow()
+                self.main_window.logout_signal.connect(self.on_logout)
+            except Exception:
+                pass
+
+        # Pre-warm OpenCV C++ DLLs silently in background thread so camera opens instantly
+        try:
+            import threading
+            threading.Thread(target=self._preload_opencv, daemon=True).start()
+        except Exception:
+            pass
+
+    def _preload_opencv(self):
+        """Warm up OpenCV C++ codecs and drivers in background."""
+        try:
+            import cv2
+        except Exception:
+            pass
 
     def on_login_success(self):
         self.login_view.hide()
         if not self.main_window:
+            from yalda.views.main_window import MainWindow
             self.main_window = MainWindow()
             self.main_window.logout_signal.connect(self.on_logout)
+
+        # Force refresh all views and reset to Dashboard for the newly logged-in trainer
+        self.main_window.refresh_on_login()
         self.main_window.showMaximized()
+
 
     def on_logout(self):
         from yalda.auth.authentication import CurrentUser
@@ -61,3 +91,4 @@ class YaldaApplication:
         self.login_view.txt_username.clear()
         self.login_view.txt_password.clear()
         self.login_view.showMaximized()
+

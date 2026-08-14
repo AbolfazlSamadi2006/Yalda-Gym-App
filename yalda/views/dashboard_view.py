@@ -83,8 +83,8 @@ class DashboardView(QWidget):
         layout.addWidget(table_title)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["نام و نام خانوادگی", "شماره تماس", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت"])
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["نام و نام خانوادگی", "مربی مربوطه", "شماره تماس", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت"])
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -120,10 +120,11 @@ class DashboardView(QWidget):
 
         for row, m in enumerate(members):
             self.table.setItem(row, 0, QTableWidgetItem(m.full_name))
-            self.table.setItem(row, 1, QTableWidgetItem(m.phone))
+            self.table.setItem(row, 1, QTableWidgetItem(m.trainer_name))
+            self.table.setItem(row, 2, QTableWidgetItem(m.phone))
             m_type_fa = MEMBERSHIP_TYPE_MAP.get(m.membership_type, m.membership_type or "")
-            self.table.setItem(row, 2, QTableWidgetItem(m_type_fa))
-            self.table.setItem(row, 3, QTableWidgetItem(m.membership_expire_shamsi or ""))
+            self.table.setItem(row, 3, QTableWidgetItem(m_type_fa))
+            self.table.setItem(row, 4, QTableWidgetItem(m.membership_expire_shamsi or ""))
             
             days_left = days_until_expire(m.membership_expire_shamsi)
             if m.status == "archived":
@@ -143,4 +144,5 @@ class DashboardView(QWidget):
                 status_item = QTableWidgetItem(status_text)
                 status_item.setForeground(Qt.GlobalColor.green)
 
-            self.table.setItem(row, 4, status_item)
+            self.table.setItem(row, 5, status_item)
+

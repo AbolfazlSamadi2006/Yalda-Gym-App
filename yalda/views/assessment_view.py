@@ -254,6 +254,8 @@ class AssessmentView(QWidget):
         lbl_date = QLabel("تاریخ ارزیابی:")
         self.picker_date = JalaliDatePicker(default_today=True)
         self.picker_date.setFixedWidth(140)
+        self.picker_date.setFixedHeight(38)
+
 
         lbl_h = QLabel("قد (cm):")
         self.spin_height = QDoubleSpinBox()

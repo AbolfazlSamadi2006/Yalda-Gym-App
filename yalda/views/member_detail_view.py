@@ -58,7 +58,10 @@ class MemberDetailView(QWidget):
         self.lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.lbl_member_details = QLabel()
+        self.lbl_member_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.lbl_member_details.setStyleSheet("font-size: 17px; color: #FFFFFF; line-height: 2.0; background: transparent;")
+        self.lbl_title.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+
         
         layout_card.addWidget(self.lbl_avatar)
         layout_card.addWidget(self.lbl_member_details)
@@ -124,14 +127,17 @@ class MemberDetailView(QWidget):
             if member.photo_path and os.path.exists(member.photo_path):
                 pixmap = QPixmap(member.photo_path)
                 if not pixmap.isNull():
-                    scaled_pix = pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
-                    self.lbl_avatar.setPixmap(scaled_pix)
+                    from yalda.utils.image_utils import get_circular_pixmap
+                    circ_pix = get_circular_pixmap(pixmap, 100)
+                    self.lbl_avatar.setPixmap(circ_pix)
+                    self.lbl_avatar.setStyleSheet("border: none; background: transparent;")
                 else:
                     self.lbl_avatar.setText("👤")
-                    self.lbl_avatar.setStyleSheet("font-size: 50px; background-color: #2E2E2E; border-radius: 50px; border: 2px solid #555555;")
+                    self.lbl_avatar.setStyleSheet("font-size: 50px; background-color: #2E2E2E; border-radius: 50px;")
             else:
                 self.lbl_avatar.setText("👤")
-                self.lbl_avatar.setStyleSheet("font-size: 50px; background-color: #2E2E2E; border-radius: 50px; border: 2px solid #555555;")
+                self.lbl_avatar.setStyleSheet("font-size: 50px; background-color: #2E2E2E; border-radius: 50px;")
+
 
     def init_workout_tab(self):
         # Clear previous layout

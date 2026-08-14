@@ -5,12 +5,20 @@ from sqlalchemy import or_
 
 class MemberService:
     @staticmethod
-    def get_all_members(search_query: str = None, status_filter: str = "all"):
+    def get_all_members(search_query: str = None, status_filter: str = "all", user_id: int = None):
 
         session = get_session()
         try:
+            from yalda.auth.authentication import CurrentUser
             query = session.query(Member)
-            
+
+            # Scoping: If user is admin, show ALL members. Otherwise scope to trainer.
+            if not CurrentUser.is_admin():
+                curr_user_id = user_id or CurrentUser.get_id()
+                if curr_user_id:
+                    query = query.filter(or_(Member.user_id == curr_user_id, Member.user_id == None))
+
+
             if status_filter and status_filter != "all":
                 query = query.filter(Member.status == status_filter)
 
@@ -26,9 +34,11 @@ class MemberService:
 
             members = query.order_by(Member.id.desc()).all()
             
-            # Check for active vs expired memberships dynamically
+            # Check for active vs expired vs archived memberships dynamically
             for m in members:
-                if m.status != "archived" and m.membership_expire_shamsi:
+                if m.status == "archived" or not m.membership_start_shamsi or not m.membership_start_shamsi.strip():
+                    m.status = "archived"
+                elif m.membership_expire_shamsi:
                     if is_membership_active(m.membership_expire_shamsi):
                         m.status = "active"
                     else:
@@ -43,11 +53,14 @@ class MemberService:
         session = get_session()
         try:
             member = session.query(Member).filter(Member.id == member_id).first()
-            if member and member.status != "archived" and member.membership_expire_shamsi:
-                if is_membership_active(member.membership_expire_shamsi):
-                    member.status = "active"
-                else:
-                    member.status = "expired"
+            if member:
+                if member.status == "archived" or not member.membership_start_shamsi or not member.membership_start_shamsi.strip():
+                    member.status = "archived"
+                elif member.membership_expire_shamsi:
+                    if is_membership_active(member.membership_expire_shamsi):
+                        member.status = "active"
+                    else:
+                        member.status = "expired"
                 session.commit()
             return member
         finally:
@@ -61,11 +74,21 @@ class MemberService:
             w_val = float(data.get("initial_weight_kg")) if data.get("initial_weight_kg") is not None and float(data.get("initial_weight_kg", 0)) > 0 else None
             
             exp_date = data.get("membership_expire_shamsi")
-            status_val = "active"
-            if exp_date and not is_membership_active(exp_date):
+            start_date = data.get("membership_start_shamsi")
+            requested_status = data.get("status", "active")
+
+            if requested_status == "archived" or not start_date or not str(start_date).strip():
+                status_val = "archived"
+            elif exp_date and not is_membership_active(exp_date):
                 status_val = "expired"
+            else:
+                status_val = "active"
+
+            from yalda.auth.authentication import CurrentUser
+            curr_user_id = data.get("user_id") or CurrentUser.get_id()
 
             member = Member(
+                user_id=curr_user_id,
                 first_name=data.get("first_name"),
                 last_name=data.get("last_name"),
                 phone=data.get("phone"),
@@ -78,12 +101,13 @@ class MemberService:
                 insurance_date_shamsi=data.get("insurance_date_shamsi"),
                 tuition_fee=float(data.get("tuition_fee", 0.0) or 0.0) if data.get("tuition_fee") is not None else None,
                 membership_type=data.get("membership_type", "12_sessions"),
-                membership_start_shamsi=data.get("membership_start_shamsi") or get_today_shamsi(),
+                membership_start_shamsi=start_date,
                 membership_expire_shamsi=exp_date,
                 photo_path=data.get("photo_path"),
                 notes=data.get("notes"),
                 status=status_val
             )
+
             session.add(member)
             session.flush()
 
@@ -111,7 +135,9 @@ class MemberService:
                 if hasattr(member, key):
                     setattr(member, key, val)
             
-            if member.status != "archived" and member.membership_expire_shamsi:
+            if member.status == "archived" or not member.membership_start_shamsi or not member.membership_start_shamsi.strip():
+                member.status = "archived"
+            elif member.membership_expire_shamsi:
                 if is_membership_active(member.membership_expire_shamsi):
                     member.status = "active"
                 else:
@@ -122,10 +148,10 @@ class MemberService:
         finally:
             session.close()
 
-
     @staticmethod
     def archive_member(member_id: int):
         return MemberService.update_member(member_id, {"status": "archived"})
+
 
     @staticmethod
     def delete_member(member_id: int):
@@ -246,8 +272,17 @@ class MemberService:
 
         session = get_session()
         try:
-            members = session.query(Member).filter(Member.status == "active").all()
+            from yalda.auth.authentication import CurrentUser
+
+            query = session.query(Member).filter(Member.status == "active")
+            if not CurrentUser.is_admin():
+                curr_user_id = CurrentUser.get_id()
+                if curr_user_id:
+                    query = query.filter(or_(Member.user_id == curr_user_id, Member.user_id == None))
+            members = query.all()
+
             target_date = jdatetime.date.today() + jdatetime.timedelta(days=days_ahead)
+
             
             upcoming = []
             for m in members:

@@ -1,12 +1,12 @@
 import os
 import tempfile
 import time
-import cv2
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QMessageBox, QCheckBox
 )
 from PyQt6.QtCore import QTimer, Qt
 from PyQt6.QtGui import QImage, QPixmap
+
 
 
 class CameraCaptureDialog(QDialog):
@@ -106,8 +106,9 @@ class CameraCaptureDialog(QDialog):
 
         layout.addLayout(btn_layout)
 
-    def detect_and_start_camera(self):
+    def populate_cameras(self):
         """Scan available video devices and open index 0."""
+        import cv2
         self.combo_cam.blockSignals(True)
         self.combo_cam.clear()
         
@@ -130,6 +131,7 @@ class CameraCaptureDialog(QDialog):
         self.open_camera(available[0])
 
     def open_camera(self, cam_index: int):
+        import cv2
         self.stop_camera()
         self.active_cam_index = cam_index
 
@@ -154,8 +156,10 @@ class CameraCaptureDialog(QDialog):
             self.open_camera(cam_id)
 
     def update_frame(self):
+        import cv2
         if self.cap and self.cap.isOpened():
             ret, frame = self.cap.read()
+
             if ret and frame is not None:
                 if self.chk_flip.isChecked():
                     frame = cv2.flip(frame, 1)

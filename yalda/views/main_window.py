@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QMainWindow, QWidget, QHBoxLayout, QStackedWidget, QMessageBox
+    QMainWindow, QWidget, QHBoxLayout, QStackedWidget, QMessageBox, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 import config
@@ -7,11 +7,14 @@ from yalda.views.components.sidebar import Sidebar
 from yalda.views.dashboard_view import DashboardView
 from yalda.views.member_list_view import MemberListView
 from yalda.views.member_detail_view import MemberDetailView
+from yalda.views.member_form_dialog import MemberFormDialog
 from yalda.views.workout_editor_view import WorkoutEditorView
+
 from yalda.views.nutrition_editor_view import NutritionEditorView
 from yalda.views.workout_library_view import WorkoutLibraryView
 from yalda.views.food_library_view import FoodLibraryView
 from yalda.views.backup_view import BackupView
+from yalda.views.developer_view import DeveloperView
 from yalda.auth.authentication import CurrentUser
 
 class MainWindow(QMainWindow):
@@ -59,6 +62,7 @@ class MainWindow(QMainWindow):
         self.view_nutrition = NutritionEditorView()
         self.view_exercises = WorkoutLibraryView()
         self.view_foods = FoodLibraryView()
+        self.view_developer = DeveloperView()
         self.view_backup = BackupView()
 
         self.stack.addWidget(self.view_dashboard) # Index 0
@@ -67,19 +71,20 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.view_nutrition) # Index 3
         self.stack.addWidget(self.view_exercises) # Index 4
         self.stack.addWidget(self.view_foods)     # Index 5
-        self.stack.addWidget(self.view_backup)    # Index 6
+        self.stack.addWidget(self.view_developer) # Index 6
+        self.stack.addWidget(self.view_backup)    # Index 7
 
     def switch_page(self, page_id: str):
         self.sidebar.refresh_notifications()
         page_map = {
-
             "dashboard": 0,
             "members": 1,
             "workouts": 2,
             "nutrition": 3,
             "exercises": 4,
             "foods": 5,
-            "backup": 6
+            "developer": 6,
+            "backup": 7
         }
         if page_id in page_map:
             if page_id == "dashboard":
@@ -94,18 +99,51 @@ class MainWindow(QMainWindow):
                 self.view_exercises.load_exercises()
             elif page_id == "foods":
                 self.view_foods.load_foods()
+            elif page_id == "developer":
+                self.view_developer.load_data()
             elif page_id == "backup":
                 self.view_backup.load_backups()
             self.stack.setCurrentIndex(page_map[page_id])
 
+    def refresh_on_login(self):
+        """Refreshes sidebar, resets active index to Dashboard, and reloads data across all views for newly logged-in user."""
+        if hasattr(self, 'sidebar'):
+            self.sidebar.navigate("dashboard")
+
+        # Reload all views for the newly authenticated trainer
+        for view_func in [
+            lambda: self.view_dashboard.refresh_dashboard(),
+            lambda: self.view_members.load_members(),
+            lambda: self.view_workouts.refresh_editor(),
+            lambda: self.view_nutrition.refresh_editor(),
+            lambda: self.view_exercises.load_exercises(),
+            lambda: self.view_foods.load_foods(),
+            lambda: self.view_developer.load_data(),
+            lambda: self.view_backup.load_backups()
+        ]:
+            try:
+                view_func()
+            except Exception:
+                pass
+
+        self.stack.setCurrentIndex(0)
+
+
+
     def handle_dashboard_navigation(self, target: str):
         if target == "add_member":
-            self.sidebar.navigate("members")
-            self.view_members.open_add_dialog()
+            try:
+                dialog = MemberFormDialog(self)
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    self.view_dashboard.refresh_dashboard()
+                    self.view_members.load_members()
+            except Exception as e:
+                QMessageBox.critical(self, "خطا", f"خطایی رخ داد: {str(e)}")
         elif target == "new_workout":
             self.sidebar.navigate("workouts")
         elif target == "new_nutrition":
             self.sidebar.navigate("nutrition")
+
 
     def open_member_detail(self, member_id: int):
         detail_view = MemberDetailView(member_id)

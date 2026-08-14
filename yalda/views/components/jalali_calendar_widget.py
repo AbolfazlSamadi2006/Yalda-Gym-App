@@ -83,10 +83,11 @@ class JalaliCalendarDialog(QDialog):
 
         lbl_year = QLabel("سال:")
         self.year_combo = QComboBox()
-        for y in range(1370, 1430):
+        for y in range(1300, 1451):
             self.year_combo.addItem(str(y), y)
         self.year_combo.setCurrentText(str(self.current_year))
         self.year_combo.currentTextChanged.connect(self.on_year_changed)
+
 
         controls.addWidget(lbl_month)
         controls.addWidget(self.month_combo)
@@ -188,19 +189,48 @@ class JalaliDatePicker(QWidget):
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
+        layout.setSpacing(6)
 
         self.line_edit = QLineEdit()
         self.line_edit.setPlaceholderText("YYYY/MM/DD")
         if default_today:
             self.line_edit.setText(get_today_shamsi())
 
+        self.line_edit.textChanged.connect(self.date_changed.emit)
+
         self.btn_calendar = QPushButton("📅")
-        self.btn_calendar.setFixedWidth(36)
+        self.btn_calendar.setFixedWidth(42)
+        self.btn_calendar.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_calendar.setStyleSheet("""
+            QPushButton {
+                background-color: #8B0000;
+                color: #FFFFFF;
+                border: 1px solid #A91D22;
+                border-radius: 6px;
+                font-size: 16px;
+                font-family: "Segoe UI Emoji", "Noto Color Emoji", "Apple Color Emoji", sans-serif;
+                padding: 0px;
+                margin: 0px;
+            }
+            QPushButton:hover {
+                background-color: #A91D22;
+            }
+        """)
         self.btn_calendar.clicked.connect(self.open_calendar)
 
         layout.addWidget(self.line_edit)
         layout.addWidget(self.btn_calendar)
+        self.setFixedHeight(38)
+
+
+    def setFixedHeight(self, h: int):
+        super().setFixedHeight(h)
+        self.line_edit.setFixedHeight(h)
+        self.btn_calendar.setFixedHeight(h)
+
+    def setFixedWidth(self, w: int):
+        super().setFixedWidth(w)
+        self.line_edit.setFixedWidth(max(40, w - 48))
 
     def open_calendar(self):
         dialog = JalaliCalendarDialog(self, initial_date=self.line_edit.text())
@@ -208,11 +238,14 @@ class JalaliDatePicker(QWidget):
         dialog.exec()
 
     def set_date(self, date_str):
-        self.line_edit.setText(date_str)
-        self.date_changed.emit(date_str)
+        self.line_edit.setText(date_str or "")
+
+    def get_date(self) -> str:
+        return self.line_edit.text().strip()
 
     def text(self) -> str:
-        return self.line_edit.text()
+        return self.line_edit.text().strip()
 
-    def setText(self, date_str: str):
-        self.line_edit.setText(date_str)
+    def setText(self, date_str):
+        self.line_edit.setText(date_str or "")
+

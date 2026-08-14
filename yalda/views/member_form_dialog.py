@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTextEdit, QMessageBox, QDoubleSpinBox, QFileDialog
+    QDialog, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTextEdit, QMessageBox, QDoubleSpinBox, QFileDialog
 )
 from PyQt6.QtCore import Qt
 from yalda.views.components.jalali_calendar_widget import JalaliDatePicker
@@ -13,14 +13,17 @@ class MemberFormDialog(QDialog):
         self.photo_path = None
         self.setWindowTitle("ثبت / ویرایش ورزشکار جدید")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setFixedSize(580, 560)
+        self.setFixedSize(650, 560)
 
         self.init_ui()
 
+
+
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(8)
+        layout.setContentsMargins(20, 16, 20, 16)
+
 
         # Name Row
         row1 = QHBoxLayout()
@@ -61,6 +64,8 @@ class MemberFormDialog(QDialog):
         row_birth_photo = QHBoxLayout()
         self.picker_birth = JalaliDatePicker(default_today=False)
         self.picker_birth.setFixedWidth(155)
+        self.picker_birth.setFixedHeight(38)
+
 
         self.btn_photo = QPushButton("📷 تصویر پروفایل")
         self.btn_photo.setObjectName("secondary_button")
@@ -132,65 +137,61 @@ class MemberFormDialog(QDialog):
         layout.addLayout(row_stats_container)
         self.update_bmi_display()
 
-        # Membership Dates, Fee & Type Layout (3-Row Stacked Grid)
-        vbox_mem = QVBoxLayout()
-        vbox_mem.setSpacing(10)
+        # Membership Dates, Fee, Type & Status Grid (4 Rows, 4 Columns)
+        grid_mem = QGridLayout()
+        grid_mem.setHorizontalSpacing(12)
+        grid_mem.setVerticalSpacing(8)
 
-        # Row 1: Registration Date (Right) & Sports Insurance Date (Left)
-        row_mem_1 = QHBoxLayout()
-        
+        # Row 0: Registration Date (Col 0,1) & Sports Insurance Date (Col 2,3)
         lbl_reg = QLabel("تاریخ ثبت نام:")
         lbl_reg.setFixedWidth(80)
         self.picker_reg = JalaliDatePicker(default_today=True)
-        self.picker_reg.setFixedWidth(135)
+        self.picker_reg.setFixedWidth(160)
+        self.picker_reg.setFixedHeight(38)
 
         lbl_ins = QLabel("تاریخ بیمه ورزشی:")
-        lbl_ins.setFixedWidth(90)
+        lbl_ins.setFixedWidth(105)
         self.picker_insurance = JalaliDatePicker(default_today=False)
         self.picker_insurance.setFixedWidth(170)
+        self.picker_insurance.setFixedHeight(38)
 
-        row_mem_1.addWidget(lbl_reg)
-        row_mem_1.addWidget(self.picker_reg)
-        row_mem_1.addSpacing(15)
-        row_mem_1.addWidget(lbl_ins)
-        row_mem_1.addWidget(self.picker_insurance)
-        row_mem_1.addStretch()
-        vbox_mem.addLayout(row_mem_1)
+        grid_mem.addWidget(lbl_reg, 0, 0)
+        grid_mem.addWidget(self.picker_reg, 0, 1)
+        grid_mem.addWidget(lbl_ins, 0, 2)
+        grid_mem.addWidget(self.picker_insurance, 0, 3)
 
-        # Row 2: Start Date (Right) & Tuition Fee (Left)
-        row_mem_2 = QHBoxLayout()
-
+        # Row 1: Start Date (Col 0,1) & Tuition Fee (Col 2,3)
         lbl_start = QLabel("تاریخ شروع:")
         lbl_start.setFixedWidth(80)
         self.picker_start = JalaliDatePicker(default_today=True)
-        self.picker_start.setFixedWidth(135)
+        self.picker_start.setFixedWidth(160)
+        self.picker_start.setFixedHeight(38)
         self.picker_start.date_changed.connect(self.recalculate_expiry)
 
         lbl_fee = QLabel("مبلغ شهریه:")
-        lbl_fee.setFixedWidth(90)
+        lbl_fee.setFixedWidth(105)
         self.txt_tuition_fee = QLineEdit()
         self.txt_tuition_fee.setFixedWidth(170)
+        self.txt_tuition_fee.setFixedHeight(38)
         self.txt_tuition_fee.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.txt_tuition_fee.textChanged.connect(self.format_tuition_input)
 
-        row_mem_2.addWidget(lbl_start)
-        row_mem_2.addWidget(self.picker_start)
-        row_mem_2.addSpacing(15)
-        row_mem_2.addWidget(lbl_fee)
-        row_mem_2.addWidget(self.txt_tuition_fee)
-        row_mem_2.addStretch()
-        vbox_mem.addLayout(row_mem_2)
+        grid_mem.addWidget(lbl_start, 1, 0)
+        grid_mem.addWidget(self.picker_start, 1, 1)
+        grid_mem.addWidget(lbl_fee, 1, 2)
+        grid_mem.addWidget(self.txt_tuition_fee, 1, 3)
 
-        # Row 3: Expiry Date (Right) & Membership Type (Left)
-        row_mem_3 = QHBoxLayout()
-
+        # Row 2: Expiry Date (Col 0,1) & Membership Type (Col 2,3)
         lbl_expire = QLabel("تاریخ انقضا:")
         lbl_expire.setFixedWidth(80)
         self.picker_expire = JalaliDatePicker(default_today=False)
-        self.picker_expire.setFixedWidth(135)
+        self.picker_expire.setFixedWidth(160)
+        self.picker_expire.setFixedHeight(38)
+        self.picker_expire.date_changed.connect(self.auto_update_status)
+
 
         lbl_membership_type = QLabel("نوع عضویت:")
-        lbl_membership_type.setFixedWidth(90)
+        lbl_membership_type.setFixedWidth(105)
         self.combo_membership = QComboBox()
         self.combo_membership.addItem("۱۲ جلسه در ماه", "12_sessions")
         self.combo_membership.addItem("۸ جلسه در ماه", "8_sessions")
@@ -198,27 +199,42 @@ class MemberFormDialog(QDialog):
         self.combo_membership.addItem("۲۰ جلسه در ماه", "20_sessions")
         self.combo_membership.addItem("همه روزه", "daily_access")
         self.combo_membership.setFixedWidth(170)
+        self.combo_membership.setFixedHeight(38)
         self.combo_membership.currentIndexChanged.connect(self.on_membership_type_changed)
 
-        row_mem_3.addWidget(lbl_expire)
-        row_mem_3.addWidget(self.picker_expire)
-        row_mem_3.addSpacing(15)
-        row_mem_3.addWidget(lbl_membership_type)
-        row_mem_3.addWidget(self.combo_membership)
-        row_mem_3.addStretch()
-        vbox_mem.addLayout(row_mem_3)
+        grid_mem.addWidget(lbl_expire, 2, 0)
+        grid_mem.addWidget(self.picker_expire, 2, 1)
+        grid_mem.addWidget(lbl_membership_type, 2, 2)
+        grid_mem.addWidget(self.combo_membership, 2, 3)
 
-        layout.addLayout(vbox_mem)
-
-        # Notes Section (Higher label & expanded text edit)
-        layout.addSpacing(4)
+        # Row 3: Trainer Notes Label (Col 0 - Under Expiry Date) & File Status (Col 2,3 - Under Membership Type)
         lbl_notes = QLabel("یادداشت‌های مربی:")
-        layout.addWidget(lbl_notes)
+        lbl_notes.setFixedWidth(105)
 
+        lbl_status = QLabel("وضعیت پرونده:")
+        lbl_status.setFixedWidth(105)
+        self.combo_status = QComboBox()
+        self.combo_status.addItem("🟢 فعال", "active")
+        self.combo_status.addItem("🔴 منقضی", "expired")
+        self.combo_status.addItem("⚪ آرشیو شده", "archived")
+        self.combo_status.setFixedWidth(170)
+        self.combo_status.setFixedHeight(38)
+
+        grid_mem.addWidget(lbl_notes, 3, 0)
+        grid_mem.addWidget(lbl_status, 3, 2)
+        grid_mem.addWidget(self.combo_status, 3, 3)
+
+        layout.addLayout(grid_mem)
+
+        # Notes Text Box (Directly below grid)
         self.txt_notes = QTextEdit()
         self.txt_notes.setAcceptRichText(False)
-        self.txt_notes.setFixedHeight(75)
+        self.txt_notes.setFixedHeight(80)
         layout.addWidget(self.txt_notes)
+
+
+
+
 
         # Submit Buttons
         btn_box = QHBoxLayout()
@@ -232,9 +248,12 @@ class MemberFormDialog(QDialog):
         btn_box.addWidget(btn_cancel)
         layout.addLayout(btn_box)
 
-        # Load existing data if editing
+        # Load existing data if editing, else calculate default 1-month expiry from start date
         if self.member_data:
             self.load_member_data()
+        else:
+            self.recalculate_expiry()
+
 
     def choose_photo(self):
         from yalda.utils.image_source_chooser import get_image_file_path
@@ -286,9 +305,29 @@ class MemberFormDialog(QDialog):
             self.picker_expire.setText(expire_date)
         else:
             self.picker_expire.setText("")
+        self.auto_update_status()
+
+    def auto_update_status(self):
+        from yalda.utils.jalali_date import is_membership_active
+        start_date = self.picker_start.text().strip()
+        expire_date = self.picker_expire.text().strip()
+
+        if not start_date:
+            idx = self.combo_status.findData("archived")
+            if idx >= 0:
+                self.combo_status.setCurrentIndex(idx)
+        elif expire_date and not is_membership_active(expire_date):
+            idx = self.combo_status.findData("expired")
+            if idx >= 0:
+                self.combo_status.setCurrentIndex(idx)
+        else:
+            idx = self.combo_status.findData("active")
+            if idx >= 0:
+                self.combo_status.setCurrentIndex(idx)
 
     def on_membership_type_changed(self):
         self.recalculate_expiry()
+
 
     def save(self):
         first_name = self.txt_first_name.text().strip()
@@ -365,7 +404,8 @@ class MemberFormDialog(QDialog):
             "membership_start_shamsi": self.picker_start.text(),
             "membership_expire_shamsi": self.picker_expire.text(),
             "photo_path": self.photo_path,
-            "notes": self.txt_notes.toPlainText().strip()
+            "notes": self.txt_notes.toPlainText().strip(),
+            "status": self.combo_status.currentData()
         }
 
     def load_member_data(self):
@@ -390,6 +430,11 @@ class MemberFormDialog(QDialog):
         if idx_m >= 0:
             self.combo_membership.setCurrentIndex(idx_m)
 
+        idx_s = self.combo_status.findData(m.status)
+        if idx_s >= 0:
+            self.combo_status.setCurrentIndex(idx_s)
+
+
         if hasattr(m, 'registration_date_shamsi') and m.registration_date_shamsi:
             self.picker_reg.setText(m.registration_date_shamsi)
         if hasattr(m, 'insurance_date_shamsi') and m.insurance_date_shamsi:
@@ -407,3 +452,4 @@ class MemberFormDialog(QDialog):
         if m.notes:
             self.txt_notes.setText(m.notes)
         self.update_bmi_display()
+

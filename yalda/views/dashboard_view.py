@@ -1,12 +1,15 @@
+import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFrame
 )
 from PyQt6.QtCore import pyqtSignal, Qt
-from yalda.views.components.stat_card import StatCard
+from PyQt6.QtGui import QPixmap
 from yalda.services.member_service import MemberService
 from yalda.services.workout_service import WorkoutService
 from yalda.services.nutrition_service import NutritionService
 from yalda.utils.jalali_date import days_until_expire, get_today_shamsi
+from yalda.utils.image_utils import get_circular_pixmap
+from yalda.views.components.circular_image_preview_dialog import CircularImagePreviewDialog
 
 class DashboardView(QWidget):
     navigate_to = pyqtSignal(str) # Emits target page name
@@ -69,8 +72,18 @@ class DashboardView(QWidget):
 
         self.table = QTableWidget()
         self.table.setColumnCount(6)
-        self.table.setHorizontalHeaderLabels(["نام و نام خانوادگی", "مربی مربوطه", "شماره تماس", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.setHorizontalHeaderLabels(["ورزشکار", "مربی مربوطه", "شماره تماس", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت"])
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(1, 140)
+        self.table.setColumnWidth(2, 120)
+        self.table.setColumnWidth(3, 140)
+        self.table.setColumnWidth(4, 130)
+        self.table.setColumnWidth(5, 160)
+
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(54)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -78,6 +91,12 @@ class DashboardView(QWidget):
         
         # Initial Data Refresh
         self.refresh_dashboard()
+
+    def open_avatar_preview(self, photo_path: str, member_name: str):
+        """Opens a circular animated popup zoom of athlete's photo."""
+        if photo_path and os.path.exists(photo_path):
+            dlg = CircularImagePreviewDialog(photo_path, title=member_name, parent=self)
+            dlg.exec()
 
     def refresh_dashboard(self):
         members = MemberService.get_all_members(status_filter="all")
@@ -94,30 +113,90 @@ class DashboardView(QWidget):
         }
 
         for row, m in enumerate(members):
-            self.table.setItem(row, 0, QTableWidgetItem(m.full_name))
-            self.table.setItem(row, 1, QTableWidgetItem(m.trainer_name))
-            self.table.setItem(row, 2, QTableWidgetItem(m.phone))
-            m_type_fa = MEMBERSHIP_TYPE_MAP.get(m.membership_type, m.membership_type or "")
-            self.table.setItem(row, 3, QTableWidgetItem(m_type_fa))
-            self.table.setItem(row, 4, QTableWidgetItem(m.membership_expire_shamsi or ""))
+            # Custom Column 0: Circular Avatar + Name
+            cell_w = QWidget()
+            cell_w.setStyleSheet("background: transparent;")
+            cell_l = QHBoxLayout(cell_w)
+            cell_l.setContentsMargins(10, 4, 10, 4)
+            cell_l.setSpacing(12)
+            cell_l.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+
+            lbl_avatar = QLabel()
+            lbl_avatar.setFixedSize(40, 40)
+            lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            has_valid_photo = False
+            if m.photo_path and os.path.exists(m.photo_path):
+                pix = QPixmap(m.photo_path)
+                if not pix.isNull():
+                    circ_pix = get_circular_pixmap(pix, 40, border_color="#8B0000", border_width=2)
+                    lbl_avatar.setPixmap(circ_pix)
+                    lbl_avatar.setCursor(Qt.CursorShape.PointingHandCursor)
+                    lbl_avatar.setToolTip(f"برای مشاهده تصویر بزرگ‌تر «{m.full_name}» کلیک کنید")
+                    lbl_avatar.mousePressEvent = lambda e, p=m.photo_path, n=m.full_name: self.open_avatar_preview(p, n)
+                    has_valid_photo = True
+
+            if not has_valid_photo:
+                lbl_avatar.setText("👤")
+                lbl_avatar.setStyleSheet("""
+                    QLabel {
+                        background-color: #242424;
+                        border: 1px solid #444444;
+                        border-radius: 20px;
+                        color: #777777;
+                        font-size: 18px;
+                    }
+                """)
+
+            lbl_name = QLabel(m.full_name)
+            lbl_name.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: bold; background: transparent;")
+
+            cell_l.addWidget(lbl_avatar)
+            cell_l.addWidget(lbl_name)
+            cell_l.addStretch()
+
+            self.table.setCellWidget(row, 0, cell_w)
+
+            # Column 1: Trainer
+            item_trainer = QTableWidgetItem(m.trainer_name or "-")
+            item_trainer.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 1, item_trainer)
+
+            # Column 2: Phone
+            item_phone = QTableWidgetItem(m.phone or "-")
+            item_phone.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 2, item_phone)
+
+            # Column 3: Membership Type
+            m_type_fa = MEMBERSHIP_TYPE_MAP.get(m.membership_type, m.membership_type or "-")
+            item_type = QTableWidgetItem(m_type_fa)
+            item_type.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 3, item_type)
+
+            # Column 4: Expire Date
+            item_exp = QTableWidgetItem(m.membership_expire_shamsi or "-")
+            item_exp.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 4, item_exp)
             
+            # Column 5: Status
             days_left = days_until_expire(m.membership_expire_shamsi)
             if m.status == "archived":
-                status_text = "آرشیو شده"
+                status_text = "آرشیو شده ⚪"
                 status_item = QTableWidgetItem(status_text)
                 status_item.setForeground(Qt.GlobalColor.gray)
             elif days_left < 0 or m.status == "expired":
-                status_text = "انقضا یافته"
+                status_text = "انقضا یافته 🔴"
                 status_item = QTableWidgetItem(status_text)
                 status_item.setForeground(Qt.GlobalColor.red)
             elif 0 <= days_left <= 5:
-                status_text = f"در آستانه انقضا ({days_left} روز)"
+                status_text = f"در آستانه انقضا ({days_left} روز) 🟡"
                 status_item = QTableWidgetItem(status_text)
                 status_item.setForeground(Qt.GlobalColor.yellow)
             else:
-                status_text = f"فعال ({days_left} روز باقی‌مانده)"
+                status_text = f"فعال ({days_left} روز باقی‌مانده) 🟢"
                 status_item = QTableWidgetItem(status_text)
                 status_item.setForeground(Qt.GlobalColor.green)
 
+            status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.table.setItem(row, 5, status_item)
 

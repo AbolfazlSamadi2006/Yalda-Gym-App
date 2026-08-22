@@ -1,25 +1,25 @@
 from sqlalchemy.orm import Session
-from yalda.models.database_models import User, Exercise, FoodItem
+from yalda.models.database_models import User, Exercise, FoodItem, SystemSetting
 from yalda.utils.security import hash_password
 
 def seed_initial_data(session: Session):
-    # 1. Create Default Users if not exist
+    # 1. Create Default Admin User if not exist (No dummy trainer accounts)
     if session.query(User).count() == 0:
         admin_user = User(
             username="admin",
             password_hash=hash_password("admin123"),
             full_name="مدیر سیستم",
+            first_name="مدیر",
+            last_name="سیستم",
             role="admin",
             is_active=True
         )
-        trainer_user = User(
-            username="trainer",
-            password_hash=hash_password("trainer123"),
-            full_name="مربی نمونه",
-            role="trainer",
-            is_active=True
-        )
-        session.add_all([admin_user, trainer_user])
+        session.add(admin_user)
+        session.commit()
+
+    # 1.1 Set initial app license status to false (Inactive until activated by Admin)
+    if session.query(SystemSetting).filter(SystemSetting.key == "app_license_active").count() == 0:
+        session.add(SystemSetting(key="app_license_active", value="false"))
         session.commit()
 
     # 2. Create Default Exercise Library if empty

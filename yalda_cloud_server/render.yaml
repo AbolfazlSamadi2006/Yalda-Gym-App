@@ -1,0 +1,15 @@
+﻿services:
+  - type: web
+    name: yalda-cloud-backup
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server:app --host 0.0.0.0 --port 
+    envVars:
+      - key: YALDA_API_KEY
+        value: yalda_cloud_sec_2006_gym
+      - key: ADMIN_USER
+        value: admin
+      - key: ADMIN_PASS
+        value: 2006
+      - key: SESSION_SECRET
+        value: yalda_gym_secret_session_2006

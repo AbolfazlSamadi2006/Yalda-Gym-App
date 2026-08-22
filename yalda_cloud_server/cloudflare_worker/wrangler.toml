@@ -1,0 +1,13 @@
+﻿name = "yalda-cloud-backup"
+main = "index.js"
+compatibility_date = "2024-01-01"
+
+# Cloudflare R2 Bucket for permanent database storage (10GB Free forever)
+[[r2_buckets]]
+binding = "BACKUPS_R2"
+bucket_name = "yalda-backups"
+
+# Fallback KV storage
+[[kv_namespaces]]
+binding = "BACKUPS_KV"
+id = "yalda_backups_kv"

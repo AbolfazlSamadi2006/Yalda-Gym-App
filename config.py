@@ -22,11 +22,10 @@ else:
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 def sync_data_directories():
-    """Finds the latest yalda.db across all candidate data folders and mirrors it to prevent data loss."""
+    """Finds the latest yalda.db across runtime data folder, backups folder, and persistent AppData folder to guarantee zero data loss."""
     candidate_locations = [
         DATA_DIR,
-        APPDATA_DATA_DIR,
-        BASE_DIR / "data"
+        APPDATA_DATA_DIR
     ]
     
     db_candidates = []
@@ -34,6 +33,10 @@ def sync_data_directories():
         db_p = loc / "yalda.db"
         if db_p.exists() and db_p.stat().st_size > 0:
             db_candidates.append((db_p.stat().st_mtime, db_p, loc))
+        # Also check latest_backup.db inside backups/
+        backup_p = loc / "backups" / "latest_backup.db"
+        if backup_p.exists() and backup_p.stat().st_size > 0:
+            db_candidates.append((backup_p.stat().st_mtime, backup_p, loc))
             
     if db_candidates:
         db_candidates.sort(key=lambda x: x[0], reverse=True)
@@ -87,7 +90,7 @@ DATABASE_URI = f"sqlite:///{DB_PATH}"
 # App Details
 APP_NAME = "یلدا"
 APP_ENGLISH_NAME = "Yalda Gym"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 
 
 
@@ -107,3 +110,7 @@ COLOR_BORDER = "#333333"
 
 # Fonts
 FONT_FAMILY = "Vazirmatn"
+
+# Cloud Backup Server Settings
+DEFAULT_CLOUD_BACKUP_URL = "https://gymassistantbackup.a-samadi2006.workers.dev"
+CLOUD_BACKUP_SECRET_KEY = "yalda_cloud_sec_2006_gym"

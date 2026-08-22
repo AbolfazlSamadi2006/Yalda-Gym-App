@@ -1,0 +1,126 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود به پنل سرور ابری یلدا</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+        body {
+            background-color: #0F0F0F;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .card {
+            background-color: #1A1A1A;
+            border: 1px solid #2D2D2D;
+            border-top: 4px solid #8B0000;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            padding: 35px 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        .logo-box {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .logo-box h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 5px;
+        }
+        .logo-box p {
+            font-size: 13px;
+            color: #9CA3AF;
+        }
+        .input-group {
+            margin-bottom: 18px;
+        }
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #D1D5DB;
+            margin-bottom: 6px;
+        }
+        .input-group input {
+            width: 100%;
+            height: 42px;
+            background-color: #262626;
+            border: 1px solid #3F3F46;
+            border-radius: 8px;
+            padding: 0 12px;
+            color: #FFFFFF;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .input-group input:focus {
+            border-color: #8B0000;
+        }
+        .btn-submit {
+            width: 100%;
+            height: 44px;
+            background-color: #8B0000;
+            color: #FFFFFF;
+            font-size: 15px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+        }
+        .btn-submit:hover {
+            background-color: #A91D22;
+        }
+        .error-alert {
+            background-color: rgba(220, 38, 38, 0.15);
+            border: 1px solid #DC2626;
+            color: #F87171;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo-box">
+            <h1>🔐 سرور پشتیبان‌گیری ابری یلدا</h1>
+            <p>ورود مدیر کل به سامانه مانیتورینگ دیتابیس‌ها</p>
+        </div>
+
+        {% if error %}
+        <div class="error-alert">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form action="/login" method="POST">
+            <div class="input-group">
+                <label for="username">نام کاربری ادمین</label>
+                <input type="text" id="username" name="username" placeholder="نام کاربری" required autofocus>
+            </div>
+            <div class="input-group">
+                <label for="password">رمز عبور</label>
+                <input type="password" id="password" name="password" placeholder="رمز عبور" required>
+            </div>
+            <button type="submit" class="btn-submit">ورود به پنل مدیریت</button>
+        </form>
+    </div>
+</body>
+</html>

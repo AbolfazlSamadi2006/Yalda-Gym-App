@@ -15,6 +15,7 @@ from yalda.views.workout_library_view import WorkoutLibraryView
 from yalda.views.food_library_view import FoodLibraryView
 from yalda.views.backup_view import BackupView
 from yalda.views.developer_view import DeveloperView
+from yalda.views.components.exit_backup_dialog import ExitBackupDialog
 from yalda.auth.authentication import CurrentUser
 
 class MainWindow(QMainWindow):
@@ -22,7 +23,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"{config.APP_NAME} - نرم‌افزار مدیریت باشگاه بدنسازی (نسخه ۱.۲.۰)")
+        self.setWindowTitle(f"{config.APP_NAME} - نرم‌افزار مدیریت باشگاه بدنسازی (نسخه {config.APP_VERSION})")
 
 
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -160,3 +161,15 @@ class MainWindow(QMainWindow):
             CurrentUser.logout()
             self.logout_signal.emit()
             self.hide()
+
+    def closeEvent(self, event):
+        # If window is hidden or user already logged out, accept immediately
+        if not self.isVisible() or CurrentUser.get() is None:
+            event.accept()
+            return
+
+        dialog = ExitBackupDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            event.accept()
+        else:
+            event.ignore()

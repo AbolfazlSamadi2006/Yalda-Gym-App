@@ -1,0 +1,318 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت سرور ابری یلدا</title>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+        body {
+            background-color: #0F0F0F;
+            color: #F3F4F6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background-color: #18181B;
+            border-bottom: 1px solid #27272A;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand h1 {
+            font-size: 18px;
+            font-weight: 800;
+            color: #FFFFFF;
+        }
+        .badge-live {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #10B981;
+            border: 1px solid #10B981;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .btn-logout {
+            background-color: #27272A;
+            color: #EF4444;
+            border: 1px solid #3F3F46;
+            padding: 6px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover {
+            background-color: #DC2626;
+            color: #FFFFFF;
+            border-color: #DC2626;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 28px 20px;
+            flex: 1;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            background-color: #18181B;
+            border: 1px solid #27272A;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+        .icon-red { background-color: rgba(139, 0, 0, 0.2); color: #EF4444; border: 1px solid #8B0000; }
+        .icon-blue { background-color: rgba(37, 99, 235, 0.2); color: #60A5FA; border: 1px solid #2563EB; }
+        .icon-green { background-color: rgba(16, 185, 129, 0.2); color: #34D399; border: 1px solid #10B981; }
+        .stat-info h3 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #FFFFFF;
+            margin-bottom: 2px;
+        }
+        .stat-info p {
+            font-size: 12px;
+            color: #A1A1AA;
+        }
+        .table-card {
+            background-color: #18181B;
+            border: 1px solid #27272A;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .table-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #27272A;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .table-header h2 {
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFFFFF;
+        }
+        .search-input {
+            background-color: #27272A;
+            border: 1px solid #3F3F46;
+            color: #FFFFFF;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            width: 260px;
+            outline: none;
+        }
+        .search-input:focus {
+            border-color: #8B0000;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            font-size: 13px;
+        }
+        th {
+            background-color: #202024;
+            color: #A1A1AA;
+            padding: 12px 18px;
+            font-weight: bold;
+            border-bottom: 1px solid #27272A;
+        }
+        td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #27272A;
+            color: #E4E4E7;
+        }
+        tr:hover td {
+            background-color: #202024;
+        }
+        .btn-download {
+            background-color: #2563EB;
+            color: #FFFFFF;
+            padding: 6px 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: background-color 0.2s;
+        }
+        .btn-download:hover {
+            background-color: #1D4ED8;
+        }
+        .btn-delete {
+            background-color: transparent;
+            color: #EF4444;
+            border: 1px solid #EF4444;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 6px;
+            transition: all 0.2s;
+        }
+        .btn-delete:hover {
+            background-color: #EF4444;
+            color: #FFFFFF;
+        }
+        .empty-state {
+            padding: 40px 20px;
+            text-align: center;
+            color: #71717A;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #71717A;
+            border-top: 1px solid #27272A;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            <h1>🏋️ سرور پشتیبان‌گیری ابری باشگاه یلدا</h1>
+            <span class="badge-live">سرور فعال 🟢</span>
+        </div>
+        <a href="/logout" class="btn-logout">خروج از پنل</a>
+    </header>
+
+    <div class="container">
+        <!-- Stats Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon icon-red">👥</div>
+                <div class="stat-info">
+                    <h3>{{ total_trainers }}</h3>
+                    <p>مربیان دارای نسخه پشتیبان</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-blue">💾</div>
+                <div class="stat-info">
+                    <h3>{{ total_size_mb }} MB</h3>
+                    <p>مجموع حجم دیتابیس‌های ذخیره‌شده</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon icon-green">⏱️</div>
+                <div class="stat-info">
+                    <h3 style="font-size: 16px;">{{ last_activity }}</h3>
+                    <p>آخرین فعالیت پشتیبان‌گیری</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Trainers Table -->
+        <div class="table-card">
+            <div class="table-header">
+                <h2>📋 لیست پایگاه‌داده‌های مربیان</h2>
+                <input type="text" id="searchInput" class="search-input" placeholder="🔍 جستجو بر اساس نام یا شماره..." onkeyup="filterTable()">
+            </div>
+
+            {% if trainers %}
+            <table id="trainersTable">
+                <thead>
+                    <tr>
+                        <th>ردیف</th>
+                        <th>نام مربی</th>
+                        <th>شماره تماس (شناسه)</th>
+                        <th>تاریخ آخرین پشتیبان‌گیری</th>
+                        <th>حجم دیتابیس</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in trainers %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td style="font-weight: bold; color: #FFFFFF;">{{ t.trainer_name }}</td>
+                        <td style="direction: ltr; text-align: right; font-family: monospace; color: #60A5FA;">{{ t.phone }}</td>
+                        <td>{{ t.last_backup_shamsi }}</td>
+                        <td>{{ t.file_size_mb }} MB</td>
+                        <td>
+                            <a href="/api/backup/download/{{ t.phone }}" class="btn-download">⬇️ دانلود دیتابیس</a>
+                            <form action="/api/backup/delete/{{ t.phone }}" method="POST" style="display: inline;" onsubmit="return confirm('آیا از حذف بک‌آپ این مربی اطمینان دارید؟');">
+                                <button type="submit" class="btn-delete">🗑️ حذف</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <p style="font-size: 16px; margin-bottom: 6px;">هنوز هیچ نسخه پشتیبانی در سرور ثبت نشده است.</p>
+                <p style="font-size: 13px;">به محض اینکه مربیان از طریق نرم‌افزار گزینه «ذخیره در سرور» را انتخاب کنند، اطلاعات آنها در اینجا ظاهر می‌شود.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <footer>
+        توسعه داده شده برای سامانه هوشمند مدیریت باشگاه یلدا • کلیه حقوق محفوظ است © 2026
+    </footer>
+
+    <script>
+        function filterTable() {
+            var input = document.getElementById("searchInput");
+            var filter = input.value.toLowerCase();
+            var table = document.getElementById("trainersTable");
+            if (!table) return;
+            var tr = table.getElementsByTagName("tr");
+
+            for (var i = 1; i < tr.length; i++) {
+                var tdName = tr[i].getElementsByTagName("td")[1];
+                var tdPhone = tr[i].getElementsByTagName("td")[2];
+                if (tdName || tdPhone) {
+                    var txtValueName = tdName.textContent || tdName.innerText;
+                    var txtValuePhone = tdPhone.textContent || tdPhone.innerText;
+                    if (txtValueName.toLowerCase().indexOf(filter) > -1 || txtValuePhone.toLowerCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -101,64 +101,64 @@ class MemberListView(QWidget):
             self.table.setItem(row, 4, QTableWidgetItem(m_type_fa))
             self.table.setItem(row, 5, QTableWidgetItem(m.membership_expire_shamsi or ""))
 
-        # Status Column (Index 6)
-        status_map = {"active": "فعال 🟢", "expired": "انقضا یافته 🔴", "archived": "آرشیو شده ⚪"}
-        status_text = status_map.get(m.status, m.status)
-        status_item = QTableWidgetItem(status_text)
-        status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-        if m.status == "active":
-            status_item.setForeground(Qt.GlobalColor.green)
-        elif m.status == "expired":
-            status_item.setForeground(Qt.GlobalColor.red)
-        self.table.setItem(row, 6, status_item)
+            # Status Column (Index 6)
+            status_map = {"active": "فعال 🟢", "expired": "انقضا یافته 🔴", "archived": "آرشیو شده ⚪"}
+            status_text = status_map.get(m.status, m.status)
+            status_item = QTableWidgetItem(status_text)
+            status_item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            if m.status == "active":
+                status_item.setForeground(Qt.GlobalColor.green)
+            elif m.status == "expired":
+                status_item.setForeground(Qt.GlobalColor.red)
+            self.table.setItem(row, 6, status_item)
 
-        # Actions Button Widget (Index 7: View File, Edit, Delete)
-        btn_container = QWidget()
-        btn_container.setStyleSheet("background: transparent;")
-        btn_layout = QHBoxLayout(btn_container)
-        btn_layout.setContentsMargins(4, 2, 4, 2)
-        btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        btn_layout.setSpacing(6)
+            # Actions Button Widget (Index 7: View File, Edit, Delete)
+            btn_container = QWidget()
+            btn_container.setStyleSheet("background: transparent;")
+            btn_layout = QHBoxLayout(btn_container)
+            btn_layout.setContentsMargins(4, 2, 4, 2)
+            btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            btn_layout.setSpacing(6)
 
-        btn_view = QPushButton("📋 پرونده")
-        btn_view.setFixedHeight(32)
-        btn_view.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_view.setStyleSheet("""
-            QPushButton {
-                background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
-            }
-            QPushButton:hover { background-color: #1D4ED8; }
-        """)
-        btn_view.clicked.connect(lambda _, mid=m.id: self.open_member_detail.emit(mid))
+            btn_view = QPushButton("📋 پرونده")
+            btn_view.setFixedHeight(32)
+            btn_view.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_view.setStyleSheet("""
+                QPushButton {
+                    background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
+                }
+                QPushButton:hover { background-color: #1D4ED8; }
+            """)
+            btn_view.clicked.connect(lambda _, mid=m.id: self.open_member_detail.emit(mid))
 
-        btn_edit = QPushButton("✏️ ویرایش")
-        btn_edit.setFixedHeight(32)
-        btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_edit.setStyleSheet("""
-            QPushButton {
-                background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
-            }
-            QPushButton:hover { background-color: #B45309; }
-        """)
-        btn_edit.clicked.connect(lambda _, member=m: self.open_edit_dialog(member))
+            btn_edit = QPushButton("✏️ ویرایش")
+            btn_edit.setFixedHeight(32)
+            btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_edit.setStyleSheet("""
+                QPushButton {
+                    background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
+                }
+                QPushButton:hover { background-color: #B45309; }
+            """)
+            btn_edit.clicked.connect(lambda _, member=m: self.open_edit_dialog(member))
 
-        btn_delete = QPushButton("🗑️ حذف")
-        btn_delete.setFixedHeight(32)
-        btn_delete.setToolTip("حذف پرونده ورزشکار")
-        btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_delete.setStyleSheet("""
-            QPushButton {
-                background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
-            }
-            QPushButton:hover { background-color: #B91C1C; }
-        """)
-        btn_delete.clicked.connect(lambda _, member=m: self.delete_member(member))
+            btn_delete = QPushButton("🗑️ حذف")
+            btn_delete.setFixedHeight(32)
+            btn_delete.setToolTip("حذف پرونده ورزشکار")
+            btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_delete.setStyleSheet("""
+                QPushButton {
+                    background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
+                }
+                QPushButton:hover { background-color: #B91C1C; }
+            """)
+            btn_delete.clicked.connect(lambda _, member=m: self.delete_member(member))
 
-        btn_layout.addWidget(btn_view)
-        btn_layout.addWidget(btn_edit)
-        btn_layout.addWidget(btn_delete)
+            btn_layout.addWidget(btn_view)
+            btn_layout.addWidget(btn_edit)
+            btn_layout.addWidget(btn_delete)
 
-        self.table.setCellWidget(row, 7, btn_container)
+            self.table.setCellWidget(row, 7, btn_container)
 
 
 

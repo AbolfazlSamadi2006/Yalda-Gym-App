@@ -64,7 +64,10 @@ class WorkoutService:
         session = get_session()
         try:
             return session.query(WorkoutPlan)\
-                .options(joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise))\
+                .options(
+                    joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise),
+                    joinedload(WorkoutPlan.assignments)
+                )\
                 .order_by(WorkoutPlan.id.desc()).all()
         finally:
             session.close()
@@ -74,7 +77,10 @@ class WorkoutService:
         session = get_session()
         try:
             return session.query(WorkoutPlan)\
-                .options(joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise))\
+                .options(
+                    joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise),
+                    joinedload(WorkoutPlan.assignments)
+                )\
                 .filter(WorkoutPlan.id == plan_id).first()
         finally:
             session.close()

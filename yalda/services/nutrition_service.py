@@ -60,7 +60,10 @@ class NutritionService:
         session = get_session()
         try:
             return session.query(NutritionPlan)\
-                .options(joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food))\
+                .options(
+                    joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food),
+                    joinedload(NutritionPlan.assignments)
+                )\
                 .order_by(NutritionPlan.id.desc()).all()
         finally:
             session.close()
@@ -70,7 +73,10 @@ class NutritionService:
         session = get_session()
         try:
             return session.query(NutritionPlan)\
-                .options(joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food))\
+                .options(
+                    joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food),
+                    joinedload(NutritionPlan.assignments)
+                )\
                 .filter(NutritionPlan.id == plan_id).first()
         finally:
             session.close()

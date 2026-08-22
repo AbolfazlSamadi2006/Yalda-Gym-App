@@ -34,21 +34,6 @@ class DashboardView(QWidget):
         header_layout.addWidget(date_lbl)
         layout.addLayout(header_layout)
 
-        # Stat Cards Grid Layout
-        stats_layout = QHBoxLayout()
-        stats_layout.setSpacing(15)
-
-        self.card_members = StatCard("اعضای فعال", "0", "ورزشکار ثبت شده", "👥")
-        self.card_expired = StatCard("عضویت‌های انقضا یافته", "0", "نیازمند تمدید", "⚠️")
-        self.card_workouts = StatCard("برنامه‌های تمرینی", "0", "الگوی آماده", "🏋️")
-        self.card_nutrition = StatCard("برنامه‌های غذایی", "0", "رژیم غذایی", "🥗")
-
-        stats_layout.addWidget(self.card_members)
-        stats_layout.addWidget(self.card_expired)
-        stats_layout.addWidget(self.card_workouts)
-        stats_layout.addWidget(self.card_nutrition)
-        layout.addLayout(stats_layout)
-
         # Quick Actions Bar
         actions_frame = QFrame()
         actions_frame.setObjectName("card")
@@ -96,16 +81,6 @@ class DashboardView(QWidget):
 
     def refresh_dashboard(self):
         members = MemberService.get_all_members(status_filter="all")
-        active_count = sum(1 for m in members if m.status == "active" and (not m.membership_expire_shamsi or days_until_expire(m.membership_expire_shamsi) >= 0))
-        expired_count = sum(1 for m in members if m.status == "expired" or (m.membership_expire_shamsi and days_until_expire(m.membership_expire_shamsi) < 0))
-
-        workouts_count = len(WorkoutService.get_all_plans())
-        nutrition_count = len(NutritionService.get_all_plans())
-
-        self.card_members.set_value(str(active_count))
-        self.card_expired.set_value(str(expired_count))
-        self.card_workouts.set_value(str(workouts_count))
-        self.card_nutrition.set_value(str(nutrition_count))
         
         # Populate All Members Table
         self.table.setRowCount(len(members))

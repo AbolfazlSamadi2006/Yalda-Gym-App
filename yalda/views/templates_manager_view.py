@@ -302,10 +302,16 @@ class TemplatesManagerView(QWidget):
 
         for row, p in enumerate(filtered):
             # Total exercise count
-            ex_count = sum(len(d.workout_exercises) for d in p.days) if p.days else 0
+            try:
+                ex_count = sum(len(d.workout_exercises) for d in p.days) if p.days else 0
+            except Exception:
+                ex_count = 0
 
             # Assignments count
-            assignments_count = len(p.assignments) if hasattr(p, 'assignments') and p.assignments else 0
+            try:
+                assignments_count = len(p.assignments) if p.assignments else 0
+            except Exception:
+                assignments_count = 0
 
             self.table_workouts.setItem(row, 0, QTableWidgetItem(str(row + 1)))
             self.table_workouts.setItem(row, 1, QTableWidgetItem(p.title or "بدون عنوان"))
@@ -384,8 +390,14 @@ class TemplatesManagerView(QWidget):
         self.table_nutrition.setRowCount(len(filtered))
 
         for row, p in enumerate(filtered):
-            meals_count = len(p.meals) if p.meals else 0
-            assignments_count = len(p.assignments) if hasattr(p, 'assignments') and p.assignments else 0
+            try:
+                meals_count = len(p.meals) if p.meals else 0
+            except Exception:
+                meals_count = 0
+            try:
+                assignments_count = len(p.assignments) if p.assignments else 0
+            except Exception:
+                assignments_count = 0
             macros_str = f"P: {int(p.target_protein or 0)}g | C: {int(p.target_carbs or 0)}g | F: {int(p.target_fat or 0)}g"
 
             self.table_nutrition.setItem(row, 0, QTableWidgetItem(str(row + 1)))

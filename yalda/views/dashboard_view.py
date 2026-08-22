@@ -75,15 +75,15 @@ class DashboardView(QWidget):
         self.table.setHorizontalHeaderLabels(["ورزشکار", "مربی مربوطه", "شماره تماس", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت"])
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        self.table.setColumnWidth(1, 140)
-        self.table.setColumnWidth(2, 120)
-        self.table.setColumnWidth(3, 140)
-        self.table.setColumnWidth(4, 130)
-        self.table.setColumnWidth(5, 160)
+        header.setSectionResizeMode(5, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(0, 180)
+        self.table.setColumnWidth(1, 130)
+        self.table.setColumnWidth(2, 115)
+        self.table.setColumnWidth(3, 125)
+        self.table.setColumnWidth(4, 120)
 
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(54)
+        self.table.verticalHeader().setDefaultSectionSize(52)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -117,19 +117,19 @@ class DashboardView(QWidget):
             cell_w = QWidget()
             cell_w.setStyleSheet("background: transparent;")
             cell_l = QHBoxLayout(cell_w)
-            cell_l.setContentsMargins(10, 4, 10, 4)
-            cell_l.setSpacing(12)
+            cell_l.setContentsMargins(8, 3, 8, 3)
+            cell_l.setSpacing(10)
             cell_l.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
             lbl_avatar = QLabel()
-            lbl_avatar.setFixedSize(40, 40)
+            lbl_avatar.setFixedSize(36, 36)
             lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             has_valid_photo = False
             if m.photo_path and os.path.exists(m.photo_path):
                 pix = QPixmap(m.photo_path)
                 if not pix.isNull():
-                    circ_pix = get_circular_pixmap(pix, 40, border_color="#8B0000", border_width=2)
+                    circ_pix = get_circular_pixmap(pix, 36, border_color="#8B0000", border_width=2)
                     lbl_avatar.setPixmap(circ_pix)
                     lbl_avatar.setCursor(Qt.CursorShape.PointingHandCursor)
                     lbl_avatar.setToolTip(f"برای مشاهده تصویر بزرگ‌تر «{m.full_name}» کلیک کنید")
@@ -142,9 +142,9 @@ class DashboardView(QWidget):
                     QLabel {
                         background-color: #242424;
                         border: 1px solid #444444;
-                        border-radius: 20px;
+                        border-radius: 18px;
                         color: #777777;
-                        font-size: 18px;
+                        font-size: 16px;
                     }
                 """)
 

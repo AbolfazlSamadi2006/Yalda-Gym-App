@@ -131,9 +131,19 @@ class MainWindow(QMainWindow):
         self.sidebar.navigate("workouts")
         self.view_workouts.reset_to_new_plan()
 
+    def open_new_workout_for_member(self, member_id: int):
+        self.sidebar.navigate("workouts")
+        self.view_workouts.reset_to_new_plan()
+        self.view_workouts.set_selected_member(member_id)
+
     def open_new_nutrition_editor(self):
         self.sidebar.navigate("nutrition")
         self.view_nutrition.reset_form()
+
+    def open_new_nutrition_for_member(self, member_id: int):
+        self.sidebar.navigate("nutrition")
+        self.view_nutrition.reset_form()
+        self.view_nutrition.set_selected_member(member_id)
 
     def refresh_on_login(self):
         """Refreshes sidebar, resets active index to Dashboard, and reloads data across all views for newly logged-in user."""
@@ -180,7 +190,8 @@ class MainWindow(QMainWindow):
         detail_view.back_requested.connect(lambda: self.sidebar.navigate("members"))
         detail_view.edit_workout_requested.connect(self.open_workout_editor_with_plan)
         detail_view.edit_nutrition_requested.connect(self.open_nutrition_editor_with_plan)
-        detail_view.open_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
+        detail_view.create_workout_requested.connect(self.open_new_workout_for_member)
+        detail_view.create_nutrition_requested.connect(self.open_new_nutrition_for_member)
         idx = self.stack.addWidget(detail_view)
         self.stack.setCurrentIndex(idx)
 

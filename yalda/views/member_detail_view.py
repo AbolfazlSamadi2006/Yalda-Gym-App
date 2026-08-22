@@ -251,7 +251,8 @@ class MemberDetailView(QWidget):
     back_requested = pyqtSignal()
     edit_workout_requested = pyqtSignal(int)
     edit_nutrition_requested = pyqtSignal(int)
-    open_templates_requested = pyqtSignal()
+    create_workout_requested = pyqtSignal(int)
+    create_nutrition_requested = pyqtSignal(int)
 
     def __init__(self, member_id: int, parent=None):
         super().__init__(parent)
@@ -264,59 +265,54 @@ class MemberDetailView(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        # Header Bar with Back & Edit Buttons
+        # Header Title and Actions
         header = QHBoxLayout()
-        btn_back = QPushButton("⬅️ بازگشت به لیست اعضا")
+        self.lbl_title = QLabel(f"پرونده جامع ورزشکار")
+        self.lbl_title.setObjectName("h1")
+
+        btn_back = QPushButton("بازگشت به لیست اعضا ⬅")
         btn_back.setObjectName("secondary_button")
         btn_back.clicked.connect(self.back_requested.emit)
 
-        btn_edit_profile = QPushButton("✏️ ویرایش مشخصات")
-        btn_edit_profile.clicked.connect(self.open_edit_dialog)
+        btn_edit = QPushButton("ویرایش مشخصات ✏️")
+        btn_edit.clicked.connect(self.open_edit_dialog)
 
-        self.lbl_title = QLabel("پرونده جامع ورزشکار")
-        self.lbl_title.setObjectName("h1")
-
-        header.addWidget(self.lbl_title)
-        header.addStretch()
-        header.addWidget(btn_edit_profile)
         header.addWidget(btn_back)
+        header.addWidget(btn_edit)
+        header.addStretch()
+        header.addWidget(self.lbl_title)
         layout.addLayout(header)
 
-        # Member Quick Info Header Card
-        self.card_info = QFrame()
-        self.card_info.setStyleSheet("background: transparent; border: none;")
-        layout_card = QHBoxLayout(self.card_info)
-        layout_card.setContentsMargins(5, 10, 5, 15)
-        layout_card.setSpacing(22)
+        # Member Info Card
+        info_card = QFrame()
+        info_card.setObjectName("card")
+        info_card_layout = QHBoxLayout(info_card)
+        info_card_layout.setContentsMargins(15, 15, 15, 15)
 
+        # Avatar Column
         self.lbl_avatar = QLabel()
         self.lbl_avatar.setFixedSize(100, 100)
-        self.lbl_avatar.setStyleSheet("border-radius: 50px; background-color: #2E2E2E; border: 2px solid #555555;")
         self.lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_avatar.setStyleSheet("border-radius: 50px; background-color: #2E2E2E; font-size: 40px;")
+        info_card_layout.addWidget(self.lbl_avatar)
 
+        # Details Column
         self.lbl_member_details = QLabel()
-        self.lbl_member_details.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        self.lbl_member_details.setStyleSheet("font-size: 17px; color: #FFFFFF; line-height: 2.0; background: transparent;")
-        self.lbl_title.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.lbl_member_details.setStyleSheet("font-size: 13px; line-height: 1.6;")
+        info_card_layout.addWidget(self.lbl_member_details, 1)
 
-        
-        layout_card.addWidget(self.lbl_avatar)
-        layout_card.addWidget(self.lbl_member_details)
-        layout_card.addStretch()
+        layout.addWidget(info_card)
 
-        layout.addWidget(self.card_info)
-        layout.addSpacing(10)
-
-        # Main Tabs Widget
+        # Tab Widget for Comprehensive History
         self.tabs = QTabWidget()
-        
-        # Tab 1: Health Record
-        self.tab_health = HealthRecordView(self.member_id, self)
-        self.tabs.addTab(self.tab_health, "📋 سوابق پزشکی و آسیب‌دیدگی")
 
-        # Tab 2: Assessments
-        self.tab_assessment = AssessmentView(self.member_id, self)
-        self.tabs.addTab(self.tab_assessment, "📊 ارزیابی فیزیکی و سایز")
+        # Tab 1: Health & Assessment
+        self.view_health = HealthRecordView(self.member_id)
+        self.tabs.addTab(self.view_health, "📋 سوابق پزشکی و آسیب‌دیدگی")
+
+        # Tab 2: Physical Assessments
+        self.view_assessment = AssessmentView(self.member_id)
+        self.tabs.addTab(self.view_assessment, "📊 ارزیابی فیزیکی و سایز")
 
         # Tab 3: Workout Plans Archive
         self.tab_workout = QWidget()
@@ -388,9 +384,9 @@ class MemberDetailView(QWidget):
         title_box.addWidget(lbl_title)
         title_box.addWidget(lbl_sub)
 
-        btn_assign_new = QPushButton("➕ تخصیص الگو از بانک")
+        btn_assign_new = QPushButton("➕ تخصیص برنامه تمرینی")
         btn_assign_new.setFixedHeight(36)
-        btn_assign_new.clicked.connect(self.open_templates_requested.emit)
+        btn_assign_new.clicked.connect(lambda: self.create_workout_requested.emit(self.member_id))
 
         top_box.addLayout(title_box)
         top_box.addStretch()
@@ -525,9 +521,9 @@ class MemberDetailView(QWidget):
         title_box.addWidget(lbl_title)
         title_box.addWidget(lbl_sub)
 
-        btn_assign_new = QPushButton("➕ تخصیص الگو از بانک")
+        btn_assign_new = QPushButton("➕ تخصیص برنامه غذایی")
         btn_assign_new.setFixedHeight(36)
-        btn_assign_new.clicked.connect(self.open_templates_requested.emit)
+        btn_assign_new.clicked.connect(lambda: self.create_nutrition_requested.emit(self.member_id))
 
         top_box.addLayout(title_box)
         top_box.addStretch()

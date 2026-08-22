@@ -127,6 +127,12 @@ class WorkoutEditorView(QWidget):
         for m in members:
             self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
 
+    def set_selected_member(self, member_id: int):
+        self.load_members_dropdown()
+        idx = self.combo_member.findData(member_id)
+        if idx >= 0:
+            self.combo_member.setCurrentIndex(idx)
+
     def setup_day_tabs(self):
         self.tabs.clear()
         self.day_tables.clear()

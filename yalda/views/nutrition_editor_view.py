@@ -230,6 +230,12 @@ class NutritionEditorView(QWidget):
         for m in members:
             self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
 
+    def set_selected_member(self, member_id: int):
+        self.load_members_dropdown()
+        idx = self.combo_member.findData(member_id)
+        if idx >= 0:
+            self.combo_member.setCurrentIndex(idx)
+
     def load_template_dropdown(self):
         self.combo_templates.blockSignals(True)
         self.combo_templates.clear()

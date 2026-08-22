@@ -206,6 +206,13 @@ class TrainerRegisterDialog(QDialog):
         pass2_box.addWidget(btn_eye2)
         form_layout.addLayout(pass2_box)
 
+        self.lbl_pass_confirm_error = QLabel()
+        self.lbl_pass_confirm_error.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: bold; background: transparent; padding: 2px;")
+        self.lbl_pass_confirm_error.setVisible(False)
+        self.txt_password_confirm.textChanged.connect(self.clear_pass_confirm_error)
+        self.txt_password.textChanged.connect(self.clear_pass_confirm_error)
+        form_layout.addWidget(self.lbl_pass_confirm_error)
+
         # Row 6: Recovery Code & Confirm Recovery Code
         form_layout.addWidget(QLabel("رمز ریکاوری مخفی (جهت فراموشی رمز):"))
         rec1_box = QHBoxLayout()
@@ -242,6 +249,13 @@ class TrainerRegisterDialog(QDialog):
         rec2_box.addWidget(self.txt_recovery_confirm)
         rec2_box.addWidget(btn_eye4)
         form_layout.addLayout(rec2_box)
+
+        self.lbl_rec_confirm_error = QLabel()
+        self.lbl_rec_confirm_error.setStyleSheet("color: #EF4444; font-size: 11px; font-weight: bold; background: transparent; padding: 2px;")
+        self.lbl_rec_confirm_error.setVisible(False)
+        self.txt_recovery_confirm.textChanged.connect(self.clear_rec_confirm_error)
+        self.txt_recovery_code.textChanged.connect(self.clear_rec_confirm_error)
+        form_layout.addWidget(self.lbl_rec_confirm_error)
 
 
         scroll.setWidget(scroll_widget)
@@ -323,8 +337,45 @@ class TrainerRegisterDialog(QDialog):
             self.lbl_photo_preview.setText("")
             self.lbl_photo_preview.setStyleSheet("border: none; background: transparent;")
 
+    def clear_pass_confirm_error(self):
+        self.txt_password_confirm.setStyleSheet("""
+            QLineEdit {
+                background-color: #1E1E1E;
+                color: #FFFFFF;
+                border: 1px solid #333333;
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #8B0000;
+            }
+        """)
+        self.lbl_pass_confirm_error.setText("")
+        self.lbl_pass_confirm_error.setVisible(False)
+
+    def clear_rec_confirm_error(self):
+        self.txt_recovery_confirm.setStyleSheet("""
+            QLineEdit {
+                background-color: #1E1E1E;
+                color: #FFFFFF;
+                border: 1px solid #333333;
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #8B0000;
+            }
+        """)
+        self.lbl_rec_confirm_error.setText("")
+        self.lbl_rec_confirm_error.setVisible(False)
+
     def do_register(self):
         try:
+            self.clear_pass_confirm_error()
+            self.clear_rec_confirm_error()
+
             first_name = self.txt_first_name.text().strip()
             last_name = self.txt_last_name.text().strip()
             phone = self.txt_phone.text().strip()
@@ -339,12 +390,32 @@ class TrainerRegisterDialog(QDialog):
                 QMessageBox.warning(self, "خطا در فرم ثبت‌نام", "لطفاً تمامی فیلدهای نام، نام خانوادگی، شماره موبایل، نام کاربری، کلمه عبور و رمز ریکاوری را تکمیل کنید.")
                 return
 
+            ERROR_STYLE = """
+                QLineEdit {
+                    background-color: #2D1515;
+                    color: #FFAAAA;
+                    border: 1.5px solid #EF4444;
+                    border-radius: 6px;
+                    padding: 6px 10px;
+                    font-size: 13px;
+                }
+                QLineEdit:focus {
+                    border: 1.5px solid #FF4444;
+                }
+            """
+
             if password != confirm_password:
-                QMessageBox.warning(self, "خطا", "کلمه عبور و تکرار آن با یکدیگر مطابقت ندارند.")
+                self.txt_password_confirm.setStyleSheet(ERROR_STYLE)
+                self.lbl_pass_confirm_error.setText("❌ رمزهای عبور با یکدیگر مغایرت دارند.")
+                self.lbl_pass_confirm_error.setVisible(True)
+                self.txt_password_confirm.setFocus()
                 return
 
             if recovery_code != confirm_recovery:
-                QMessageBox.warning(self, "خطا", "رمز ریکاوری مخفی و تکرار آن با یکدیگر مطابقت ندارند.")
+                self.txt_recovery_confirm.setStyleSheet(ERROR_STYLE)
+                self.lbl_rec_confirm_error.setText("❌ رمزهای ریکاوری با یکدیگر مغایرت دارند.")
+                self.lbl_rec_confirm_error.setVisible(True)
+                self.txt_recovery_confirm.setFocus()
                 return
 
             user = register_trainer(

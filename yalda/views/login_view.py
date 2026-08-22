@@ -1,13 +1,41 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFrame, QMessageBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QFrame
 )
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 import config
-from yalda.auth.authentication import authenticate_user, is_app_license_active
+from yalda.auth.authentication import authenticate_user, is_app_license_active, check_username_exists
 from yalda.views.password_recovery_dialog import PasswordRecoveryDialog
 from yalda.views.trainer_register_dialog import TrainerRegisterDialog
 from yalda.views.cloud_restore_dialog import CloudRestoreDialog
+
+STYLE_INPUT_NORMAL = """
+    QLineEdit {
+        background-color: #1E1E1E;
+        color: #FFFFFF;
+        border: 1px solid #333333;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    QLineEdit:focus {
+        border: 1px solid #8B0000;
+    }
+"""
+
+STYLE_INPUT_ERROR = """
+    QLineEdit {
+        background-color: #2D1515;
+        color: #FFAAAA;
+        border: 1.5px solid #EF4444;
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+    QLineEdit:focus {
+        border: 1.5px solid #FF4444;
+    }
+"""
 
 class LoginView(QWidget):
     login_success = pyqtSignal()
@@ -22,6 +50,8 @@ class LoginView(QWidget):
     def showEvent(self, event):
         super().showEvent(event)
         self.refresh_activation_state()
+        self.clear_user_error()
+        self.clear_pass_error()
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
@@ -76,23 +106,16 @@ class LoginView(QWidget):
         self.txt_username = QLineEdit()
         self.txt_username.setFixedHeight(40)
         self.txt_username.setPlaceholderText("نام کاربری را وارد کنید")
-        self.txt_username.setText("")
-        self.txt_username.setStyleSheet("""
-            QLineEdit {
-                background-color: #1E1E1E;
-                color: #FFFFFF;
-                border: 1px solid #333333;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 14px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #8B0000;
-            }
-        """)
+        self.txt_username.setStyleSheet(STYLE_INPUT_NORMAL)
+        self.txt_username.textChanged.connect(self.clear_user_error)
+        
+        self.lbl_user_error = QLabel()
+        self.lbl_user_error.setStyleSheet("color: #EF4444; font-size: 12px; font-weight: bold; background: transparent; padding: 2px;")
+        self.lbl_user_error.setVisible(False)
         
         card_layout.addWidget(lbl_user)
         card_layout.addWidget(self.txt_username)
+        card_layout.addWidget(self.lbl_user_error)
 
         # Password Input Layout with Eye Button
         lbl_pass = QLabel("کلمه عبور:")
@@ -105,21 +128,9 @@ class LoginView(QWidget):
         self.txt_password.setFixedHeight(40)
         self.txt_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_password.setPlaceholderText("کلمه عبور را وارد کنید")
-        self.txt_password.setText("")
         self.txt_password.returnPressed.connect(self.do_login)
-        self.txt_password.setStyleSheet("""
-            QLineEdit {
-                background-color: #1E1E1E;
-                color: #FFFFFF;
-                border: 1px solid #333333;
-                border-radius: 6px;
-                padding: 6px 12px;
-                font-size: 14px;
-            }
-            QLineEdit:focus {
-                border: 1px solid #8B0000;
-            }
-        """)
+        self.txt_password.setStyleSheet(STYLE_INPUT_NORMAL)
+        self.txt_password.textChanged.connect(self.clear_pass_error)
 
         btn_eye = QPushButton("👁️")
         btn_eye.setObjectName("eye_button")
@@ -147,8 +158,13 @@ class LoginView(QWidget):
         pass_box.addWidget(self.txt_password)
         pass_box.addWidget(btn_eye)
 
+        self.lbl_pass_error = QLabel()
+        self.lbl_pass_error.setStyleSheet("color: #EF4444; font-size: 12px; font-weight: bold; background: transparent; padding: 2px;")
+        self.lbl_pass_error.setVisible(False)
+
         card_layout.addWidget(lbl_pass)
         card_layout.addLayout(pass_box)
+        card_layout.addWidget(self.lbl_pass_error)
         card_layout.addSpacing(4)
 
         # Actions Row: Forgot Password & Register New Trainer
@@ -227,6 +243,16 @@ class LoginView(QWidget):
         main_layout.addWidget(card)
         self.refresh_activation_state()
 
+    def clear_user_error(self):
+        self.txt_username.setStyleSheet(STYLE_INPUT_NORMAL)
+        self.lbl_user_error.setText("")
+        self.lbl_user_error.setVisible(False)
+
+    def clear_pass_error(self):
+        self.txt_password.setStyleSheet(STYLE_INPUT_NORMAL)
+        self.lbl_pass_error.setText("")
+        self.lbl_pass_error.setVisible(False)
+
     def refresh_activation_state(self):
         active = is_app_license_active()
         if active:
@@ -286,23 +312,38 @@ class LoginView(QWidget):
         dlg.exec()
 
     def do_login(self):
+        self.clear_user_error()
+        self.clear_pass_error()
+
         username = self.txt_username.text().strip()
         password = self.txt_password.text().strip()
 
-        if not username or not password:
-            QMessageBox.warning(self, "خطا", "لطفاً نام کاربری و کلمه عبور را وارد کنید.")
+        if not username:
+            self.txt_username.setStyleSheet(STYLE_INPUT_ERROR)
+            self.lbl_user_error.setText("❌ لطفاً نام کاربری را وارد کنید.")
+            self.lbl_user_error.setVisible(True)
+            self.txt_username.setFocus()
+            return
+
+        if not password:
+            self.txt_password.setStyleSheet(STYLE_INPUT_ERROR)
+            self.lbl_pass_error.setText("❌ لطفاً کلمه عبور را وارد کنید.")
+            self.lbl_pass_error.setVisible(True)
+            self.txt_password.setFocus()
+            return
+
+        if not check_username_exists(username):
+            self.txt_username.setStyleSheet(STYLE_INPUT_ERROR)
+            self.lbl_user_error.setText("❌ چنین نام کاربری در سیستم وجود ندارد.")
+            self.lbl_user_error.setVisible(True)
+            self.txt_username.setFocus()
             return
 
         user = authenticate_user(username, password)
         if user:
             self.login_success.emit()
         else:
-            reply = QMessageBox.question(
-                self,
-                "ورود ناموفق",
-                "نام کاربری یا کلمه عبور در پایگاه‌داده محلی یافت نشد.\n\nآیا در حال راه‌اندازی نرم‌افزار روی سیستم جدید هستید و مایلید اطلاعات خود را با شماره موبایل از سرور ابری بازیابی کنید؟",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                self.open_cloud_restore_dialog()
+            self.txt_password.setStyleSheet(STYLE_INPUT_ERROR)
+            self.lbl_pass_error.setText("❌ رمز عبور اشتباه است.")
+            self.lbl_pass_error.setVisible(True)
+            self.txt_password.setFocus()

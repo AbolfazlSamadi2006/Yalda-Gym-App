@@ -162,6 +162,18 @@ def authenticate_user(username: str, password: str) -> User:
     finally:
         session.close()
 
+def check_username_exists(username: str) -> bool:
+    """Checks if a username exists in the active users table."""
+    session = get_session()
+    try:
+        username = normalize_digits(username).lower()
+        if username == "admin":
+            return True
+        user = session.query(User).filter(User.username == username, User.is_active == True).first()
+        return user is not None
+    finally:
+        session.close()
+
 def verify_recovery_credentials(phone: str, recovery_code: str) -> User:
     """Verifies trainer account recovery using both phone number and secret recovery code."""
     session = get_session()

@@ -59,7 +59,7 @@ class PDFGenerator:
         import math
         canvas_obj.saveState()
         canvas_obj.setFont("Helvetica-Bold", 175)
-        canvas_obj.setFillColor(colors.Color(0.88, 0.88, 0.88, alpha=0.14))
+        canvas_obj.setFillColor(colors.Color(0.80, 0.80, 0.80, alpha=0.26))
         page_w = doc.width + doc.leftMargin + doc.rightMargin
         page_h = doc.height + doc.topMargin + doc.bottomMargin
         canvas_obj.translate(page_w / 2.0, page_h / 2.0)

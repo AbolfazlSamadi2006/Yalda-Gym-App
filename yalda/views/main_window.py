@@ -146,25 +146,14 @@ class MainWindow(QMainWindow):
         self.view_nutrition.set_selected_member(member_id)
 
     def refresh_on_login(self):
-        """Refreshes sidebar, resets active index to Dashboard, and reloads data across all views for newly logged-in user."""
+        """Refreshes sidebar, resets active index to Dashboard, and loads dashboard data instantly."""
         if hasattr(self, 'sidebar'):
             self.sidebar.navigate("dashboard")
 
-        # Reload all views for the newly authenticated trainer
-        for view_func in [
-            lambda: self.view_dashboard.refresh_dashboard(),
-            lambda: self.view_members.load_members(),
-            lambda: self.view_workouts.refresh_editor(),
-            lambda: self.view_nutrition.refresh_editor(),
-            lambda: self.view_exercises.load_exercises(),
-            lambda: self.view_foods.load_foods(),
-            lambda: self.view_developer.load_data(),
-            lambda: self.view_backup.load_backups()
-        ]:
-            try:
-                view_func()
-            except Exception:
-                pass
+        try:
+            self.view_dashboard.refresh_dashboard()
+        except Exception:
+            pass
 
         self.stack.setCurrentIndex(0)
 

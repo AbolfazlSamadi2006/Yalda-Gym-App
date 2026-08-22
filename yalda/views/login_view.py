@@ -77,27 +77,20 @@ class LoginView(QWidget):
         card_layout = QVBoxLayout(card)
         card_layout.setSpacing(8)
 
-        # Logo Image
+        # Logo Image (Enlarged)
         icon_path = config.BASE_DIR / "resources" / "images" / "app_icon.png"
         if icon_path.exists():
             lbl_logo = QLabel()
-            pix = QPixmap(str(icon_path)).scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            pix = QPixmap(str(icon_path)).scaled(110, 110, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             lbl_logo.setPixmap(pix)
             lbl_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
             card_layout.addWidget(lbl_logo)
 
-        # Header Title
-        title_lbl = QLabel(config.APP_NAME)
-        title_lbl.setStyleSheet("color: #8B0000; font-size: 30px; font-weight: bold; background: transparent;")
-        title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        sub_lbl = QLabel("ورود به نرم‌افزار مدیریت باشگاه بدنسازی")
-        sub_lbl.setStyleSheet("color: #CCCCCC; font-size: 13px; background: transparent;")
+        # Subtitle Text
+        sub_lbl = QLabel("ورود به نرم‌افزار مدیریت باشگاه بدنسازی یلدا")
+        sub_lbl.setStyleSheet("color: #E2E8F0; font-size: 14px; font-weight: bold; background: transparent; margin-top: 4px; margin-bottom: 6px;")
         sub_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        card_layout.addWidget(title_lbl)
         card_layout.addWidget(sub_lbl)
-        card_layout.addSpacing(2)
 
         # Username Input
         lbl_user = QLabel("نام کاربری:")

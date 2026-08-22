@@ -16,9 +16,10 @@ from yalda.utils.jalali_date import gregorian_to_shamsi
 
 
 class ExitBackupDialog(QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, is_logout: bool = False):
         super().__init__(parent)
-        self.setWindowTitle("پشتیبان‌گیری و خروج از برنامه")
+        self.is_logout = is_logout
+        self.setWindowTitle("پشتیبان‌گیری و خروج از حساب" if self.is_logout else "پشتیبان‌گیری و خروج از برنامه")
         self.setFixedWidth(520)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
@@ -30,7 +31,7 @@ class ExitBackupDialog(QDialog):
         layout.setSpacing(18)
 
         # Header Title
-        lbl_title = QLabel("💾 پشتیبان‌گیری و خروج از نرم‌افزار")
+        lbl_title = QLabel("💾 پشتیبان‌گیری و خروج از حساب" if self.is_logout else "💾 پشتیبان‌گیری و خروج از نرم‌افزار")
         lbl_title.setStyleSheet("""
             font-size: 18px;
             font-weight: bold;
@@ -39,7 +40,8 @@ class ExitBackupDialog(QDialog):
         layout.addWidget(lbl_title)
 
         # Question prompt
-        lbl_msg = QLabel("آیا مایل به تهیه نسخه پشتیبان از اطلاعات باشگاه پیش از خروج هستید؟")
+        msg_text = "آیا مایل به تهیه نسخه پشتیبان از اطلاعات باشگاه پیش از خروج از حساب کاربری هستید؟" if self.is_logout else "آیا مایل به تهیه نسخه پشتیبان از اطلاعات باشگاه پیش از خروج هستید؟"
+        lbl_msg = QLabel(msg_text)
         lbl_msg.setStyleSheet("color: #E0E0E0; font-size: 14px;")
         lbl_msg.setWordWrap(True)
         layout.addWidget(lbl_msg)

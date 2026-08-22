@@ -96,8 +96,8 @@ class DashboardView(QWidget):
 
     def refresh_dashboard(self):
         members = MemberService.get_all_members(status_filter="all")
-        active_count = sum(1 for m in members if m.status == "active")
-        expired_count = sum(1 for m in members if m.status == "expired" or days_until_expire(m.membership_expire_shamsi) <= 5)
+        active_count = sum(1 for m in members if m.status == "active" and (not m.membership_expire_shamsi or days_until_expire(m.membership_expire_shamsi) >= 0))
+        expired_count = sum(1 for m in members if m.status == "expired" or (m.membership_expire_shamsi and days_until_expire(m.membership_expire_shamsi) < 0))
 
         workouts_count = len(WorkoutService.get_all_plans())
         nutrition_count = len(NutritionService.get_all_plans())

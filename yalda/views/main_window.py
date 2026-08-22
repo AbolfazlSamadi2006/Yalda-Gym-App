@@ -153,11 +153,8 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(idx)
 
     def logout(self):
-        reply = QMessageBox.question(
-            self, "خروج از حساب", "آیا مایل به خروج از حساب کاربری هستید؟",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-        if reply == QMessageBox.StandardButton.Yes:
+        dialog = ExitBackupDialog(self, is_logout=True)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
             CurrentUser.logout()
             self.logout_signal.emit()
             self.hide()

@@ -1,9 +1,13 @@
+import os
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QDialog
 )
 from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QPixmap
 from yalda.services.member_service import MemberService
 from yalda.views.member_form_dialog import MemberFormDialog
+from yalda.utils.image_utils import get_circular_pixmap
+from yalda.views.components.circular_image_preview_dialog import CircularImagePreviewDialog
 
 class MemberListView(QWidget):
     open_member_detail = pyqtSignal(int) # Member ID
@@ -45,7 +49,6 @@ class MemberListView(QWidget):
         self.combo_status.addItem("اعضای آرشیو شده", "archived")
         self.combo_status.currentIndexChanged.connect(self.load_members)
 
-
         controls.addWidget(QLabel("جستجو:"))
         controls.addWidget(self.txt_search)
         controls.addWidget(QLabel("وضعیت:"))
@@ -54,25 +57,28 @@ class MemberListView(QWidget):
 
         # Members Table
         self.table = QTableWidget()
-        self.table.setColumnCount(8)
+        self.table.setColumnCount(7)
         self.table.setHorizontalHeaderLabels([
-            "نام و نام خانوادگی", "مربی مربوطه", "شماره تماس", "قد / وزن", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت", "عملیات"
+            "ورزشکار", "مربی مربوطه", "شماره تماس", "نوع عضویت", "تاریخ انقضا (شمسی)", "وضعیت", "عملیات"
         ])
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(54)
+        self.table.verticalHeader().setDefaultSectionSize(52)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(6, 120)
-        self.table.horizontalHeader().setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(7, 260)
+        self.table.setColumnWidth(6, 230)
 
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
-
         layout.addWidget(self.table)
 
         self.load_members()
+
+    def open_avatar_preview(self, photo_path: str, member_name: str):
+        """Opens a circular animated popup zoom of athlete's photo."""
+        if photo_path and os.path.exists(photo_path):
+            dlg = CircularImagePreviewDialog(photo_path, title=member_name, parent=self)
+            dlg.exec()
 
     def load_members(self):
         search_query = self.txt_search.text().strip()
@@ -89,19 +95,72 @@ class MemberListView(QWidget):
 
         self.table.setRowCount(len(members))
         for row, m in enumerate(members):
-            self.table.setItem(row, 0, QTableWidgetItem(m.full_name))
-            self.table.setItem(row, 1, QTableWidgetItem(m.trainer_name))
-            self.table.setItem(row, 2, QTableWidgetItem(m.phone))
-            h_text = f"{int(m.height_cm)}cm" if m.height_cm else "-"
-            w_text = f"{int(m.initial_weight_kg)}kg" if m.initial_weight_kg else "-"
-            hw_display = "-" if (not m.height_cm and not m.initial_weight_kg) else f"{h_text} / {w_text}"
-            self.table.setItem(row, 3, QTableWidgetItem(hw_display))
+            # Column 0: Circular Avatar + Name
+            cell_w = QWidget()
+            cell_w.setStyleSheet("background: transparent;")
+            cell_l = QHBoxLayout(cell_w)
+            cell_l.setContentsMargins(8, 3, 8, 3)
+            cell_l.setSpacing(10)
+            cell_l.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
-            m_type_fa = MEMBERSHIP_TYPE_MAP.get(m.membership_type, m.membership_type or "")
-            self.table.setItem(row, 4, QTableWidgetItem(m_type_fa))
-            self.table.setItem(row, 5, QTableWidgetItem(m.membership_expire_shamsi or ""))
+            lbl_avatar = QLabel()
+            lbl_avatar.setFixedSize(36, 36)
+            lbl_avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            # Status Column (Index 6)
+            has_valid_photo = False
+            if m.photo_path and os.path.exists(m.photo_path):
+                pix = QPixmap(m.photo_path)
+                if not pix.isNull():
+                    circ_pix = get_circular_pixmap(pix, 36, border_color="#8B0000", border_width=2)
+                    lbl_avatar.setPixmap(circ_pix)
+                    lbl_avatar.setCursor(Qt.CursorShape.PointingHandCursor)
+                    lbl_avatar.setToolTip(f"برای مشاهده تصویر بزرگ‌تر «{m.full_name}» کلیک کنید")
+                    lbl_avatar.mousePressEvent = lambda e, p=m.photo_path, n=m.full_name: self.open_avatar_preview(p, n)
+                    has_valid_photo = True
+
+            if not has_valid_photo:
+                lbl_avatar.setText("👤")
+                lbl_avatar.setStyleSheet("""
+                    QLabel {
+                        background-color: #242424;
+                        border: 1px solid #444444;
+                        border-radius: 18px;
+                        color: #777777;
+                        font-size: 16px;
+                    }
+                """)
+
+            lbl_name = QLabel(m.full_name)
+            lbl_name.setStyleSheet("color: #FFFFFF; font-size: 13px; font-weight: bold; background: transparent;")
+
+            cell_l.addWidget(lbl_avatar)
+            cell_l.addWidget(lbl_name)
+            cell_l.addStretch()
+
+            self.table.setCellWidget(row, 0, cell_w)
+
+            # Column 1: Trainer
+            item_trainer = QTableWidgetItem(m.trainer_name or "-")
+            item_trainer.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 1, item_trainer)
+
+            # Column 2: Phone
+            item_phone = QTableWidgetItem(m.phone or "-")
+            item_phone.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 2, item_phone)
+
+            # Column 3: Membership Type
+            m_type_fa = MEMBERSHIP_TYPE_MAP.get(m.membership_type, m.membership_type or "-")
+            item_type = QTableWidgetItem(m_type_fa)
+            item_type.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 3, item_type)
+
+            # Column 4: Expiration Date
+            item_exp = QTableWidgetItem(m.membership_expire_shamsi or "-")
+            item_exp.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table.setItem(row, 4, item_exp)
+
+            # Column 5: Status
             status_map = {"active": "فعال 🟢", "expired": "انقضا یافته 🔴", "archived": "آرشیو شده ⚪"}
             status_text = status_map.get(m.status, m.status)
             status_item = QTableWidgetItem(status_text)
@@ -110,9 +169,9 @@ class MemberListView(QWidget):
                 status_item.setForeground(Qt.GlobalColor.green)
             elif m.status == "expired":
                 status_item.setForeground(Qt.GlobalColor.red)
-            self.table.setItem(row, 6, status_item)
+            self.table.setItem(row, 5, status_item)
 
-            # Actions Button Widget (Index 7: View File, Edit, Delete)
+            # Column 6: Actions Button Widget (Index 6: View File, Edit, Delete)
             btn_container = QWidget()
             btn_container.setStyleSheet("background: transparent;")
             btn_layout = QHBoxLayout(btn_container)
@@ -121,7 +180,7 @@ class MemberListView(QWidget):
             btn_layout.setSpacing(6)
 
             btn_view = QPushButton("📋 پرونده")
-            btn_view.setFixedHeight(32)
+            btn_view.setFixedHeight(30)
             btn_view.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_view.setStyleSheet("""
                 QPushButton {
@@ -132,7 +191,7 @@ class MemberListView(QWidget):
             btn_view.clicked.connect(lambda _, mid=m.id: self.open_member_detail.emit(mid))
 
             btn_edit = QPushButton("✏️ ویرایش")
-            btn_edit.setFixedHeight(32)
+            btn_edit.setFixedHeight(30)
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("""
                 QPushButton {
@@ -143,7 +202,7 @@ class MemberListView(QWidget):
             btn_edit.clicked.connect(lambda _, member=m: self.open_edit_dialog(member))
 
             btn_delete = QPushButton("🗑️ حذف")
-            btn_delete.setFixedHeight(32)
+            btn_delete.setFixedHeight(30)
             btn_delete.setToolTip("حذف پرونده ورزشکار")
             btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_delete.setStyleSheet("""
@@ -158,9 +217,7 @@ class MemberListView(QWidget):
             btn_layout.addWidget(btn_edit)
             btn_layout.addWidget(btn_delete)
 
-            self.table.setCellWidget(row, 7, btn_container)
-
-
+            self.table.setCellWidget(row, 6, btn_container)
 
     def delete_member(self, member):
         reply = QMessageBox.question(
@@ -189,3 +246,4 @@ class MemberListView(QWidget):
                 self.load_members()
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"خطایی رخ داد: {str(e)}")
+

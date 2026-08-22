@@ -55,22 +55,24 @@ class PDFGenerator:
     def _create_header_footer(canvas_obj, doc):
         canvas_obj.saveState()
         
-        # 1. Faint Diagonal Watermark in the middle of page
+        # 1. Large Diagonal Watermark covering the full page diagonal
+        import math
         canvas_obj.saveState()
-        canvas_obj.setFont("Helvetica-Bold", 80)
-        canvas_obj.setFillColor(colors.Color(0.85, 0.85, 0.85, alpha=0.18))
+        canvas_obj.setFont("Helvetica-Bold", 175)
+        canvas_obj.setFillColor(colors.Color(0.88, 0.88, 0.88, alpha=0.14))
         page_w = doc.width + doc.leftMargin + doc.rightMargin
         page_h = doc.height + doc.topMargin + doc.bottomMargin
         canvas_obj.translate(page_w / 2.0, page_h / 2.0)
-        canvas_obj.rotate(45)
-        canvas_obj.drawCentredString(0, 0, "YALDA")
+        diag_angle = math.degrees(math.atan2(page_h, page_w))
+        canvas_obj.rotate(diag_angle)
+        canvas_obj.drawCentredString(0, -55, "YALDA")
         canvas_obj.restoreState()
 
         # 2. Draw dark red top bar
         canvas_obj.setFillColor(colors.HexColor(config.COLOR_PRIMARY_ACCENT))
         canvas_obj.rect(0, doc.height + doc.topMargin + 10, doc.width + doc.leftMargin + doc.rightMargin, 15, fill=1, stroke=0)
         
-        # 3. Footer: Dividing line, Gym Address & Date
+        # 3. Footer: Dividing line, Gym Address (Right) & Date (Left)
         canvas_obj.setStrokeColor(colors.HexColor("#E0E0E0"))
         canvas_obj.setLineWidth(0.6)
         canvas_obj.line(doc.leftMargin, 28, doc.width + doc.leftMargin, 28)
@@ -78,11 +80,13 @@ class PDFGenerator:
         canvas_obj.setFillColor(colors.HexColor("#555555"))
         canvas_obj.setFont(FONT_NAME, 8)
         
-        footer_date = reshape_text(f"تاریخ چاپ: {get_today_shamsi()}")
-        canvas_obj.drawRightString(doc.width + doc.leftMargin, 16, footer_date)
-
+        # Address on RIGHT
         gym_address = getattr(config, 'GYM_ADDRESS', 'باشگاه بدنسازی یلدا | مازندران، قائمشهر، خیابان کوچکسرا، نبش شقایق ۳')
-        canvas_obj.drawString(doc.leftMargin, 16, reshape_text(gym_address))
+        canvas_obj.drawRightString(doc.width + doc.leftMargin, 16, reshape_text(gym_address))
+
+        # Print Date on LEFT
+        footer_date = reshape_text(f"تاریخ چاپ: {get_today_shamsi()}")
+        canvas_obj.drawString(doc.leftMargin, 16, footer_date)
 
         canvas_obj.restoreState()
 

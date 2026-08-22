@@ -143,7 +143,80 @@ def upload_cloud_backup(trainer_phone: str, trainer_name: str = "", server_url: 
         return False, f"خطا در ارسال نسخه پشتیبان به سرور ابری: {str(e)}"
 
 
+def download_and_restore_cloud_backup(trainer_phone: str, server_url: str = None) -> tuple[bool, str]:
+    """Downloads the latest database backup for the given trainer phone from cloud server and restores it."""
+    clean_phone = "".join(filter(str.isdigit, str(trainer_phone)))
+    if not clean_phone:
+        return False, "شماره موبایل مربی نامعتبر است."
+
+    if not is_internet_connected():
+        return False, "اتصال اینترنت برقرار نیست. لطفاً اتصال اینترنت خود را بررسی نمایید."
+
+    url = server_url or config.DEFAULT_CLOUD_BACKUP_URL
+    if not url.endswith("/"):
+        download_endpoint = f"{url}/api/backup/download/{clean_phone}"
+    else:
+        download_endpoint = f"{url}api/backup/download/{clean_phone}"
+
+    try:
+        req = urllib.request.Request(download_endpoint, method="GET")
+        req.add_header("X-API-Key", config.CLOUD_BACKUP_SECRET_KEY)
+        req.add_header("User-Agent", f"YaldaGymDesktop/{config.APP_VERSION}")
+
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+
+        with urllib.request.urlopen(req, timeout=30, context=ctx) as response:
+            if response.status == 200:
+                data_bytes = response.read()
+                if not data_bytes or len(data_bytes) < 100:
+                    return False, "فایل دیتابیس دریافتی از سرور خالی یا نامعتبر است."
+
+                # Safety: Save current DB before overwriting
+                if config.DB_PATH.exists():
+                    try:
+                        create_local_backup()
+                    except Exception:
+                        pass
+
+                config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+                with open(config.DB_PATH, "wb") as f:
+                    f.write(data_bytes)
+
+                # Sync to AppData
+                try:
+                    config.APPDATA_DATA_DIR.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(config.DB_PATH, config.APPDATA_DATA_DIR / "yalda.db")
+                except Exception:
+                    pass
+
+                # Run database migrations in case schema needs updates
+                try:
+                    from yalda.database.connection import check_and_migrate_db
+                    check_and_migrate_db()
+                except Exception:
+                    pass
+
+                return True, "اطلاعات و پایگاه‌داده با موفقیت از سرور ابری دریافت و بازیابی شد."
+            else:
+                return False, f"سرور با وضعیت {response.status} پاسخ داد."
+
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False, "هیچ نسخه پشتیبانی برای این شماره موبایل در سرور ابری یافت نشد."
+        elif e.code == 401:
+            return False, "کلید احراز هویت سرور ابری نامعتبر است."
+        else:
+            return False, f"خطای ارتباط با سرور ابری (کد {e.code})"
+    except Exception as e:
+        return False, f"خطا در دریافت اطلاعات از سرور ابری: {str(e)}"
+
+
 class BackupService:
+    @staticmethod
+    def restore_from_cloud(trainer_phone: str) -> tuple[bool, str]:
+        return download_and_restore_cloud_backup(trainer_phone)
     @staticmethod
     def get_all_backups():
         with SessionLocal() as db:
@@ -153,8 +226,9 @@ class BackupService:
     def create_backup() -> str:
         config.BACKUPS_DIR.mkdir(parents=True, exist_ok=True)
         now = datetime.now()
-        timestamp = now.strftime("%Y%m%d_%H%M%S")
-        filename = f"yalda_backup_{timestamp}.zip"
+        shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "-")
+        time_str = now.strftime("%H-%M-%S")
+        filename = f"yalda_backup_{shamsi_date}_{time_str}.zip"
         filepath = config.BACKUPS_DIR / filename
 
         with zipfile.ZipFile(filepath, "w", zipfile.ZIP_DEFLATED) as zipf:
@@ -168,14 +242,14 @@ class BackupService:
                         zipf.write(full_p, arcname=str(rel_p))
 
         file_size_mb = round(os.path.getsize(filepath) / (1024 * 1024), 2)
-        shamsi_date = gregorian_to_shamsi(now.date()) + " " + now.strftime("%H:%M")
+        shamsi_display = f"{gregorian_to_shamsi(now.date())} {now.strftime('%H:%M:%S')}"
 
         with SessionLocal() as db:
             record = BackupRecord(
                 file_name=filename,
                 file_path=str(filepath),
                 backup_size_mb=file_size_mb,
-                backup_date_shamsi=shamsi_date,
+                backup_date_shamsi=shamsi_display,
                 created_at=now
             )
             db.add(record)
@@ -183,6 +257,21 @@ class BackupService:
 
         create_local_backup()
         return str(filepath)
+
+    @staticmethod
+    def delete_backup(backup_id: int) -> bool:
+        with SessionLocal() as db:
+            record = db.query(BackupRecord).filter(BackupRecord.id == backup_id).first()
+            if record:
+                if record.file_path and os.path.exists(record.file_path):
+                    try:
+                        os.remove(record.file_path)
+                    except Exception as e:
+                        print(f"Error removing physical backup file: {e}")
+                db.delete(record)
+                db.commit()
+                return True
+            return False
 
     @staticmethod
     def restore_backup(filepath: str):

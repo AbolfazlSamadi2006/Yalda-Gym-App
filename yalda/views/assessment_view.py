@@ -19,7 +19,7 @@ class EditAssessmentDialog(QDialog):
         self.after_photo_path = assessment.after_photo_path
         self.setWindowTitle(f"✏️ ویرایش ارزیابی فیزیکی ({assessment.assessment_date_shamsi})")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setFixedSize(540, 320)
+        self.setFixedSize(580, 420)
         self.init_ui()
 
     def init_ui(self):
@@ -28,7 +28,7 @@ class EditAssessmentDialog(QDialog):
         layout.setSpacing(15)
 
         grid = QGridLayout()
-        grid.setSpacing(12)
+        grid.setSpacing(10)
 
         grid.addWidget(QLabel("تاریخ ارزیابی:"), 0, 0)
         self.picker_date = JalaliDatePicker()
@@ -55,11 +55,12 @@ class EditAssessmentDialog(QDialog):
         self.spin_fat.setValue(self.assessment.body_fat_percentage or 0.0)
         grid.addWidget(self.spin_fat, 1, 3)
 
-        grid.addWidget(QLabel("دور بازو:"), 2, 0)
-        self.spin_arm = QDoubleSpinBox()
-        self.spin_arm.setRange(0.0, 150.0)
-        self.spin_arm.setValue(self.assessment.arm_circ or 0.0)
-        grid.addWidget(self.spin_arm, 2, 1)
+        # Circumferences
+        grid.addWidget(QLabel("دور گردن:"), 2, 0)
+        self.spin_neck = QDoubleSpinBox()
+        self.spin_neck.setRange(0.0, 150.0)
+        self.spin_neck.setValue(self.assessment.neck_circ or 0.0)
+        grid.addWidget(self.spin_neck, 2, 1)
 
         grid.addWidget(QLabel("دور سینه:"), 2, 2)
         self.spin_chest = QDoubleSpinBox()
@@ -67,17 +68,35 @@ class EditAssessmentDialog(QDialog):
         self.spin_chest.setValue(self.assessment.chest_circ or 0.0)
         grid.addWidget(self.spin_chest, 2, 3)
 
-        grid.addWidget(QLabel("دور کمر:"), 3, 0)
+        grid.addWidget(QLabel("دور بازو:"), 3, 0)
+        self.spin_arm = QDoubleSpinBox()
+        self.spin_arm.setRange(0.0, 150.0)
+        self.spin_arm.setValue(self.assessment.arm_circ or 0.0)
+        grid.addWidget(self.spin_arm, 3, 1)
+
+        grid.addWidget(QLabel("دور شکم:"), 3, 2)
+        self.spin_abdomen = QDoubleSpinBox()
+        self.spin_abdomen.setRange(0.0, 250.0)
+        self.spin_abdomen.setValue(self.assessment.abdomen_circ or 0.0)
+        grid.addWidget(self.spin_abdomen, 3, 3)
+
+        grid.addWidget(QLabel("دور کمر:"), 4, 0)
         self.spin_waist = QDoubleSpinBox()
         self.spin_waist.setRange(0.0, 250.0)
         self.spin_waist.setValue(self.assessment.waist_circ or 0.0)
-        grid.addWidget(self.spin_waist, 3, 1)
+        grid.addWidget(self.spin_waist, 4, 1)
 
-        grid.addWidget(QLabel("دور ران:"), 3, 2)
+        grid.addWidget(QLabel("دور لگن:"), 4, 2)
+        self.spin_hip = QDoubleSpinBox()
+        self.spin_hip.setRange(0.0, 250.0)
+        self.spin_hip.setValue(self.assessment.hip_circ or 0.0)
+        grid.addWidget(self.spin_hip, 4, 3)
+
+        grid.addWidget(QLabel("دور ران:"), 5, 0)
         self.spin_thigh = QDoubleSpinBox()
         self.spin_thigh.setRange(0.0, 200.0)
         self.spin_thigh.setValue(self.assessment.thigh_circ or 0.0)
-        grid.addWidget(self.spin_thigh, 3, 3)
+        grid.addWidget(self.spin_thigh, 5, 1)
 
         layout.addLayout(grid)
 
@@ -140,9 +159,12 @@ class EditAssessmentDialog(QDialog):
             "height_cm": self.spin_height.value() if self.spin_height.value() > 0 else None,
             "weight_kg": w,
             "body_fat_percentage": self.spin_fat.value() if self.spin_fat.value() > 0 else None,
-            "arm_circ": self.spin_arm.value() if self.spin_arm.value() > 0 else None,
+            "neck_circ": self.spin_neck.value() if self.spin_neck.value() > 0 else None,
             "chest_circ": self.spin_chest.value() if self.spin_chest.value() > 0 else None,
+            "arm_circ": self.spin_arm.value() if self.spin_arm.value() > 0 else None,
+            "abdomen_circ": self.spin_abdomen.value() if self.spin_abdomen.value() > 0 else None,
             "waist_circ": self.spin_waist.value() if self.spin_waist.value() > 0 else None,
+            "hip_circ": self.spin_hip.value() if self.spin_hip.value() > 0 else None,
             "thigh_circ": self.spin_thigh.value() if self.spin_thigh.value() > 0 else None,
             "before_photo_path": self.before_photo_path,
             "after_photo_path": self.after_photo_path
@@ -157,7 +179,7 @@ class CompareDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("مقایسه پیشرفت بدنی ورزشکار")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setFixedSize(680, 540)
+        self.setFixedSize(700, 580)
 
         layout = QVBoxLayout(self)
         a1 = comparison_data["first"]
@@ -169,8 +191,8 @@ class CompareDialog(QDialog):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
-        # Stats Diff Table
-        table = QTableWidget(8, 4)
+        # Stats Diff Table (11 Metrics)
+        table = QTableWidget(11, 4)
         table.setHorizontalHeaderLabels(["شاخص", f"تاریخ {a1.assessment_date_shamsi}", f"تاریخ {a2.assessment_date_shamsi}", "تغییرات"])
         table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
 
@@ -179,9 +201,12 @@ class CompareDialog(QDialog):
             ("وزن (kg)", a1.weight_kg, a2.weight_kg, diff['weight_diff']),
             ("درصد چربی (%)", a1.body_fat_percentage or "-", a2.body_fat_percentage or "-", diff['fat_diff']),
             ("شاخص BMI", a1.bmi or "-", a2.bmi or "-", diff['bmi_diff']),
-            ("دور بازو (cm)", a1.arm_circ or "-", a2.arm_circ or "-", diff['arm_diff']),
+            ("دور گردن (cm)", getattr(a1, 'neck_circ', None) or "-", getattr(a2, 'neck_circ', None) or "-", diff.get('neck_diff', 0)),
             ("دور سینه (cm)", a1.chest_circ or "-", a2.chest_circ or "-", diff['chest_diff']),
+            ("دور بازو (cm)", a1.arm_circ or "-", a2.arm_circ or "-", diff['arm_diff']),
+            ("دور شکم (cm)", getattr(a1, 'abdomen_circ', None) or "-", getattr(a2, 'abdomen_circ', None) or "-", diff.get('abdomen_diff', 0)),
             ("دور کمر (cm)", a1.waist_circ or "-", a2.waist_circ or "-", diff['waist_diff']),
+            ("دور لگن (cm)", getattr(a1, 'hip_circ', None) or "-", getattr(a2, 'hip_circ', None) or "-", diff.get('hip_diff', 0)),
             ("دور ران (cm)", a1.thigh_circ or "-", a2.thigh_circ or "-", diff['thigh_diff'])
         ]
 
@@ -192,9 +217,9 @@ class CompareDialog(QDialog):
             
             diff_item = QTableWidgetItem(f"{d:+}" if d else "0")
             if d < 0:
-                diff_item.setForeground(Qt.GlobalColor.green if "کمر" in name or "چربی" in name or "وزن" in name else Qt.GlobalColor.red)
+                diff_item.setForeground(Qt.GlobalColor.green if ("کمر" in name or "شکم" in name or "چربی" in name or "وزن" in name) else Qt.GlobalColor.red)
             elif d > 0:
-                diff_item.setForeground(Qt.GlobalColor.green if "بازو" in name or "سینه" in name or "ران" in name or "قد" in name else Qt.GlobalColor.yellow)
+                diff_item.setForeground(Qt.GlobalColor.green if ("بازو" in name or "سینه" in name or "ران" in name or "لگن" in name or "قد" in name) else Qt.GlobalColor.yellow)
             table.setItem(row, 3, diff_item)
 
         layout.addWidget(table)
@@ -309,56 +334,86 @@ class AssessmentView(QWidget):
         self.update_live_bmi()
 
         row2 = QHBoxLayout()
-        row2.setSpacing(8)
+        row2.setSpacing(6)
 
-        lbl_arm = QLabel("دور بازو:")
-        self.spin_arm = QDoubleSpinBox()
-        self.spin_arm.setRange(0.0, 150.0)
-        self.spin_arm.setSpecialValueText("")
-        self.spin_arm.setValue(0.0)
-        self.spin_arm.setFixedWidth(115)
+        lbl_neck = QLabel("دور گردن:")
+        self.spin_neck = QDoubleSpinBox()
+        self.spin_neck.setRange(0.0, 150.0)
+        self.spin_neck.setSpecialValueText("")
+        self.spin_neck.setValue(0.0)
+        self.spin_neck.setFixedWidth(85)
 
         lbl_chest = QLabel("دور سینه:")
         self.spin_chest = QDoubleSpinBox()
         self.spin_chest.setRange(0.0, 250.0)
         self.spin_chest.setSpecialValueText("")
         self.spin_chest.setValue(0.0)
-        self.spin_chest.setFixedWidth(115)
+        self.spin_chest.setFixedWidth(85)
+
+        lbl_arm = QLabel("دور بازو:")
+        self.spin_arm = QDoubleSpinBox()
+        self.spin_arm.setRange(0.0, 150.0)
+        self.spin_arm.setSpecialValueText("")
+        self.spin_arm.setValue(0.0)
+        self.spin_arm.setFixedWidth(85)
+
+        lbl_abdomen = QLabel("دور شکم:")
+        self.spin_abdomen = QDoubleSpinBox()
+        self.spin_abdomen.setRange(0.0, 250.0)
+        self.spin_abdomen.setSpecialValueText("")
+        self.spin_abdomen.setValue(0.0)
+        self.spin_abdomen.setFixedWidth(85)
 
         lbl_waist = QLabel("دور کمر:")
         self.spin_waist = QDoubleSpinBox()
         self.spin_waist.setRange(0.0, 250.0)
         self.spin_waist.setSpecialValueText("")
         self.spin_waist.setValue(0.0)
-        self.spin_waist.setFixedWidth(115)
+        self.spin_waist.setFixedWidth(85)
+
+        lbl_hip = QLabel("دور لگن:")
+        self.spin_hip = QDoubleSpinBox()
+        self.spin_hip.setRange(0.0, 250.0)
+        self.spin_hip.setSpecialValueText("")
+        self.spin_hip.setValue(0.0)
+        self.spin_hip.setFixedWidth(85)
 
         lbl_thigh = QLabel("دور ران:")
         self.spin_thigh = QDoubleSpinBox()
         self.spin_thigh.setRange(0.0, 200.0)
         self.spin_thigh.setSpecialValueText("")
         self.spin_thigh.setValue(0.0)
-        self.spin_thigh.setFixedWidth(115)
+        self.spin_thigh.setFixedWidth(85)
 
-        self.btn_before = QPushButton("📷 عکس قبل (Before)")
+        self.btn_before = QPushButton("📷 عکس قبل")
         self.btn_before.setObjectName("secondary_button")
         self.btn_before.clicked.connect(self.select_before_photo)
 
-        self.btn_after = QPushButton("📷 عکس بعد (After)")
+        self.btn_after = QPushButton("📷 عکس بعد")
         self.btn_after.setObjectName("secondary_button")
         self.btn_after.clicked.connect(self.select_after_photo)
 
-        row2.addWidget(lbl_arm)
-        row2.addWidget(self.spin_arm)
-        row2.addSpacing(12)
+        row2.addWidget(lbl_neck)
+        row2.addWidget(self.spin_neck)
+        row2.addSpacing(6)
         row2.addWidget(lbl_chest)
         row2.addWidget(self.spin_chest)
-        row2.addSpacing(12)
+        row2.addSpacing(6)
+        row2.addWidget(lbl_arm)
+        row2.addWidget(self.spin_arm)
+        row2.addSpacing(6)
+        row2.addWidget(lbl_abdomen)
+        row2.addWidget(self.spin_abdomen)
+        row2.addSpacing(6)
         row2.addWidget(lbl_waist)
         row2.addWidget(self.spin_waist)
-        row2.addSpacing(12)
+        row2.addSpacing(6)
+        row2.addWidget(lbl_hip)
+        row2.addWidget(self.spin_hip)
+        row2.addSpacing(6)
         row2.addWidget(lbl_thigh)
         row2.addWidget(self.spin_thigh)
-        row2.addSpacing(20)
+        row2.addSpacing(14)
         row2.addWidget(self.btn_before)
         row2.addWidget(self.btn_after)
         row2.addStretch()
@@ -381,27 +436,30 @@ class AssessmentView(QWidget):
         layout.addLayout(row_hist)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(11)
+        self.table.setColumnCount(14)
         self.table.setHorizontalHeaderLabels([
-            "تاریخ (شمسی)", "قد (cm)", "وزن (kg)", "درصد چربی", "BMI", "دور بازو", "دور سینه", "دور کمر", "دور ران", "تصاویر پیشرفت", "عملیات"
+            "تاریخ (شمسی)", "قد (cm)", "وزن (kg)", "درصد چربی", "BMI", "دور گردن", "دور سینه", "دور بازو", "دور شکم", "دور کمر", "دور لگن", "دور ران", "تصاویر پیشرفت", "عملیات"
         ])
         
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table.setColumnWidth(0, 100)  # تاریخ (شمسی)
-        self.table.setColumnWidth(1, 65)   # قد (cm)
-        self.table.setColumnWidth(2, 65)   # وزن (kg)
-        self.table.setColumnWidth(3, 80)   # درصد چربی
-        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)  # BMI عریض و منعطف برای عدم مخفی شدن
-        self.table.setColumnWidth(5, 65)   # دور بازو
-        self.table.setColumnWidth(6, 65)   # دور سینه
-        self.table.setColumnWidth(7, 65)   # دور کمر
-        self.table.setColumnWidth(8, 65)   # دور ران
-        self.table.setColumnWidth(9, 105)  # تصاویر پیشرفت
-        self.table.setColumnWidth(10, 135) # عملیات (نمایش کامل دکمه ویرایش و حذف)
+        self.table.setColumnWidth(0, 95)   # تاریخ
+        self.table.setColumnWidth(1, 55)   # قد
+        self.table.setColumnWidth(2, 55)   # وزن
+        self.table.setColumnWidth(3, 70)   # چربی
+        header.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)  # BMI
+        self.table.setColumnWidth(5, 55)   # گردن
+        self.table.setColumnWidth(6, 55)   # سینه
+        self.table.setColumnWidth(7, 55)   # بازو
+        self.table.setColumnWidth(8, 55)   # شکم
+        self.table.setColumnWidth(9, 55)   # کمر
+        self.table.setColumnWidth(10, 55)  # لگن
+        self.table.setColumnWidth(11, 55)  # ران
+        self.table.setColumnWidth(12, 95)  # عکس‌ها
+        self.table.setColumnWidth(13, 125) # عملیات
 
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(49)
+        self.table.verticalHeader().setDefaultSectionSize(46)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -436,9 +494,12 @@ class AssessmentView(QWidget):
             "height_cm": self.spin_height.value() if self.spin_height.value() > 0 else None,
             "weight_kg": w,
             "body_fat_percentage": self.spin_fat.value() if self.spin_fat.value() > 0 else None,
-            "arm_circ": self.spin_arm.value() if self.spin_arm.value() > 0 else None,
+            "neck_circ": self.spin_neck.value() if self.spin_neck.value() > 0 else None,
             "chest_circ": self.spin_chest.value() if self.spin_chest.value() > 0 else None,
+            "arm_circ": self.spin_arm.value() if self.spin_arm.value() > 0 else None,
+            "abdomen_circ": self.spin_abdomen.value() if self.spin_abdomen.value() > 0 else None,
             "waist_circ": self.spin_waist.value() if self.spin_waist.value() > 0 else None,
+            "hip_circ": self.spin_hip.value() if self.spin_hip.value() > 0 else None,
             "thigh_circ": self.spin_thigh.value() if self.spin_thigh.value() > 0 else None,
             "before_photo_path": self.before_photo_path,
             "after_photo_path": self.after_photo_path
@@ -447,14 +508,17 @@ class AssessmentView(QWidget):
         self.spin_height.setValue(0.0)
         self.spin_weight.setValue(0.0)
         self.spin_fat.setValue(0.0)
-        self.spin_arm.setValue(0.0)
+        self.spin_neck.setValue(0.0)
         self.spin_chest.setValue(0.0)
+        self.spin_arm.setValue(0.0)
+        self.spin_abdomen.setValue(0.0)
         self.spin_waist.setValue(0.0)
+        self.spin_hip.setValue(0.0)
         self.spin_thigh.setValue(0.0)
         self.before_photo_path = None
         self.after_photo_path = None
-        self.btn_before.setText("📷 عکس قبل (Before)")
-        self.btn_after.setText("📷 عکس بعد (After)")
+        self.btn_before.setText("📷 عکس قبل")
+        self.btn_after.setText("📷 عکس بعد")
 
         self.load_history()
         if hasattr(self.parent(), 'load_member_info'):
@@ -505,9 +569,12 @@ class AssessmentView(QWidget):
                 QTableWidgetItem(str(rec.weight_kg)),
                 QTableWidgetItem(str(rec.body_fat_percentage or "-")),
                 QTableWidgetItem(bmi_text),
-                QTableWidgetItem(str(rec.arm_circ or "-")),
+                QTableWidgetItem(str(getattr(rec, 'neck_circ', None) or "-")),
                 QTableWidgetItem(str(rec.chest_circ or "-")),
+                QTableWidgetItem(str(rec.arm_circ or "-")),
+                QTableWidgetItem(str(getattr(rec, 'abdomen_circ', None) or "-")),
                 QTableWidgetItem(str(rec.waist_circ or "-")),
+                QTableWidgetItem(str(getattr(rec, 'hip_circ', None) or "-")),
                 QTableWidgetItem(str(rec.thigh_circ or "-")),
             ]
 
@@ -521,11 +588,11 @@ class AssessmentView(QWidget):
                 btn_photos = QPushButton(f"🖼️ {len(photos)} عکس")
                 btn_photos.setObjectName("secondary_button")
                 btn_photos.clicked.connect(lambda _, d=rec.assessment_date_shamsi, p=photos: self.view_progress_photos(d, p))
-                self.table.setCellWidget(row, 9, btn_photos)
+                self.table.setCellWidget(row, 12, btn_photos)
             else:
                 item_no_photo = QTableWidgetItem("-")
                 item_no_photo.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
-                self.table.setItem(row, 9, item_no_photo)
+                self.table.setItem(row, 12, item_no_photo)
 
             # Action Buttons Cell
             action_widget = QWidget()
@@ -548,7 +615,7 @@ class AssessmentView(QWidget):
 
             action_layout.addWidget(btn_edit)
             action_layout.addWidget(btn_del)
-            self.table.setCellWidget(row, 10, action_widget)
+            self.table.setCellWidget(row, 13, action_widget)
 
     def edit_assessment(self, assessment):
         dlg = EditAssessmentDialog(assessment, self)

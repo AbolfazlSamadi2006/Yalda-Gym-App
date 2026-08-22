@@ -14,12 +14,12 @@ class ExerciseFormDialog(QDialog):
         self.media_type = "image"
         self.setWindowTitle("ویرایش حرکت ورزشی" if exercise_data else "افزودن حرکت جدید به بانک")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setFixedSize(480, 520)
+        self.setFixedSize(500, 580)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(10)
+        layout.setSpacing(9)
 
         self.txt_name = QLineEdit()
         self.txt_name.setPlaceholderText("نام حرکت به فارسی...")
@@ -42,9 +42,13 @@ class ExerciseFormDialog(QDialog):
         self.txt_contra = QLineEdit()
         self.txt_contra.setPlaceholderText("مثلاً: knee_injury, back_injury")
 
-        # Media Selection Row
+        # Video URL Input
+        self.txt_video_url = QLineEdit()
+        self.txt_video_url.setPlaceholderText("https://... (لینک آموزش ویدیویی از آپارات، یوتیوب، گوگل و...)")
+
+        # Local Media Selection Row
         row_media = QHBoxLayout()
-        btn_media = QPushButton("🎬 انتخاب عکس یا فیلم آموزشی")
+        btn_media = QPushButton("🎬 انتخاب فایل عکس/ویدیو آفلاین")
         btn_media.setObjectName("secondary_button")
         btn_media.clicked.connect(self.choose_media)
         self.lbl_media_status = QLabel("فایلی انتخاب نشده است")
@@ -55,7 +59,7 @@ class ExerciseFormDialog(QDialog):
 
         self.txt_desc = QTextEdit()
         self.txt_desc.setPlaceholderText("توضیحات و نحوه اجرای صحیح...")
-        self.txt_desc.setMaximumHeight(70)
+        self.txt_desc.setMaximumHeight(65)
 
         layout.addWidget(QLabel("نام حرکت ورزشی:"))
         layout.addWidget(self.txt_name)
@@ -65,7 +69,9 @@ class ExerciseFormDialog(QDialog):
         layout.addWidget(self.combo_equip)
         layout.addWidget(QLabel("منع مصرف پزشکی (آسیب‌دیدگی‌ها):"))
         layout.addWidget(self.txt_contra)
-        layout.addWidget(QLabel("عکس/فیلم آموزشی حرکت (اختیاری):"))
+        layout.addWidget(QLabel("🌐 لینک ویدیو یا آموزش اینترنتی (اختیاری):"))
+        layout.addWidget(self.txt_video_url)
+        layout.addWidget(QLabel("فایل عکس/فیلم آموزشی آفلاین (اختیاری):"))
         layout.addLayout(row_media)
         layout.addWidget(QLabel("توضیحات:"))
         layout.addWidget(self.txt_desc)
@@ -101,6 +107,7 @@ class ExerciseFormDialog(QDialog):
             "equipment": self.combo_equip.currentData(),
             "media_path": self.media_path,
             "media_type": self.media_type,
+            "video_url": self.txt_video_url.text().strip() or None,
             "contraindications": self.txt_contra.text().strip(),
             "description": self.txt_desc.toPlainText().strip()
         }
@@ -116,6 +123,7 @@ class ExerciseFormDialog(QDialog):
         if idx_e >= 0: self.combo_equip.setCurrentIndex(idx_e)
 
         self.txt_contra.setText(ex.contraindications or "")
+        self.txt_video_url.setText(ex.video_url or "")
         self.txt_desc.setText(ex.description or "")
         self.media_path = ex.media_path
         self.media_type = ex.media_type or "image"
@@ -233,7 +241,13 @@ class WorkoutLibraryView(QWidget):
             self.table.setCellWidget(row, 5, btn_container)
 
     def show_media(self, exercise):
-        dlg = MediaViewerDialog(title=exercise.name_fa, media_path=exercise.media_path, media_type=exercise.media_type, parent=self)
+        dlg = MediaViewerDialog(
+            title=exercise.name_fa,
+            media_path=exercise.media_path,
+            media_type=exercise.media_type,
+            video_url=exercise.video_url,
+            parent=self
+        )
         dlg.exec()
 
     def delete_exercise(self, exercise):

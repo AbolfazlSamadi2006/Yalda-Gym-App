@@ -2,10 +2,12 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QFrame, QMessageBox
 )
 from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QPixmap
 import config
 from yalda.auth.authentication import authenticate_user, is_app_license_active
 from yalda.views.password_recovery_dialog import PasswordRecoveryDialog
 from yalda.views.trainer_register_dialog import TrainerRegisterDialog
+from yalda.views.cloud_restore_dialog import CloudRestoreDialog
 
 class LoginView(QWidget):
     login_success = pyqtSignal()
@@ -27,14 +29,14 @@ class LoginView(QWidget):
 
         # Login Card Container
         card = QFrame()
-        card.setFixedSize(480, 520)
+        card.setFixedSize(480, 590)
         card.setObjectName("login_card")
         card.setStyleSheet("""
             QFrame#login_card {
                 background-color: #000000;
                 border: 1px solid #222222;
                 border-radius: 12px;
-                padding: 25px;
+                padding: 20px 25px;
             }
             QLabel {
                 background-color: transparent;
@@ -43,11 +45,20 @@ class LoginView(QWidget):
         """)
 
         card_layout = QVBoxLayout(card)
-        card_layout.setSpacing(12)
+        card_layout.setSpacing(8)
+
+        # Logo Image
+        icon_path = config.BASE_DIR / "resources" / "images" / "app_icon.png"
+        if icon_path.exists():
+            lbl_logo = QLabel()
+            pix = QPixmap(str(icon_path)).scaled(64, 64, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            lbl_logo.setPixmap(pix)
+            lbl_logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            card_layout.addWidget(lbl_logo)
 
         # Header Title
         title_lbl = QLabel(config.APP_NAME)
-        title_lbl.setStyleSheet("color: #8B0000; font-size: 32px; font-weight: bold; background: transparent;")
+        title_lbl.setStyleSheet("color: #8B0000; font-size: 30px; font-weight: bold; background: transparent;")
         title_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         sub_lbl = QLabel("ورود به نرم‌افزار مدیریت باشگاه بدنسازی")
@@ -56,14 +67,14 @@ class LoginView(QWidget):
 
         card_layout.addWidget(title_lbl)
         card_layout.addWidget(sub_lbl)
-        card_layout.addSpacing(6)
+        card_layout.addSpacing(2)
 
         # Username Input
         lbl_user = QLabel("نام کاربری:")
         lbl_user.setStyleSheet("color: #DDDDDD; font-weight: bold; background: transparent;")
         
         self.txt_username = QLineEdit()
-        self.txt_username.setFixedHeight(42)
+        self.txt_username.setFixedHeight(40)
         self.txt_username.setPlaceholderText("نام کاربری را وارد کنید")
         self.txt_username.setText("")
         self.txt_username.setStyleSheet("""
@@ -91,7 +102,7 @@ class LoginView(QWidget):
         pass_box.setSpacing(6)
 
         self.txt_password = QLineEdit()
-        self.txt_password.setFixedHeight(42)
+        self.txt_password.setFixedHeight(40)
         self.txt_password.setEchoMode(QLineEdit.EchoMode.Password)
         self.txt_password.setPlaceholderText("کلمه عبور را وارد کنید")
         self.txt_password.setText("")
@@ -112,7 +123,7 @@ class LoginView(QWidget):
 
         btn_eye = QPushButton("👁️")
         btn_eye.setObjectName("eye_button")
-        btn_eye.setFixedSize(44, 42)
+        btn_eye.setFixedSize(44, 40)
         btn_eye.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_eye.setToolTip("نمایش / پنهان‌سازی کلمه عبور")
         btn_eye.setStyleSheet("""
@@ -138,7 +149,7 @@ class LoginView(QWidget):
 
         card_layout.addWidget(lbl_pass)
         card_layout.addLayout(pass_box)
-        card_layout.addSpacing(6)
+        card_layout.addSpacing(4)
 
         # Actions Row: Forgot Password & Register New Trainer
         row_actions = QHBoxLayout()
@@ -170,7 +181,28 @@ class LoginView(QWidget):
         row_actions.addWidget(self.btn_forgot)
         row_actions.addWidget(self.btn_register)
         card_layout.addLayout(row_actions)
-        card_layout.addSpacing(10)
+
+        # Cloud Restore Button (for new computer or fresh install)
+        self.btn_cloud = QPushButton("☁️ بازیابی اطلاعات از سرور ابری (سیستم جدید)")
+        self.btn_cloud.setFixedHeight(36)
+        self.btn_cloud.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_cloud.setStyleSheet("""
+            QPushButton {
+                background-color: #1E3A8A;
+                color: #93C5FD;
+                border: 1px solid #2563EB;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_cloud.clicked.connect(self.open_cloud_restore_dialog)
+        card_layout.addWidget(self.btn_cloud)
+        card_layout.addSpacing(6)
 
         # Submit Login Button
         btn_login = QPushButton("ورود به سیستم")
@@ -248,6 +280,11 @@ class LoginView(QWidget):
         dlg.registration_success.connect(self.login_success.emit)
         dlg.exec()
 
+    def open_cloud_restore_dialog(self):
+        dlg = CloudRestoreDialog(self)
+        dlg.restore_success.connect(self.login_success.emit)
+        dlg.exec()
+
     def do_login(self):
         username = self.txt_username.text().strip()
         password = self.txt_password.text().strip()
@@ -260,4 +297,12 @@ class LoginView(QWidget):
         if user:
             self.login_success.emit()
         else:
-            QMessageBox.critical(self, "ورود ناموفق", "نام کاربری یا کلمه عبور اشتباه است.")
+            reply = QMessageBox.question(
+                self,
+                "ورود ناموفق",
+                "نام کاربری یا کلمه عبور در پایگاه‌داده محلی یافت نشد.\n\nآیا در حال راه‌اندازی نرم‌افزار روی سیستم جدید هستید و مایلید اطلاعات خود را با شماره موبایل از سرور ابری بازیابی کنید؟",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.open_cloud_restore_dialog()

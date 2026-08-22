@@ -163,6 +163,9 @@ class PhysicalAssessment(Base):
     chest_circ = Column(Float, nullable=True)
     waist_circ = Column(Float, nullable=True)
     thigh_circ = Column(Float, nullable=True)
+    neck_circ = Column(Float, nullable=True)
+    abdomen_circ = Column(Float, nullable=True)
+    hip_circ = Column(Float, nullable=True)
     
     before_photo_path = Column(String(255), nullable=True)
     after_photo_path = Column(String(255), nullable=True)
@@ -182,6 +185,7 @@ class Exercise(Base):
     equipment = Column(String(50), nullable=True)  # 'barbell', 'dumbbell', 'machine', 'bodyweight', 'cable'
     media_path = Column(String(255), nullable=True)
     media_type = Column(String(20), default="image")  # 'image', 'video', 'url'
+    video_url = Column(String(500), nullable=True)  # URL to online video tutorial
     contraindications = Column(Text, nullable=True)  # e.g. 'back_injury', 'knee_injury'
     description = Column(Text, nullable=True)
 

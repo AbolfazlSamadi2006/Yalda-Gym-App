@@ -9,8 +9,8 @@ from yalda.views.member_list_view import MemberListView
 from yalda.views.member_detail_view import MemberDetailView
 from yalda.views.member_form_dialog import MemberFormDialog
 from yalda.views.workout_editor_view import WorkoutEditorView
-
 from yalda.views.nutrition_editor_view import NutritionEditorView
+from yalda.views.templates_manager_view import TemplatesManagerView
 from yalda.views.workout_library_view import WorkoutLibraryView
 from yalda.views.food_library_view import FoodLibraryView
 from yalda.views.backup_view import BackupView
@@ -24,7 +24,6 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{config.APP_NAME} - نرم‌افزار مدیریت باشگاه بدنسازی (نسخه {config.APP_VERSION})")
-
 
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.resize(1280, 800)
@@ -47,7 +46,6 @@ class MainWindow(QMainWindow):
         self.sidebar.member_birthday_clicked.connect(self.open_member_detail)
         main_layout.addWidget(self.sidebar)
 
-
         # Stacked Container for Views
         self.stack = QStackedWidget()
         main_layout.addWidget(self.stack)
@@ -60,20 +58,32 @@ class MainWindow(QMainWindow):
         self.view_members.open_member_detail.connect(self.open_member_detail)
 
         self.view_workouts = WorkoutEditorView()
+        self.view_workouts.manage_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
+
         self.view_nutrition = NutritionEditorView()
+        self.view_nutrition.manage_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
+
+        self.view_templates = TemplatesManagerView()
+        self.view_templates.edit_workout_requested.connect(self.open_workout_editor_with_plan)
+        self.view_templates.edit_nutrition_requested.connect(self.open_nutrition_editor_with_plan)
+        self.view_templates.new_workout_requested.connect(self.open_new_workout_editor)
+        self.view_templates.new_nutrition_requested.connect(self.open_new_nutrition_editor)
+
         self.view_exercises = WorkoutLibraryView()
         self.view_foods = FoodLibraryView()
         self.view_developer = DeveloperView()
         self.view_backup = BackupView()
+        self.view_backup.account_deleted_signal.connect(self.on_account_deleted)
 
         self.stack.addWidget(self.view_dashboard) # Index 0
         self.stack.addWidget(self.view_members)   # Index 1
         self.stack.addWidget(self.view_workouts)  # Index 2
         self.stack.addWidget(self.view_nutrition) # Index 3
-        self.stack.addWidget(self.view_exercises) # Index 4
-        self.stack.addWidget(self.view_foods)     # Index 5
-        self.stack.addWidget(self.view_developer) # Index 6
-        self.stack.addWidget(self.view_backup)    # Index 7
+        self.stack.addWidget(self.view_templates) # Index 4
+        self.stack.addWidget(self.view_exercises) # Index 5
+        self.stack.addWidget(self.view_foods)     # Index 6
+        self.stack.addWidget(self.view_developer) # Index 7
+        self.stack.addWidget(self.view_backup)    # Index 8
 
     def switch_page(self, page_id: str):
         self.sidebar.refresh_notifications()
@@ -82,10 +92,11 @@ class MainWindow(QMainWindow):
             "members": 1,
             "workouts": 2,
             "nutrition": 3,
-            "exercises": 4,
-            "foods": 5,
-            "developer": 6,
-            "backup": 7
+            "templates": 4,
+            "exercises": 5,
+            "foods": 6,
+            "developer": 7,
+            "backup": 8
         }
         if page_id in page_map:
             if page_id == "dashboard":
@@ -96,6 +107,8 @@ class MainWindow(QMainWindow):
                 self.view_workouts.refresh_editor()
             elif page_id == "nutrition":
                 self.view_nutrition.refresh_editor()
+            elif page_id == "templates":
+                self.view_templates.load_all_templates()
             elif page_id == "exercises":
                 self.view_exercises.load_exercises()
             elif page_id == "foods":
@@ -105,6 +118,22 @@ class MainWindow(QMainWindow):
             elif page_id == "backup":
                 self.view_backup.load_backups()
             self.stack.setCurrentIndex(page_map[page_id])
+
+    def open_workout_editor_with_plan(self, plan_id: int):
+        self.sidebar.navigate("workouts")
+        self.view_workouts.load_plan_for_edit(plan_id)
+
+    def open_nutrition_editor_with_plan(self, plan_id: int):
+        self.sidebar.navigate("nutrition")
+        self.view_nutrition.load_plan_for_edit(plan_id)
+
+    def open_new_workout_editor(self):
+        self.sidebar.navigate("workouts")
+        self.view_workouts.reset_to_new_plan()
+
+    def open_new_nutrition_editor(self):
+        self.sidebar.navigate("nutrition")
+        self.view_nutrition.reset_form()
 
     def refresh_on_login(self):
         """Refreshes sidebar, resets active index to Dashboard, and reloads data across all views for newly logged-in user."""
@@ -149,6 +178,9 @@ class MainWindow(QMainWindow):
     def open_member_detail(self, member_id: int):
         detail_view = MemberDetailView(member_id)
         detail_view.back_requested.connect(lambda: self.sidebar.navigate("members"))
+        detail_view.edit_workout_requested.connect(self.open_workout_editor_with_plan)
+        detail_view.edit_nutrition_requested.connect(self.open_nutrition_editor_with_plan)
+        detail_view.open_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
         idx = self.stack.addWidget(detail_view)
         self.stack.setCurrentIndex(idx)
 
@@ -158,6 +190,11 @@ class MainWindow(QMainWindow):
             CurrentUser.logout()
             self.logout_signal.emit()
             self.hide()
+
+    def on_account_deleted(self):
+        CurrentUser.logout()
+        self.logout_signal.emit()
+        self.hide()
 
     def closeEvent(self, event):
         # If window is hidden or user already logged out, accept immediately

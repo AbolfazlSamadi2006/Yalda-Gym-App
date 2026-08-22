@@ -34,6 +34,7 @@ class WorkoutService:
                 equipment=data.get("equipment"),
                 media_path=data.get("media_path"),
                 media_type=data.get("media_type", "image"),
+                video_url=data.get("video_url"),
                 contraindications=data.get("contraindications"),
                 description=data.get("description")
             )
@@ -214,6 +215,18 @@ class WorkoutService:
             session.close()
 
     @staticmethod
+    def get_member_assignments(member_id: int):
+        session = get_session()
+        try:
+            return session.query(WorkoutAssignment)\
+                .options(joinedload(WorkoutAssignment.plan).joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise))\
+                .filter(WorkoutAssignment.member_id == member_id)\
+                .order_by(WorkoutAssignment.id.desc())\
+                .all()
+        finally:
+            session.close()
+
+    @staticmethod
     def delete_exercise(exercise_id: int):
         session = get_session()
         try:
@@ -296,6 +309,25 @@ class WorkoutService:
 
             session.commit()
             return plan
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    @staticmethod
+    def delete_plan(plan_id: int):
+        session = get_session()
+        try:
+            plan = session.query(WorkoutPlan).filter(WorkoutPlan.id == plan_id).first()
+            if plan:
+                # Delete any assignments first
+                session.query(WorkoutAssignment).filter(WorkoutAssignment.plan_id == plan.id).delete()
+                # Delete plan (SQLAlchemy cascade deletes days and exercises)
+                session.delete(plan)
+                session.commit()
+                return True
+            return False
         except Exception as e:
             session.rollback()
             raise e

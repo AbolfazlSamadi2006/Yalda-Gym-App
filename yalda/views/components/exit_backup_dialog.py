@@ -183,8 +183,8 @@ class ExitBackupDialog(QDialog):
 
     def handle_offline_backup(self):
         now = datetime.now()
-        shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "_")
-        time_str = now.strftime("%H%M")
+        shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "-")
+        time_str = now.strftime("%H-%M-%S")
         suggested_name = f"Yalda_Backup_{shamsi_date}_{time_str}.db"
 
         target_file, _ = QFileDialog.getSaveFileName(

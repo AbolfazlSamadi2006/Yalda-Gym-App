@@ -5,7 +5,7 @@ Unicode True
 
 !define PRODUCT_NAME "نرم‌افزار مدیریت باشگاه یلدا"
 !define PRODUCT_NAME_EN "Yalda Gym"
-!define PRODUCT_VERSION "2.1.0"
+!define PRODUCT_VERSION "2.2.0"
 !define PRODUCT_PUBLISHER "ابوالفضل صمدی کوچکسرائی"
 !define PRODUCT_WEB_SITE "https://github.com/AbolfazlSamadi2006/Yalda-Gym-App"
 !define PRODUCT_EXE "Yalda.exe"
@@ -40,7 +40,7 @@ SetCompressorDictSize 64
 !insertmacro MUI_LANGUAGE "Farsi"
 !insertmacro MUI_LANGUAGE "English"
 
-VIProductVersion "2.0.0.0"
+VIProductVersion "2.2.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME_EN}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_NAME}"

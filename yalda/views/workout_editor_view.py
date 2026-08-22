@@ -1,15 +1,18 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QGroupBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from yalda.services.workout_service import WorkoutService
 from yalda.services.member_service import MemberService
 
 class WorkoutEditorView(QWidget):
+    manage_templates_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.day_tables = []
+        self.editing_plan_id = None
         self.init_ui()
 
     def showEvent(self, event):
@@ -17,16 +20,29 @@ class WorkoutEditorView(QWidget):
         self.load_members_dropdown()
         self.load_template_dropdown()
 
-
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        # Header Title
-        title = QLabel("🏋️ برنامه‌ریزی هوشمند تمرینی")
-        title.setObjectName("h1")
-        layout.addWidget(title)
+        # Header Title and Action Bar
+        header = QHBoxLayout()
+        self.lbl_header_title = QLabel("🏋️ برنامه‌ریزی هوشمند تمرینی")
+        self.lbl_header_title.setObjectName("h1")
+
+        btn_new_plan = QPushButton("➕ برنامه جدید")
+        btn_new_plan.setObjectName("secondary_button")
+        btn_new_plan.clicked.connect(self.reset_to_new_plan)
+
+        btn_manage_tpl = QPushButton("📋 مدیریت و مشاهده الگوها")
+        btn_manage_tpl.setObjectName("secondary_button")
+        btn_manage_tpl.clicked.connect(self.manage_templates_requested.emit)
+
+        header.addWidget(self.lbl_header_title)
+        header.addStretch()
+        header.addWidget(btn_new_plan)
+        header.addWidget(btn_manage_tpl)
+        layout.addLayout(header)
 
         # Program Details Form Box
         form_box = QGroupBox("مشخصات کلی برنامه تمرینی")
@@ -51,6 +67,7 @@ class WorkoutEditorView(QWidget):
         self.combo_goal.addItem("هایپرتروفی (عضله‌سازی)", "hypertrophy")
         self.combo_goal.addItem("چربی‌سوزی و کاهش وزن", "fat_loss")
         self.combo_goal.addItem("افزایش قدرت بی‌هوازی", "strength")
+        self.combo_goal.addItem("حرکات اصلاحی و بهبود قامت", "corrective")
         self.combo_goal.addItem("آمادگی جسمانی عمومی", "general_fitness")
         self.combo_goal.addItem("استقامت عضلانی", "endurance")
 
@@ -249,9 +266,18 @@ class WorkoutEditorView(QWidget):
         self.combo_templates.blockSignals(True)
         self.combo_templates.clear()
         self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده از بانک ---", None)
+        goal_names = {
+            "hypertrophy": "عضله‌سازی",
+            "fat_loss": "چربی‌سوزی",
+            "strength": "قدرت",
+            "corrective": "حرکات اصلاحی",
+            "general_fitness": "آمادگی جسمانی",
+            "endurance": "استقامت"
+        }
         plans = WorkoutService.get_all_plans()
         for p in plans:
-            self.combo_templates.addItem(f"📋 {p.title} ({p.days_per_week} روزه - {p.goal})", p.id)
+            g_fa = goal_names.get(p.goal, p.goal)
+            self.combo_templates.addItem(f"📋 {p.title} ({p.days_per_week} روزه - {g_fa})", p.id)
         self.combo_templates.blockSignals(False)
 
     def on_template_selected(self, index: int):
@@ -324,15 +350,59 @@ class WorkoutEditorView(QWidget):
                         table.setCellWidget(row, 5, txt_tempo)
                         table.setCellWidget(row, 6, btn_del)
 
-            QMessageBox.information(self, "موفقیت", f"الگوی '{plan.title}' با موفقیت در فرم بارگذاری شد.")
+            if not hasattr(self, '_suppress_loaded_alert') or not self._suppress_loaded_alert:
+                QMessageBox.information(self, "موفقیت", f"الگوی '{plan.title}' با موفقیت در فرم بارگذاری شد.")
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"خطا در لود الگوی تمرینی: {str(e)}")
 
+    def reset_to_new_plan(self):
+        self.editing_plan_id = None
+        self.lbl_header_title.setText("🏋️ برنامه‌ریزی هوشمند تمرینی")
+        self.txt_title.clear()
+        self.combo_goal.setCurrentIndex(0)
+        self.combo_days.setCurrentIndex(1)
+        self.combo_level.setCurrentIndex(0)
+        self.setup_day_tabs()
+        self.combo_templates.blockSignals(True)
+        self.combo_templates.setCurrentIndex(0)
+        self.combo_templates.blockSignals(False)
+
+    def load_plan_for_edit(self, plan_id: int):
+        self._suppress_loaded_alert = True
+        try:
+            self.editing_plan_id = plan_id
+            idx_tpl = self.combo_templates.findData(plan_id)
+            if idx_tpl >= 0:
+                self.combo_templates.setCurrentIndex(idx_tpl)
+            else:
+                # Direct load
+                plan = WorkoutService.get_plan_by_id(plan_id)
+                if plan:
+                    self.txt_title.setText(plan.title or "")
+                    idx_g = self.combo_goal.findData(plan.goal)
+                    if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
+                    idx_d = self.combo_days.findData(plan.days_per_week)
+                    if idx_d >= 0: self.combo_days.setCurrentIndex(idx_d)
+                    idx_l = self.combo_level.findData(plan.training_level)
+                    if idx_l >= 0: self.combo_level.setCurrentIndex(idx_l)
+                    self.setup_day_tabs()
+            
+            plan = WorkoutService.get_plan_by_id(plan_id)
+            if plan:
+                self.lbl_header_title.setText(f"✏️ ویرایش الگوی تمرینی: {plan.title}")
+        finally:
+            self._suppress_loaded_alert = False
+
     def save_plan(self):
         plan_info, days_data = self.get_plan_data()
-        plan = WorkoutService.create_workout_plan(plan_info, days_data)
-        self.load_template_dropdown()
-        QMessageBox.information(self, "موفقیت", "الگوی برنامه تمرینی در بانک ذخیره گردید.")
+        if self.editing_plan_id:
+            plan = WorkoutService.update_workout_plan(self.editing_plan_id, plan_info, days_data)
+            self.load_template_dropdown()
+            QMessageBox.information(self, "موفقیت", f"الگوی تمرینی «{plan.title}» با موفقیت به‌روزرسانی شد.")
+        else:
+            plan = WorkoutService.create_workout_plan(plan_info, days_data)
+            self.load_template_dropdown()
+            QMessageBox.information(self, "موفقیت", "الگوی برنامه تمرینی در بانک ذخیره گردید.")
         return plan
 
     def assign_plan(self):

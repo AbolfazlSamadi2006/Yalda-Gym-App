@@ -211,6 +211,29 @@ def register_trainer(first_name: str, last_name: str, phone: str, birth_date_sha
     finally:
         session.close()
 
+def get_all_trainers() -> list:
+    """Returns a list of all registered trainers and their member counts (for Admin)."""
+    session = get_session()
+    try:
+        from yalda.models.database_models import User, Member
+        users = session.query(User).filter(User.username != "admin", User.role != "admin").all()
+        results = []
+        for u in users:
+            m_count = session.query(Member).filter(Member.user_id == u.id).count()
+            results.append({
+                "id": u.id,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "full_name": u.display_name,
+                "username": u.username,
+                "phone": u.phone or "-",
+                "birth_date_shamsi": u.birth_date_shamsi or "-",
+                "member_count": m_count
+            })
+        return results
+    finally:
+        session.close()
+
 def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone: str, birth_date_shamsi: str, photo_path: str, username: str, password: str = None, recovery_code: str = None) -> bool:
     """Updates trainer's profile and credentials."""
     session = get_session()
@@ -272,3 +295,77 @@ def update_user_credentials(new_username: str, new_password: str = None) -> bool
         password=new_password,
         recovery_code=current_u.recovery_code
     )
+
+def delete_trainer_account(user_id: int) -> bool:
+    """Completely deletes a trainer account and all their associated members, plans, and files."""
+    session = get_session()
+    try:
+        from yalda.models.database_models import User, Member, WorkoutPlan, NutritionPlan
+        user = session.query(User).filter(User.id == user_id).first()
+        if not user:
+            return False
+            
+        if user.username == "admin" or user.role == "admin":
+            raise ValueError("حساب مدیر ارشد سیستم قابل حذف نمی‌باشد.")
+            
+        trainer_phone = user.phone
+
+        # 1. Delete all members belonging to this trainer
+        members = session.query(Member).filter(Member.user_id == user_id).all()
+        for m in members:
+            # Delete member files
+            if m.photo_path and os.path.exists(m.photo_path):
+                try:
+                    os.remove(m.photo_path)
+                except Exception:
+                    pass
+            session.delete(m)
+
+        # 2. Delete workout & nutrition plans created by this trainer
+        workout_plans = session.query(WorkoutPlan).filter(WorkoutPlan.created_by_user_id == user_id).all()
+        for wp in workout_plans:
+            session.delete(wp)
+            
+        nutrition_plans = session.query(NutritionPlan).filter(NutritionPlan.created_by_user_id == user_id).all()
+        for np in nutrition_plans:
+            session.delete(np)
+
+        # 3. Delete trainer photo
+        if user.photo_path and os.path.exists(user.photo_path):
+            try:
+                os.remove(user.photo_path)
+            except Exception:
+                pass
+
+        # 4. Delete the User record
+        session.delete(user)
+        session.commit()
+
+        # 5. Overwrite/Sync local backup
+        try:
+            from yalda.services.backup_service import create_local_backup
+            create_local_backup()
+        except Exception:
+            pass
+
+        # 6. Delete backup on Cloudflare Worker if connected
+        if trainer_phone:
+            try:
+                import urllib.request, config
+                clean_phone = "".join(filter(str.isdigit, trainer_phone))
+                if clean_phone and config.DEFAULT_CLOUD_BACKUP_URL:
+                    del_url = f"{config.DEFAULT_CLOUD_BACKUP_URL.rstrip('/')}/api/backup/delete/{clean_phone}"
+                    req = urllib.request.Request(del_url, method="POST")
+                    req.add_header("X-API-Key", config.CLOUD_BACKUP_SECRET_KEY)
+                    req.add_header("User-Agent", "YaldaGymDesktop/2.1.0")
+                    urllib.request.urlopen(req, timeout=5)
+            except Exception:
+                pass
+
+        return True
+    except Exception as e:
+        session.rollback()
+        raise e
+    finally:
+        session.close()
+

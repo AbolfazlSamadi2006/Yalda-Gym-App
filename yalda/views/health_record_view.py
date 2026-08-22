@@ -445,13 +445,30 @@ class HealthRecordView(QWidget):
         row_docs_top = QHBoxLayout()
         self.lbl_docs_count = QLabel("مدارک پزشکی ثبت‌شده:")
         self.lbl_docs_count.setStyleSheet("font-weight: bold;")
-        
+
+        btn_export_zip = QPushButton("📦 خروجی مدارک و نظرات (ZIP)")
+        btn_export_zip.setStyleSheet("""
+            QPushButton {
+                background-color: #059669;
+                color: #FFFFFF;
+                font-weight: bold;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #047857;
+            }
+        """)
+        btn_export_zip.clicked.connect(self.export_medical_package)
+
         btn_add_doc = QPushButton("➕ افزودن مدرک / آزمایش جدید")
         btn_add_doc.setObjectName("secondary_button")
         btn_add_doc.clicked.connect(self.open_add_doc_dialog)
 
         row_docs_top.addWidget(self.lbl_docs_count)
         row_docs_top.addStretch()
+        row_docs_top.addWidget(btn_export_zip)
         row_docs_top.addWidget(btn_add_doc)
         layout_docs.addLayout(row_docs_top)
 
@@ -574,3 +591,88 @@ class HealthRecordView(QWidget):
         }
         MemberService.update_health_record(self.member_id, data)
         QMessageBox.information(self, "موفقیت", "پرونده سلامت با موفقیت ذخیره شد.")
+
+    def export_medical_package(self):
+        import zipfile
+        import re
+        from yalda.utils.jalali_date import get_today_shamsi
+
+        member = MemberService.get_member_by_id(self.member_id)
+        if not member:
+            QMessageBox.warning(self, "خطا", "اطلاعات ورزشکار یافت نشد.")
+            return
+
+        rec = MemberService.get_health_record(self.member_id)
+        docs = MemberService.get_medical_documents(self.member_id)
+
+        default_filename = f"پرونده_{member.full_name}.zip"
+
+        save_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "ذخیره پکیج مدارک و نظرات پزشکی",
+            default_filename,
+            "ZIP Files (*.zip)"
+        )
+        if not save_path:
+            return
+
+        try:
+            with zipfile.ZipFile(save_path, 'w', compression=zipfile.ZIP_DEFLATED) as zip_file:
+                lines = []
+                lines.append("=" * 60)
+                lines.append("پرونده پزشکی، سوابق آسیب‌دیدگی و نظرات مربی باشگاه بدنسازی یلدا")
+                lines.append("=" * 60)
+                lines.append(f"نام و نام خانوادگی ورزشکار: {member.full_name}")
+                lines.append(f"کد عضویت: {member.id}")
+                lines.append(f"شماره تماس: {member.phone or '-'}")
+                lines.append(f"تاریخ گزارش: {get_today_shamsi()}")
+                lines.append("-" * 60)
+                lines.append("◄ وضعیت بیماری‌های زمینه‌ای:")
+                lines.append(f"  • فشار خون بالا: {'بله' if rec and rec.has_hypertension else 'خیر'}")
+                lines.append(f"  • دیابت: {'بله' if rec and rec.has_diabetes else 'خیر'}")
+                lines.append(f"  • بیماری قلبی-عروقی: {'بله' if rec and rec.has_heart_issue else 'خیر'}")
+                lines.append(f"  • سایر بیماری‌ها، حساسیت‌ها یا داروهای خاص: {(rec.other_medical if rec and rec.other_medical else 'موردی ثبت نشده است')}")
+                lines.append("")
+                lines.append("◄ سوابق آسیب‌دیدگی‌های مفصلی و اسکلتی-عضلانی:")
+                lines.append(f"  • آسیب زانو: {(rec.knee_injury if rec and rec.knee_injury else 'موردی ثبت نشده است')}")
+                lines.append(f"  • دیسک، ستون فقرات و کمر: {(rec.back_injury if rec and rec.back_injury else 'موردی ثبت نشده است')}")
+                lines.append(f"  • آسیب شانه و کتف: {(rec.shoulder_injury if rec and rec.shoulder_injury else 'موردی ثبت نشده است')}")
+                lines.append(f"  • آسیب مچ و دست: {(rec.wrist_injury if rec and rec.wrist_injury else 'موردی ثبت نشده است')}")
+                lines.append("")
+                lines.append("◄ محدودیت‌های صریح حرکتی و هشدارهای مربی:")
+                lines.append(f"  {(rec.exercise_limitations if rec and rec.exercise_limitations else 'محدودیت خاصی توسط مربی ثبت نشده است')}")
+                lines.append("")
+                lines.append("=" * 60)
+                lines.append(f"◄ لیست اسناد، آزمایش‌ها و مدارک پزشکی پیوست شده (تعداد کل مدارک: {len(docs)}):")
+                lines.append("=" * 60)
+
+                doc_idx = 1
+                for doc in docs:
+                    lines.append(f"{doc_idx}. عنوان مدرک: {doc.title}")
+                    lines.append(f"   تاریخ ثبت: {doc.created_at_shamsi or '-'}")
+                    lines.append(f"   تعداد صفحات / عکس‌ها: {len(doc.file_paths_list)}")
+                    lines.append(f"   توضیحات و یادداشت مربی: {doc.notes or 'بدون توضیح'}")
+                    lines.append("")
+
+                    for page_idx, fpath in enumerate(doc.file_paths_list, start=1):
+                        if fpath and os.path.exists(fpath):
+                            ext = os.path.splitext(fpath)[1]
+                            clean_title = re.sub(r'[\\/*?:"<>|]', "", doc.title).strip().replace(" ", "_")
+                            zip_internal_name = f"مدارک_پزشکی/{doc_idx}_{clean_title}_صفحه_{page_idx}{ext}"
+                            zip_file.write(fpath, arcname=zip_internal_name)
+                    doc_idx += 1
+
+                lines.append("-" * 60)
+                lines.append("باشگاه بدنسازی یلدا | مازندران، قائمشهر، خیابان کوچکسرا، نبش شقایق ۳")
+                lines.append("=" * 60)
+
+                txt_content = "\n".join(lines)
+                zip_file.writestr("نظرات_و_سوابق_پزشکی_مربی.txt", txt_content.encode("utf-8-sig"))
+
+            QMessageBox.information(
+                self,
+                "موفقیت",
+                f"پکیج جامع پرونده و مدارک پزشکی «{member.full_name}» با موفقیت در فایل زیپ زیر ایجاد شد:\n\n{save_path}"
+            )
+        except Exception as e:
+            QMessageBox.critical(self, "خطا در فشرده‌سازی", f"خطایی رخ داد: {str(e)}")

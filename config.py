@@ -90,7 +90,8 @@ DATABASE_URI = f"sqlite:///{DB_PATH}"
 # App Details
 APP_NAME = "یلدا"
 APP_ENGLISH_NAME = "Yalda Gym"
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.2.0"
+GYM_ADDRESS = "باشگاه بدنسازی یلدا | مازندران، قائمشهر، خیابان کوچکسرا، نبش شقایق ۳"
 
 
 

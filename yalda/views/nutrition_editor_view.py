@@ -1,15 +1,18 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QGroupBox, QDoubleSpinBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from yalda.services.nutrition_service import NutritionService
 from yalda.services.member_service import MemberService
 
 class NutritionEditorView(QWidget):
+    manage_templates_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.meal_tables = []
+        self.editing_plan_id = None
         self.init_ui()
 
     def showEvent(self, event):
@@ -17,23 +20,32 @@ class NutritionEditorView(QWidget):
         self.load_members_dropdown()
         self.load_template_dropdown()
 
-
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        # Header Title & Food Bank Button
+        # Header Title & Action Buttons
         header = QHBoxLayout()
-        title = QLabel("🥗 برنامه‌ریزی تغذیه و رژیم ایرانی")
-        title.setObjectName("h1")
+        self.lbl_header_title = QLabel("🥗 برنامه‌ریزی تغذیه و رژیم ایرانی")
+        self.lbl_header_title.setObjectName("h1")
 
-        btn_food_bank = QPushButton("🥗 بانک و ویرایش مواد غذایی")
+        btn_new_plan = QPushButton("➕ رژیم جدید")
+        btn_new_plan.setObjectName("secondary_button")
+        btn_new_plan.clicked.connect(self.reset_form)
+
+        btn_manage_tpl = QPushButton("📋 مدیریت و مشاهده الگوها")
+        btn_manage_tpl.setObjectName("secondary_button")
+        btn_manage_tpl.clicked.connect(self.manage_templates_requested.emit)
+
+        btn_food_bank = QPushButton("🥗 بانک مواد غذایی")
         btn_food_bank.setObjectName("secondary_button")
         btn_food_bank.clicked.connect(self.open_food_bank)
 
-        header.addWidget(title)
+        header.addWidget(self.lbl_header_title)
         header.addStretch()
+        header.addWidget(btn_new_plan)
+        header.addWidget(btn_manage_tpl)
         header.addWidget(btn_food_bank)
         layout.addLayout(header)
 
@@ -440,18 +452,25 @@ class NutritionEditorView(QWidget):
 
     def save_plan(self, auto_reset: bool = True):
         plan_info, meals_data = self.get_plan_data()
-        plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
-        # ابتدا ریست کامل فرم (قبل از بارگذاری دراپ‌داون تا on_template_selected مقادیر را برنگرداند)
-        if auto_reset:
-            self._do_reset_fields()
-        # سپس بارگذاری لیست الگوها با blockSignals کامل
-        self.combo_templates.blockSignals(True)
-        self.load_template_dropdown()
-        self.combo_templates.blockSignals(False)
-        # پاکسازی جدول وعده‌ها
-        if auto_reset:
-            self.setup_meal_tabs()
-        QMessageBox.information(self, "موفقیت", "الگوی برنامه غذایی با موفقیت در بانک ذخیره شد.")
+        if self.editing_plan_id:
+            plan = NutritionService.update_nutrition_plan(self.editing_plan_id, plan_info, meals_data)
+            if auto_reset:
+                self.reset_form()
+            else:
+                self.combo_templates.blockSignals(True)
+                self.load_template_dropdown()
+                self.combo_templates.blockSignals(False)
+            QMessageBox.information(self, "موفقیت", f"الگوی برنامه غذایی «{plan.title}» با موفقیت به‌روزرسانی شد.")
+        else:
+            plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
+            if auto_reset:
+                self._do_reset_fields()
+            self.combo_templates.blockSignals(True)
+            self.load_template_dropdown()
+            self.combo_templates.blockSignals(False)
+            if auto_reset:
+                self.setup_meal_tabs()
+            QMessageBox.information(self, "موفقیت", "الگوی برنامه غذایی با موفقیت در بانک ذخیره شد.")
         return plan
 
     def _do_reset_fields(self):
@@ -474,12 +493,34 @@ class NutritionEditorView(QWidget):
             w.blockSignals(False)
 
     def reset_form(self):
+        self.editing_plan_id = None
+        self.lbl_header_title.setText("🥗 برنامه‌ریزی تغذیه و رژیم ایرانی")
         self._do_reset_fields()
         self.combo_templates.blockSignals(True)
         if self.combo_templates.count() > 0:
             self.combo_templates.setCurrentIndex(0)
         self.combo_templates.blockSignals(False)
         self.setup_meal_tabs()
+
+    def load_plan_for_edit(self, plan_id: int):
+        self.editing_plan_id = plan_id
+        idx_tpl = self.combo_templates.findData(plan_id)
+        if idx_tpl >= 0:
+            self.combo_templates.setCurrentIndex(idx_tpl)
+        else:
+            plan = NutritionService.get_plan_by_id(plan_id)
+            if plan:
+                self.txt_title.setText(plan.title or "")
+                idx_g = self.combo_goal.findData(plan.goal)
+                if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
+                self.spin_cal.setValue(plan.target_calories or 0.0)
+                self.spin_protein.setValue(plan.target_protein or 0.0)
+                self.spin_carbs.setValue(plan.target_carbs or 0.0)
+                self.spin_fat.setValue(plan.target_fat or 0.0)
+
+        plan = NutritionService.get_plan_by_id(plan_id)
+        if plan:
+            self.lbl_header_title.setText(f"✏️ ویرایش الگوی غذایی: {plan.title}")
 
     def assign_plan(self):
         member_id = self.combo_member.currentData()

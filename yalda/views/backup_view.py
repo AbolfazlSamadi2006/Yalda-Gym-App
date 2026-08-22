@@ -1,14 +1,14 @@
 import os
 from pathlib import Path
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog, QMessageBox, QGroupBox, QGridLayout, QComboBox, QFrame
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog, QMessageBox, QGroupBox, QGridLayout, QComboBox, QFrame, QDialog
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 import config
 from yalda.services.backup_service import BackupService
 from yalda.auth.authentication import (
-    CurrentUser, update_trainer_profile, is_app_license_active, set_app_license_active, register_trainer
+    CurrentUser, update_trainer_profile, is_app_license_active, set_app_license_active, register_trainer, delete_trainer_account, get_all_trainers
 )
 from yalda.views.components.jalali_calendar_widget import JalaliDatePicker
 from yalda.utils.image_utils import get_circular_pixmap
@@ -16,6 +16,8 @@ from yalda.utils.image_utils import get_circular_pixmap
 
 
 class BackupView(QWidget):
+    account_deleted_signal = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -155,6 +157,10 @@ class BackupView(QWidget):
 
         layout_prof.addLayout(grid_prof)
 
+        # Action Buttons for Profile
+        row_prof_actions = QHBoxLayout()
+        row_prof_actions.setSpacing(12)
+
         btn_save_prof = QPushButton("💾 ذخیره مشخصات مربی")
         btn_save_prof.setFixedHeight(40)
         btn_save_prof.setFixedWidth(200)
@@ -164,9 +170,53 @@ class BackupView(QWidget):
             QPushButton:hover { background-color: #A00000; }
         """)
         btn_save_prof.clicked.connect(self.save_trainer_profile)
-        layout_prof.addWidget(btn_save_prof, alignment=Qt.AlignmentFlag.AlignLeft)
+        row_prof_actions.addWidget(btn_save_prof)
+
+        btn_del_account = QPushButton("🗑️ حذف حساب مربی و کلیه شاگردان")
+        btn_del_account.setFixedHeight(40)
+        btn_del_account.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_del_account.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #EF4444;
+                border: 1px solid #DC2626;
+                border-radius: 6px;
+                font-weight: bold;
+                padding: 0 16px;
+            }
+            QPushButton:hover {
+                background-color: #DC2626;
+                color: #FFFFFF;
+            }
+        """)
+        btn_del_account.clicked.connect(self.delete_current_trainer_account)
+        row_prof_actions.addWidget(btn_del_account)
+        row_prof_actions.addStretch()
+
+        layout_prof.addLayout(row_prof_actions)
 
         layout.addWidget(profile_box)
+
+        # ----------------------------------------------------
+        # BOX 2: Admin Trainers Management & Account Deletion (Admin Only)
+        # ----------------------------------------------------
+        self.box_admin_trainers = QGroupBox("👥 مدیریت مربیان و حذف حساب‌ها (مخصوص مدیر ارشد سیستم)")
+        layout_adm = QVBoxLayout(self.box_admin_trainers)
+        layout_adm.setSpacing(10)
+
+        lbl_adm_desc = QLabel("به عنوان مدیر ارشد سیستم، می‌توانید حساب هر مربی را به همراه کلیه شاگردان، سوابق و برنامه‌هایش به صورت یکجا حذف کنید.")
+        lbl_adm_desc.setStyleSheet("color: #AAAAAA; font-size: 13px;")
+        layout_adm.addWidget(lbl_adm_desc)
+
+        self.table_trainers = QTableWidget()
+        self.table_trainers.setColumnCount(6)
+        self.table_trainers.setHorizontalHeaderLabels(["ردیف", "نام و نام خانوادگی مربی", "نام کاربری", "شماره تماس", "تعداد شاگردان", "عملیات"])
+        self.table_trainers.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table_trainers.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_trainers.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        layout_adm.addWidget(self.table_trainers)
+
+        layout.addWidget(self.box_admin_trainers)
 
         # ----------------------------------------------------
         # BOX 3: Backup & Restore Table
@@ -192,6 +242,24 @@ class BackupView(QWidget):
         lbl_table = QLabel("📋 لیست آرشیوهای پشتیبان موجود")
         lbl_table.setObjectName("h2")
 
+        btn_restore_cloud = QPushButton("☁️ بازگردانی از سرور ابری...")
+        btn_restore_cloud.setStyleSheet("""
+            QPushButton {
+                background-color: #1E3A8A;
+                color: #93C5FD;
+                border: 1px solid #2563EB;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+                color: #FFFFFF;
+            }
+        """)
+        btn_restore_cloud.clicked.connect(self.open_cloud_restore_dialog)
+
         btn_restore_file = QPushButton("📁 بازگردانی از فایل خارجی...")
         btn_restore_file.setObjectName("secondary_button")
         btn_restore_file.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -199,13 +267,22 @@ class BackupView(QWidget):
 
         row_table_header.addWidget(lbl_table)
         row_table_header.addStretch()
+        row_table_header.addWidget(btn_restore_cloud)
         row_table_header.addWidget(btn_restore_file)
         layout.addLayout(row_table_header)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["نام فایل پشتیبان", "تاریخ ثبت (شمسی)", "حجم (MB)", "عملیات بازگردانی"])
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(["ردیف", "نام فایل پشتیبان", "تاریخ و زمان ثبت (شمسی)", "حجم فایل", "عملیات"])
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.setColumnWidth(0, 45)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(2, 175)
+        self.table.setColumnWidth(3, 90)
+        self.table.setColumnWidth(4, 180)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(44)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -265,8 +342,71 @@ class BackupView(QWidget):
             self.selected_photo_path = u.photo_path
             self.display_photo(u.photo_path)
 
-        # 2. Backups
+        # 2. Admin Trainers Box visibility
+        if CurrentUser.is_admin():
+            self.box_admin_trainers.setVisible(True)
+            self.load_trainers_for_admin()
+        else:
+            self.box_admin_trainers.setVisible(False)
+
+        # 3. Backups
         self.load_backups()
+
+    def load_trainers_for_admin(self):
+        trainers = get_all_trainers()
+        self.table_trainers.setRowCount(len(trainers))
+
+        for row, t in enumerate(trainers):
+            self.table_trainers.setItem(row, 0, QTableWidgetItem(str(row + 1)))
+            self.table_trainers.setItem(row, 1, QTableWidgetItem(t["full_name"]))
+            self.table_trainers.setItem(row, 2, QTableWidgetItem(t["username"]))
+            self.table_trainers.setItem(row, 3, QTableWidgetItem(t["phone"]))
+            self.table_trainers.setItem(row, 4, QTableWidgetItem(f"{t['member_count']} نفر"))
+
+            btn_del = QPushButton("🗑️ حذف مربی و شاگردان")
+            btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_del.setStyleSheet("""
+                QPushButton {
+                    background-color: transparent;
+                    color: #EF4444;
+                    border: 1px solid #DC2626;
+                    border-radius: 4px;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                }
+                QPushButton:hover {
+                    background-color: #DC2626;
+                    color: #FFFFFF;
+                }
+            """)
+            btn_del.clicked.connect(lambda _, t_id=t["id"], t_name=t["full_name"], m_cnt=t["member_count"]: self.admin_delete_trainer(t_id, t_name, m_cnt))
+            self.table_trainers.setCellWidget(row, 5, btn_del)
+
+    def admin_delete_trainer(self, trainer_id: int, trainer_name: str, member_count: int):
+        reply1 = QMessageBox.warning(
+            self,
+            "⚠️ تایید حذف مربی توسط مدیر ارشد",
+            f"آیا مطمئن هستید که می‌خواهید مربی «{trainer_name}» را به همراه کلیه {member_count} شاگرد، سوابق و برنامه‌های ایشان حذف کنید؟\n\nاین عملیات غیرقابل بازگشت است!",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply1 != QMessageBox.StandardButton.Yes:
+            return
+
+        reply2 = QMessageBox.critical(
+            self,
+            "🔴 تایید نهایی حذف",
+            f"تمامی اطلاعات مربی «{trainer_name}» از دیتابیس و فضای ابری پاک خواهد شد. آیا تایید می‌کنید؟",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply2 == QMessageBox.StandardButton.Yes:
+            try:
+                delete_trainer_account(trainer_id)
+                QMessageBox.information(self, "موفقیت", f"حساب مربی «{trainer_name}» و کلیه شاگردان ایشان با موفقیت حذف شدند.")
+                self.load_all_data()
+            except Exception as e:
+                QMessageBox.critical(self, "خطا", f"خطا در حذف مربی: {str(e)}")
 
     def save_trainer_profile(self):
         u = CurrentUser.get()
@@ -309,15 +449,56 @@ class BackupView(QWidget):
         self.table.setRowCount(len(backups))
 
         for row, b in enumerate(backups):
-            self.table.setItem(row, 0, QTableWidgetItem(b.file_name))
-            self.table.setItem(row, 1, QTableWidgetItem(b.backup_date_shamsi))
-            self.table.setItem(row, 2, QTableWidgetItem(f"{b.backup_size_mb} MB"))
+            self.table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
+            self.table.setItem(row, 1, QTableWidgetItem(b.file_name))
+            self.table.setItem(row, 2, QTableWidgetItem(b.backup_date_shamsi))
+            self.table.setItem(row, 3, QTableWidgetItem(f"{b.backup_size_mb} MB"))
+
+            for c in (0, 2, 3):
+                item = self.table.item(row, c)
+                if item:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            action_w = QWidget()
+            action_w.setStyleSheet("background: transparent;")
+            action_l = QHBoxLayout(action_w)
+            action_l.setContentsMargins(4, 4, 4, 4)
+            action_l.setSpacing(6)
+            action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             btn_restore = QPushButton("🔄 بازگردانی")
-            btn_restore.setObjectName("danger_button")
             btn_restore.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_restore.setFixedHeight(30)
+            btn_restore.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_restore.clicked.connect(lambda _, fp=b.file_path: self.restore_backup(fp))
-            self.table.setCellWidget(row, 3, btn_restore)
+
+            btn_delete = QPushButton("🗑️ حذف")
+            btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_delete.setFixedHeight(30)
+            btn_delete.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
+            btn_delete.clicked.connect(lambda _, b_id=b.id, fn=b.file_name: self.delete_backup_item(b_id, fn))
+
+            action_l.addWidget(btn_restore)
+            action_l.addWidget(btn_delete)
+            self.table.setCellWidget(row, 4, action_w)
+
+    def delete_backup_item(self, backup_id: int, file_name: str):
+        reply = QMessageBox.warning(
+            self,
+            "⚠️ تایید حذف نسخه پشتیبان",
+            f"آیا مطمئن هستید که می‌خواهید فایل پشتیبان «{file_name}» را حذف کنید؟\nاین فایل به طور کامل از روی حافظه سیستم پاک خواهد شد.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            try:
+                if BackupService.delete_backup(backup_id):
+                    QMessageBox.information(self, "موفقیت", f"نسخه پشتیبان «{file_name}» با موفقیت حذف گردید.")
+                    self.load_backups()
+                else:
+                    QMessageBox.warning(self, "خطا", "یافتن یا حذف فایل پشتیبان با خطا مواجه شد.")
+            except Exception as e:
+                QMessageBox.critical(self, "خطا", f"خطا در حذف فایل پشتیبان: {str(e)}")
 
     def create_backup(self):
         try:
@@ -326,6 +507,14 @@ class BackupView(QWidget):
             QMessageBox.information(self, "موفقیت", f"فایل پشتیبان با موفقیت ایجاد شد:\n{filepath}")
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"خطا در ایجاد پشتیبان: {str(e)}")
+
+    def open_cloud_restore_dialog(self):
+        from yalda.views.cloud_restore_dialog import CloudRestoreDialog
+        u = CurrentUser.get()
+        init_phone = u.phone if u else ""
+        dlg = CloudRestoreDialog(self, initial_phone=init_phone)
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self.load_all_data()
 
     def restore_from_file(self):
         filepath, _ = QFileDialog.getOpenFileName(self, "انتخاب فایل پشتیبان ZIP", "", "Backup Files (*.zip *.yalda_bak)")
@@ -345,3 +534,39 @@ class BackupView(QWidget):
                 QMessageBox.information(self, "موفقیت", "اطلاعات دیتابیس و تصاویر با موفقیت بازگردانی شد. لطفا برنامه را یکبار باز و بست کنید.")
             except Exception as e:
                 QMessageBox.critical(self, "خطا", f"خطا در بازگردانی: {str(e)}")
+
+    def delete_current_trainer_account(self):
+        u = CurrentUser.get()
+        if not u:
+            return
+
+        if u.username == "admin" or u.role == "admin":
+            QMessageBox.warning(self, "خطا", "حساب کاربری مدیر ارشد سیستم قابل حذف نمی‌باشد.")
+            return
+
+        reply1 = QMessageBox.warning(
+            self,
+            "⚠️ هشدار حذف کامل حساب کاربری مربی",
+            f"آیا مطمئن هستید که می‌خواهید حساب کاربری «{u.display_name}» را به همراه کلیه شاگردان، سوابق و برنامه‌ها حذف کنید؟\n\nاین عملیات غیرقابل بازگشت است!",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply1 != QMessageBox.StandardButton.Yes:
+            return
+
+        reply2 = QMessageBox.critical(
+            self,
+            "🔴 تایید نهایی حذف",
+            "کلیه اطلاعات این مربی از حافظه سیستم و سرور ابری پاک خواهد شد. آیا تایید نهایی را صادر می‌کنید؟",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No
+        )
+        if reply2 == QMessageBox.StandardButton.Yes:
+            try:
+                delete_trainer_account(u.id)
+                QMessageBox.information(self, "موفقیت", "حساب کاربری مربی و تمامی اطلاعات شاگردان با موفقیت حذف گردید.")
+                CurrentUser.logout()
+                self.account_deleted_signal.emit()
+            except Exception as e:
+                QMessageBox.critical(self, "خطا", f"خطا در حذف حساب کاربری: {str(e)}")
+

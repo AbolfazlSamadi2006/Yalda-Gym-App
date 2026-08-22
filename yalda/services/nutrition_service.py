@@ -168,6 +168,18 @@ class NutritionService:
             session.close()
 
     @staticmethod
+    def get_member_assignments(member_id: int):
+        session = get_session()
+        try:
+            return session.query(NutritionAssignment)\
+                .options(joinedload(NutritionAssignment.plan).joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food))\
+                .filter(NutritionAssignment.member_id == member_id)\
+                .order_by(NutritionAssignment.id.desc())\
+                .all()
+        finally:
+            session.close()
+
+    @staticmethod
     def delete_food(food_id: int):
         session = get_session()
         try:
@@ -246,6 +258,25 @@ class NutritionService:
 
             session.commit()
             return plan
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
+
+    @staticmethod
+    def delete_nutrition_plan(plan_id: int):
+        session = get_session()
+        try:
+            plan = session.query(NutritionPlan).filter(NutritionPlan.id == plan_id).first()
+            if plan:
+                # Delete any assignments first
+                session.query(NutritionAssignment).filter(NutritionAssignment.plan_id == plan.id).delete()
+                # Delete plan (SQLAlchemy cascade deletes meals and meal items)
+                session.delete(plan)
+                session.commit()
+                return True
+            return False
         except Exception as e:
             session.rollback()
             raise e

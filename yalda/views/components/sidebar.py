@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (
     QFrame, QVBoxLayout, QPushButton, QLabel, QHBoxLayout, QSpacerItem, QSizePolicy
 )
 from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtGui import QPixmap
 import config
 
 class Sidebar(QFrame):
@@ -49,8 +50,14 @@ class Sidebar(QFrame):
 
         # Brand Header
         header = QHBoxLayout()
-        logo_lbl = QLabel("🔥")
-        logo_lbl.setStyleSheet("font-size: 24px;")
+        logo_lbl = QLabel()
+        icon_path = config.BASE_DIR / "resources" / "images" / "app_icon.png"
+        if icon_path.exists():
+            pix = QPixmap(str(icon_path)).scaled(36, 36, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            logo_lbl.setPixmap(pix)
+        else:
+            logo_lbl.setText("🔥")
+            logo_lbl.setStyleSheet("font-size: 24px;")
         
         title_lbl = QLabel(config.APP_NAME)
         title_lbl.setStyleSheet("color: #8B0000; font-size: 20px; font-weight: bold;")
@@ -70,6 +77,7 @@ class Sidebar(QFrame):
             ("members", "👥  اعضای باشگاه"),
             ("workouts", "🏋️  برنامه‌ریزی تمرینی"),
             ("nutrition", "🥗  برنامه‌ریزی تغذیه"),
+            ("templates", "📋  مدیریت الگوها"),
             ("exercises", "🏃  بانک حرکات ورزشی"),
             ("foods", "🍎  بانک مواد غذایی"),
             ("developer", "👨‍💻  درباره برنامه‌نویس"),

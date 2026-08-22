@@ -5,17 +5,18 @@ from PyQt6.QtCore import Qt, QUrl
 
 class MediaViewerDialog(QDialog):
     """
-    Dialog for displaying exercise media (images and videos).
+    Dialog for displaying exercise media (images, local videos, and online video URLs).
     """
-    def __init__(self, title: str, media_path: str, media_type: str = "image", parent=None):
+    def __init__(self, title: str, media_path: str = None, media_type: str = "image", video_url: str = None, parent=None):
         super().__init__(parent)
         self.title_str = title
         self.media_path = media_path
         self.media_type = media_type or "image"
+        self.video_url = video_url
 
-        self.setWindowTitle(f"رسانه آموزشی: {title}")
+        self.setWindowTitle(f"رسانه و ویدیو آموزشی: {title}")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setMinimumSize(550, 480)
+        self.setMinimumSize(560, 480)
         self.init_ui()
 
     def init_ui(self):
@@ -23,18 +24,14 @@ class MediaViewerDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        lbl_header = QLabel(f"🎬 نمایش فایل آموزشی: {self.title_str}")
+        lbl_header = QLabel(f"🎬 رسانه و راهنمای اجرای حرکت: {self.title_str}")
         lbl_header.setObjectName("h2")
         lbl_header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(lbl_header)
 
-        if not self.media_path or not os.path.exists(self.media_path):
-            lbl_no_file = QLabel("❌ هیچ فایل رسانه‌ای (عکس یا ویدیو) برای این حرکت ثبت نشده است یا فایل در مسیر مربوطه یافت نشد.")
-            lbl_no_file.setStyleSheet("color: #FF6B6B; font-size: 14px; padding: 20px;")
-            lbl_no_file.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl_no_file.setWordWrap(True)
-            layout.addWidget(lbl_no_file)
-        else:
+        # 1. Local Media Section
+        has_local_media = self.media_path and os.path.exists(self.media_path)
+        if has_local_media:
             ext = os.path.splitext(self.media_path)[1].lower()
             is_video = ext in ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.webm'] or self.media_type == 'video'
 
@@ -44,30 +41,24 @@ class MediaViewerDialog(QDialog):
                 lbl_image.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 pixmap = QPixmap(self.media_path)
                 if not pixmap.isNull():
-                    scaled_pixmap = pixmap.scaled(500, 360, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                    scaled_pixmap = pixmap.scaled(500, 320, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
                     lbl_image.setPixmap(scaled_pixmap)
                     layout.addWidget(lbl_image)
-                else:
-                    lbl_err = QLabel("❌ امکان لود تصویر وجود ندارد (فرمت نامعتبر یا فایل آسیب‌دیده).")
-                    lbl_err.setStyleSheet("color: #FF6B6B; font-size: 14px;")
-                    lbl_err.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                    layout.addWidget(lbl_err)
             else:
-                # Video Player Option
-                lbl_video_info = QLabel("🎥 این حرکت دارای ویدیو آموزشی است.\nجهت پخش ویدیو با پخش‌کننده ویدیویی سیستم روی دکمه زیر کلیک کنید:")
-                lbl_video_info.setStyleSheet("font-size: 14px; color: #FFFFFF; line-height: 1.6;")
-                lbl_video_info.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                # Local Video Player Option
+                lbl_video_info = QLabel("🎥 فایل ویدیوی آفلاین:")
+                lbl_video_info.setStyleSheet("font-size: 13px; color: #FFFFFF;")
                 layout.addWidget(lbl_video_info)
 
-                btn_play = QPushButton("▶️ پخش ویدیو آموزشی حرکت")
-                btn_play.setFixedHeight(45)
+                btn_play = QPushButton("▶️ پخش فایل ویدیویی محلی")
+                btn_play.setFixedHeight(40)
                 btn_play.setStyleSheet("""
                     QPushButton {
                         background-color: #8B0000;
                         color: #FFFFFF;
                         font-weight: bold;
-                        font-size: 15px;
-                        border-radius: 8px;
+                        font-size: 14px;
+                        border-radius: 6px;
                     }
                     QPushButton:hover {
                         background-color: #A00000;
@@ -75,6 +66,44 @@ class MediaViewerDialog(QDialog):
                 """)
                 btn_play.clicked.connect(self.play_video)
                 layout.addWidget(btn_play)
+
+        # 2. Online Video URL Section
+        if self.video_url and self.video_url.strip():
+            url_box = QVBoxLayout()
+            lbl_url_title = QLabel("🌐 لینک آموزش ویدیویی اینترنتی (گوگل / آپارات / یوتیوب):")
+            lbl_url_title.setStyleSheet("font-weight: bold; color: #60A5FA; font-size: 13px;")
+            
+            lbl_url_text = QLabel(f"🔗 {self.video_url.strip()}")
+            lbl_url_text.setStyleSheet("color: #E2E8F0; font-size: 12px; background: #1E293B; padding: 8px; border-radius: 6px;")
+            lbl_url_text.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            lbl_url_text.setWordWrap(True)
+
+            btn_open_url = QPushButton("🌐 باز کردن لینک ویدیو در مرورگر")
+            btn_open_url.setFixedHeight(40)
+            btn_open_url.setStyleSheet("""
+                QPushButton {
+                    background-color: #2563EB;
+                    color: #FFFFFF;
+                    font-weight: bold;
+                    font-size: 14px;
+                    border-radius: 6px;
+                }
+                QPushButton:hover {
+                    background-color: #1D4ED8;
+                }
+            """)
+            btn_open_url.clicked.connect(self.open_video_url)
+
+            url_box.addWidget(lbl_url_title)
+            url_box.addWidget(lbl_url_text)
+            url_box.addWidget(btn_open_url)
+            layout.addLayout(url_box)
+
+        if not has_local_media and (not self.video_url or not self.video_url.strip()):
+            lbl_no_file = QLabel("❌ هیچ فایل یا لینک اینترنتی برای آموزش این حرکت ثبت نشده است.")
+            lbl_no_file.setStyleSheet("color: #888888; font-size: 14px; padding: 25px;")
+            lbl_no_file.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(lbl_no_file)
 
         btn_close = QPushButton("بستن")
         btn_close.setObjectName("secondary_button")
@@ -88,3 +117,12 @@ class MediaViewerDialog(QDialog):
             QDesktopServices.openUrl(url)
         else:
             QMessageBox.warning(self, "خطا", "فایل ویدیو یافت نشد.")
+
+    def open_video_url(self):
+        if self.video_url and self.video_url.strip():
+            url_str = self.video_url.strip()
+            if not (url_str.startswith("http://") or url_str.startswith("https://")):
+                url_str = "https://" + url_str
+            QDesktopServices.openUrl(QUrl(url_str))
+        else:
+            QMessageBox.warning(self, "خطا", "لینک ویدیو موجود نیست.")

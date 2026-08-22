@@ -247,6 +247,27 @@ class TrainerRegisterDialog(QDialog):
         scroll.setWidget(scroll_widget)
         card_layout.addWidget(scroll)
 
+        # Cloud Restore Helper Button
+        btn_cloud_help = QPushButton("☁️ اگر در سیستم دیگری حساب دارید: بازیابی با شماره موبایل")
+        btn_cloud_help.setFixedHeight(34)
+        btn_cloud_help.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_cloud_help.setStyleSheet("""
+            QPushButton {
+                background-color: #1E3A8A;
+                color: #93C5FD;
+                border: 1px solid #2563EB;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #2563EB;
+                color: #FFFFFF;
+            }
+        """)
+        btn_cloud_help.clicked.connect(self.restore_from_cloud_dialog)
+        card_layout.addWidget(btn_cloud_help)
+
         # Submit Register Button
         btn_submit = QPushButton("🚀 تکمیل و ثبت‌نام مربی")
         btn_submit.setFixedHeight(44)
@@ -261,6 +282,13 @@ class TrainerRegisterDialog(QDialog):
         card_layout.addWidget(btn_submit)
 
         layout.addWidget(card)
+
+    def restore_from_cloud_dialog(self):
+        from yalda.views.cloud_restore_dialog import CloudRestoreDialog
+        dlg = CloudRestoreDialog(self, initial_phone=self.txt_phone.text().strip())
+        if dlg.exec() == QDialog.DialogCode.Accepted:
+            self.registration_success.emit()
+            self.accept()
 
     def toggle_eye(self, field: QLineEdit, btn: QPushButton):
         if field.echoMode() == QLineEdit.EchoMode.Password:
@@ -294,7 +322,6 @@ class TrainerRegisterDialog(QDialog):
             self.lbl_photo_preview.setPixmap(circ_pixmap)
             self.lbl_photo_preview.setText("")
             self.lbl_photo_preview.setStyleSheet("border: none; background: transparent;")
-
 
     def do_register(self):
         try:

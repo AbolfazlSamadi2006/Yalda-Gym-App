@@ -32,6 +32,12 @@ def check_and_migrate_db():
         with engine.connect() as conn:
             if "height_cm" not in pa_columns:
                 conn.execute(text("ALTER TABLE physical_assessments ADD COLUMN height_cm FLOAT;"))
+            if "neck_circ" not in pa_columns:
+                conn.execute(text("ALTER TABLE physical_assessments ADD COLUMN neck_circ FLOAT;"))
+            if "abdomen_circ" not in pa_columns:
+                conn.execute(text("ALTER TABLE physical_assessments ADD COLUMN abdomen_circ FLOAT;"))
+            if "hip_circ" not in pa_columns:
+                conn.execute(text("ALTER TABLE physical_assessments ADD COLUMN hip_circ FLOAT;"))
             conn.commit()
 
     if "users" in inspector.get_table_names():
@@ -49,6 +55,13 @@ def check_and_migrate_db():
                 conn.execute(text("ALTER TABLE users ADD COLUMN photo_path VARCHAR(255);"))
             if "recovery_code" not in u_columns:
                 conn.execute(text("ALTER TABLE users ADD COLUMN recovery_code VARCHAR(100);"))
+            conn.commit()
+
+    if "exercises" in inspector.get_table_names():
+        ex_columns = [c["name"] for c in inspector.get_columns("exercises")]
+        with engine.connect() as conn:
+            if "video_url" not in ex_columns:
+                conn.execute(text("ALTER TABLE exercises ADD COLUMN video_url VARCHAR(500);"))
             conn.commit()
 
 

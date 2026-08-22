@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QIcon
 from PyQt6.QtCore import Qt, QTimer
 import config
 from yalda.database.connection import init_db
@@ -8,8 +9,21 @@ from yalda.views.login_view import LoginView
 
 class YaldaApplication:
     def __init__(self):
+        # Set Windows AppUserModelID so Windows Taskbar pins and displays the custom logo
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("yalda.gym.management.desktop.v2")
+        except Exception:
+            pass
+
         self.app = QApplication(sys.argv)
         self.app.setApplicationName(config.APP_NAME)
+
+        # Set Global Application & Taskbar Icon
+        icon_path = config.BASE_DIR / "resources" / "images" / "app_icon.png"
+        if icon_path.exists():
+            self.app.setWindowIcon(QIcon(str(icon_path)))
+
         # Check for Database presence (Portable mode check)
         db_file = config.DATA_DIR / "yalda.db"
         if not db_file.exists():
@@ -25,6 +39,8 @@ class YaldaApplication:
 
         # Windows setup
         self.login_view = LoginView()
+        if icon_path.exists():
+            self.login_view.setWindowIcon(QIcon(str(icon_path)))
         self.main_window = None
 
         self.login_view.login_success.connect(self.on_login_success)

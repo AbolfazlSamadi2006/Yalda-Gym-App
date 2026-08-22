@@ -1,4 +1,4 @@
-; NSIS Script for Yalda Gym Management Application
+﻿; NSIS Script for Yalda Gym Management Application
 Unicode True
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -23,29 +23,52 @@ SetCompressorDictSize 64
 !define MUI_ICON "resources\images\app_icon.ico"
 !define MUI_UNICON "resources\images\app_icon.ico"
 !define MUI_ABORTWARNING
-!define MUI_HEADERIMAGE
 
+; Welcome Page Texts in Persian
+!define MUI_WELCOMEPAGE_TITLE "به برنامه نصب ${PRODUCT_NAME} خوش آمدید"
+!define MUI_WELCOMEPAGE_TEXT "این برنامه شما را در مراحل نصب ${PRODUCT_NAME} نگارش ${PRODUCT_VERSION} راهنمایی می‌کند.$\r$\n$\r$\nپیشنهاد می‌شود قبل از شروع نصب، سایر برنامه‌ها را ببندید.$\r$\n$\r$\nبرای ادامه بر روی دکمه «بعدی» کلیک کنید."
 !insertmacro MUI_PAGE_WELCOME
+
+; Directory Page
+!define MUI_DIRECTORYPAGE_TEXT_TOP "برنامه در پوشه زیر نصب خواهد شد. برای نصب در پوشه‌ای دیگر، دکمه «مرور» را بزنید."
 !insertmacro MUI_PAGE_DIRECTORY
+
+; Install Files Page
 !insertmacro MUI_PAGE_INSTFILES
 
+; Finish Page
+!define MUI_FINISHPAGE_TITLE "اتمام موفقیت‌آمیز نصب ${PRODUCT_NAME}"
+!define MUI_FINISHPAGE_TEXT "نصب ${PRODUCT_NAME} با موفقیت در سیستم شما انجام شد.$\r$\n$\r$\nبرای اجرای برنامه، تیک گزینه زیر را بزنید و بر روی «پایان» کلیک کنید."
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${PRODUCT_EXE}"
 !define MUI_FINISHPAGE_RUN_TEXT "اجرای نرم‌افزار باشگاه یلدا"
 !insertmacro MUI_PAGE_FINISH
 
+; Uninstaller Pages
 !insertmacro MUI_UNPAGE_CONFIRM
 !insertmacro MUI_UNPAGE_INSTFILES
 !insertmacro MUI_UNPAGE_FINISH
 
+; Language Configuration: Farsi Default
 !insertmacro MUI_LANGUAGE "Farsi"
 !insertmacro MUI_LANGUAGE "English"
 
 VIProductVersion "2.2.0.0"
-VIAddVersionKey "ProductName" "${PRODUCT_NAME_EN}"
-VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
-VIAddVersionKey "FileDescription" "${PRODUCT_NAME}"
-VIAddVersionKey "FileVersion" "${PRODUCT_VERSION}"
-VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
+VIAddVersionKey /LANG=1065 "ProductName" "${PRODUCT_NAME}"
+VIAddVersionKey /LANG=1065 "CompanyName" "${PRODUCT_PUBLISHER}"
+VIAddVersionKey /LANG=1065 "FileDescription" "${PRODUCT_NAME}"
+VIAddVersionKey /LANG=1065 "FileVersion" "${PRODUCT_VERSION}"
+VIAddVersionKey /LANG=1065 "ProductVersion" "${PRODUCT_VERSION}"
+
+VIAddVersionKey /LANG=1033 "ProductName" "${PRODUCT_NAME_EN}"
+VIAddVersionKey /LANG=1033 "CompanyName" "${PRODUCT_PUBLISHER}"
+VIAddVersionKey /LANG=1033 "FileDescription" "${PRODUCT_NAME_EN} Management System"
+VIAddVersionKey /LANG=1033 "FileVersion" "${PRODUCT_VERSION}"
+VIAddVersionKey /LANG=1033 "ProductVersion" "${PRODUCT_VERSION}"
+
+Function .onInit
+    ; Force Farsi as primary UI language
+    StrCpy $LANGUAGE ${LANG_FARSI}
+FunctionEnd
 
 Section "MainSection" SEC01
     SetOutPath "$INSTDIR"

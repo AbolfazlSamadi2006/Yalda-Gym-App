@@ -65,7 +65,7 @@ class MemberListView(QWidget):
         self.table.verticalHeader().setDefaultSectionSize(52)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(6, QHeaderView.ResizeMode.Fixed)
-        self.table.setColumnWidth(6, 230)
+        self.table.setColumnWidth(6, 260)
 
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -177,14 +177,14 @@ class MemberListView(QWidget):
             btn_layout = QHBoxLayout(btn_container)
             btn_layout.setContentsMargins(4, 2, 4, 2)
             btn_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            btn_layout.setSpacing(6)
+            btn_layout.setSpacing(5)
 
             btn_view = QPushButton("📋 پرونده")
             btn_view.setFixedHeight(30)
             btn_view.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_view.setStyleSheet("""
                 QPushButton {
-                    background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
+                    background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 2px 8px; font-size: 11px;
                 }
                 QPushButton:hover { background-color: #1D4ED8; }
             """)
@@ -195,7 +195,7 @@ class MemberListView(QWidget):
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("""
                 QPushButton {
-                    background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
+                    background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 2px 8px; font-size: 11px;
                 }
                 QPushButton:hover { background-color: #B45309; }
             """)
@@ -207,7 +207,7 @@ class MemberListView(QWidget):
             btn_delete.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_delete.setStyleSheet("""
                 QPushButton {
-                    background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 4px 10px; font-size: 12px;
+                    background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 2px 8px; font-size: 11px;
                 }
                 QPushButton:hover { background-color: #B91C1C; }
             """)

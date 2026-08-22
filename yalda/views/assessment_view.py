@@ -456,7 +456,8 @@ class AssessmentView(QWidget):
         self.table.setColumnWidth(10, 55)  # لگن
         self.table.setColumnWidth(11, 55)  # ران
         self.table.setColumnWidth(12, 95)  # عکس‌ها
-        self.table.setColumnWidth(13, 125) # عملیات
+        header.setSectionResizeMode(13, QHeaderView.ResizeMode.Fixed)
+        self.table.setColumnWidth(13, 140) # عملیات
 
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(46)
@@ -598,18 +599,20 @@ class AssessmentView(QWidget):
             action_widget = QWidget()
             action_widget.setStyleSheet("background: transparent;")
             action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(4, 0, 4, 0)
+            action_layout.setContentsMargins(4, 2, 4, 2)
             action_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            action_layout.setSpacing(6)
+            action_layout.setSpacing(5)
 
             btn_edit = QPushButton("✏️ ویرایش")
             btn_edit.setFixedHeight(30)
+            btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 2px 8px; font-size: 11px;")
             btn_edit.clicked.connect(lambda _, r=rec: self.edit_assessment(r))
 
             btn_del = QPushButton("🗑️")
             btn_del.setToolTip("حذف ارزیابی")
-            btn_del.setFixedSize(32, 30)
+            btn_del.setFixedSize(30, 30)
+            btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; font-size: 12px;")
             btn_del.clicked.connect(lambda _, r=rec: self.delete_assessment_confirm(r))
 

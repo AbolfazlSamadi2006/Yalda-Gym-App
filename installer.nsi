@@ -66,15 +66,15 @@ Section "MainSection" SEC01
     WriteUninstaller "$INSTDIR\Uninstall.exe"
 
     CreateDirectory "$SMPROGRAMS\باشگاه یلدا"
-    CreateShortcut "$SMPROGRAMS\باشگاه یلدا\نرم‌افزار باشگاه یلدا.lnk" "$INSTDIR\${PRODUCT_EXE}"
+    CreateShortcut "$SMPROGRAMS\باشگاه یلدا\نرم‌افزار باشگاه یلدا.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\_internal\resources\images\app_icon.ico" 0
     CreateShortcut "$SMPROGRAMS\باشگاه یلدا\حذف نرم‌افزار.lnk" "$INSTDIR\Uninstall.exe"
-    CreateShortcut "$DESKTOP\نرم‌افزار باشگاه یلدا.lnk" "$INSTDIR\${PRODUCT_EXE}"
+    CreateShortcut "$DESKTOP\نرم‌افزار باشگاه یلدا.lnk" "$INSTDIR\${PRODUCT_EXE}" "" "$INSTDIR\_internal\resources\images\app_icon.ico" 0
 
     WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "${PRODUCT_NAME}"
     WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
     WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
     WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
-    WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\${PRODUCT_EXE},0"
+    WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\_internal\resources\images\app_icon.ico,0"
     WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
     WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "InstallLocation" "$INSTDIR"
     WriteRegDWORD HKCU "${PRODUCT_UNINST_KEY}" "NoModify" 1

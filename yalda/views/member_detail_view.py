@@ -374,13 +374,7 @@ class MemberDetailView(QWidget):
                 self.lbl_avatar.setStyleSheet("font-size: 50px; background-color: #2E2E2E; border-radius: 50px;")
 
     def init_workout_tab(self):
-        # Clear previous layout
-        for i in reversed(range(self.tab_workout.layout().count() if self.tab_workout.layout() else 0)):
-            item = self.tab_workout.layout().takeAt(i)
-            if item.widget():
-                item.widget().deleteLater()
-
-        layout = self.tab_workout.layout() if self.tab_workout.layout() else QVBoxLayout(self.tab_workout)
+        layout = QVBoxLayout(self.tab_workout)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(12)
 
@@ -403,116 +397,121 @@ class MemberDetailView(QWidget):
         top_box.addWidget(btn_assign_new)
         layout.addLayout(top_box)
 
-        # Assignments Archive Table
+        # Table & Empty Label
+        self.table_workout = QTableWidget()
+        self.table_workout.setColumnCount(8)
+        self.table_workout.setHorizontalHeaderLabels([
+            "ردیف", "عنوان برنامه تمرینی", "هدف برنامه", "روزهای تمرین", "سطح تمرین", "تاریخ تخصیص", "وضعیت", "عملیات"
+        ])
+        header = self.table_workout.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table_workout.setColumnWidth(0, 45)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_workout.setColumnWidth(2, 160)
+        self.table_workout.setColumnWidth(3, 85)
+        self.table_workout.setColumnWidth(4, 85)
+        self.table_workout.setColumnWidth(5, 100)
+        self.table_workout.setColumnWidth(6, 120)
+        self.table_workout.setColumnWidth(7, 240)
+        self.table_workout.verticalHeader().setVisible(False)
+        self.table_workout.verticalHeader().setDefaultSectionSize(46)
+        self.table_workout.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_workout.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        layout.addWidget(self.table_workout)
+
+        self.lbl_no_workout = QLabel("هیچ برنامه تمرینی در تاریخچه این ورزشکار ثبت نشده است.")
+        self.lbl_no_workout.setStyleSheet("color: #888888; font-size: 14px; padding: 30px;")
+        self.lbl_no_workout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_no_workout.setVisible(False)
+        layout.addWidget(self.lbl_no_workout)
+
+        self.load_workout_archive()
+
+    def load_workout_archive(self):
         assignments = WorkoutService.get_member_assignments(self.member_id)
-        if assignments:
-            table = QTableWidget()
-            table.setColumnCount(8)
-            table.setHorizontalHeaderLabels([
-                "ردیف", "عنوان برنامه تمرینی", "هدف برنامه", "روزهای تمرین", "سطح تمرین", "تاریخ تخصیص", "وضعیت", "عملیات"
-            ])
-            header = table.horizontalHeader()
-            header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-            table.setColumnWidth(0, 45)
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-            table.setColumnWidth(2, 160)
-            table.setColumnWidth(3, 85)
-            table.setColumnWidth(4, 85)
-            table.setColumnWidth(5, 100)
-            table.setColumnWidth(6, 120)
-            table.setColumnWidth(7, 240)
-            table.verticalHeader().setVisible(False)
-            table.verticalHeader().setDefaultSectionSize(46)
-            table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-            table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        if not assignments:
+            self.table_workout.setRowCount(0)
+            self.table_workout.setVisible(False)
+            self.lbl_no_workout.setVisible(True)
+            return
 
-            goal_map = {
-                "hypertrophy": "هایپرتروفی (عضله‌سازی)",
-                "fat_loss": "چربی‌سوزی و کاهش وزن",
-                "strength": "افزایش قدرت بی‌هوازی",
-                "corrective": "حرکات اصلاحی و بهبود قامت",
-                "general_fitness": "آمادگی جسمانی عمومی",
-                "endurance": "استقامت عضلانی"
-            }
-            level_map = {"beginner": "مبتدی", "intermediate": "متوسط", "advanced": "پیشرفته"}
+        self.lbl_no_workout.setVisible(False)
+        self.table_workout.setVisible(True)
+        self.table_workout.setRowCount(len(assignments))
 
-            table.setRowCount(len(assignments))
-            for row, asgn in enumerate(assignments):
-                p = asgn.plan
-                plan_title = p.title if p else "بدون عنوان"
-                goal_fa = goal_map.get(p.goal, p.goal or "-") if p else "-"
-                days_fa = f"{p.days_per_week} روزه" if p else "-"
-                level_fa = level_map.get(p.training_level, p.training_level or "-") if p else "-"
-                date_fa = asgn.assigned_date_shamsi or "-"
-                status_fa = "🟢 فعال (جاری)" if asgn.is_active else "⚪ بایگانی (سابق)"
+        goal_map = {
+            "hypertrophy": "هایپرتروفی (عضله‌سازی)",
+            "fat_loss": "چربی‌سوزی و کاهش وزن",
+            "strength": "افزایش قدرت بی‌هوازی",
+            "corrective": "حرکات اصلاحی و بهبود قامت",
+            "general_fitness": "آمادگی جسمانی عمومی",
+            "endurance": "استقامت عضلانی"
+        }
+        level_map = {"beginner": "مبتدی", "intermediate": "متوسط", "advanced": "پیشرفته"}
 
-                table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
-                table.setItem(row, 1, QTableWidgetItem(plan_title))
-                table.setItem(row, 2, QTableWidgetItem(goal_fa))
-                table.setItem(row, 3, QTableWidgetItem(days_fa))
-                table.setItem(row, 4, QTableWidgetItem(level_fa))
-                table.setItem(row, 5, QTableWidgetItem(date_fa))
-                table.setItem(row, 6, QTableWidgetItem(status_fa))
+        for row, asgn in enumerate(assignments):
+            p = asgn.plan
+            plan_title = p.title if p else "بدون عنوان"
+            goal_fa = goal_map.get(p.goal, p.goal or "-") if p else "-"
+            days_fa = f"{p.days_per_week} روزه" if p else "-"
+            level_fa = level_map.get(p.training_level, p.training_level or "-") if p else "-"
+            date_fa = asgn.assigned_date_shamsi or "-"
+            status_fa = "🟢 فعال (جاری)" if asgn.is_active else "⚪ بایگانی (سابق)"
 
-                for c in (0, 2, 3, 4, 5, 6):
-                    it = table.item(row, c)
-                    if it: it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table_workout.setItem(row, 0, QTableWidgetItem(str(row + 1)))
+            self.table_workout.setItem(row, 1, QTableWidgetItem(plan_title))
+            self.table_workout.setItem(row, 2, QTableWidgetItem(goal_fa))
+            self.table_workout.setItem(row, 3, QTableWidgetItem(days_fa))
+            self.table_workout.setItem(row, 4, QTableWidgetItem(level_fa))
+            self.table_workout.setItem(row, 5, QTableWidgetItem(date_fa))
+            self.table_workout.setItem(row, 6, QTableWidgetItem(status_fa))
 
-                action_w = QWidget()
-                action_w.setStyleSheet("background: transparent;")
-                action_l = QHBoxLayout(action_w)
-                action_l.setContentsMargins(4, 4, 4, 4)
-                action_l.setSpacing(6)
-                action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            for c in (0, 2, 3, 4, 5, 6):
+                it = self.table_workout.item(row, c)
+                if it: it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-                btn_view = QPushButton("👁️ مشاهده")
-                btn_view.setToolTip("مشاهده کامل جدول برنامه تمرینی")
-                btn_view.setFixedHeight(30)
-                btn_view.setStyleSheet("background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
-                if p:
-                    btn_view.clicked.connect(lambda _, pl=p: self.view_workout_plan(pl))
+            action_w = QWidget()
+            action_w.setStyleSheet("background: transparent;")
+            action_l = QHBoxLayout(action_w)
+            action_l.setContentsMargins(4, 4, 4, 4)
+            action_l.setSpacing(6)
+            action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-                btn_edit = QPushButton("✏️ ویرایش")
-                btn_edit.setToolTip("باز کردن در طراح برنامه تمرینی جهت ویرایش")
-                btn_edit.setFixedHeight(30)
-                btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
-                if p:
-                    btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_workout_requested.emit(pid))
+            btn_view = QPushButton("👁️ مشاهده")
+            btn_view.setToolTip("مشاهده کامل جدول برنامه تمرینی")
+            btn_view.setFixedHeight(30)
+            btn_view.setStyleSheet("background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
+            if p:
+                btn_view.clicked.connect(lambda _, pl=p: self.view_workout_plan(pl))
 
-                btn_pdf = QPushButton("📄 PDF")
-                btn_pdf.setToolTip("صدور فایل PDF برای چاپ")
-                btn_pdf.setFixedHeight(30)
-                btn_pdf.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
-                if p:
-                    btn_pdf.clicked.connect(lambda _, pl=p: self.export_workout_pdf(pl))
+            btn_edit = QPushButton("✏️ ویرایش")
+            btn_edit.setToolTip("باز کردن در طراح برنامه تمرینی جهت ویرایش")
+            btn_edit.setFixedHeight(30)
+            btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
+            if p:
+                btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_workout_requested.emit(pid))
 
-                btn_del = QPushButton("🗑️")
-                btn_del.setToolTip("حذف این برنامه از بایگانی ورزشکار")
-                btn_del.setFixedSize(30, 30)
-                btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
-                btn_del.clicked.connect(lambda _, aid=asgn.id, ptitle=plan_title: self.delete_workout_plan(aid, ptitle))
+            btn_pdf = QPushButton("📄 PDF")
+            btn_pdf.setToolTip("صدور فایل PDF برای چاپ")
+            btn_pdf.setFixedHeight(30)
+            btn_pdf.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
+            if p:
+                btn_pdf.clicked.connect(lambda _, pl=p: self.export_workout_pdf(pl))
 
-                action_l.addWidget(btn_view)
-                action_l.addWidget(btn_edit)
-                action_l.addWidget(btn_pdf)
-                action_l.addWidget(btn_del)
-                table.setCellWidget(row, 7, action_w)
+            btn_del = QPushButton("🗑️")
+            btn_del.setToolTip("حذف این برنامه از بایگانی ورزشکار")
+            btn_del.setFixedSize(30, 30)
+            btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
+            btn_del.clicked.connect(lambda _, aid=asgn.id, ptitle=plan_title: self.delete_workout_plan(aid, ptitle))
 
-            layout.addWidget(table)
-        else:
-            lbl = QLabel("هیچ برنامه تمرینی در تاریخچه این ورزشکار ثبت نشده است.")
-            lbl.setStyleSheet("color: #888888; font-size: 14px; padding: 30px;")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(lbl)
+            action_l.addWidget(btn_view)
+            action_l.addWidget(btn_edit)
+            action_l.addWidget(btn_pdf)
+            action_l.addWidget(btn_del)
+            self.table_workout.setCellWidget(row, 7, action_w)
 
     def init_nutrition_tab(self):
-        # Clear previous layout
-        for i in reversed(range(self.tab_nutrition.layout().count() if self.tab_nutrition.layout() else 0)):
-            item = self.tab_nutrition.layout().takeAt(i)
-            if item.widget():
-                item.widget().deleteLater()
-
-        layout = self.tab_nutrition.layout() if self.tab_nutrition.layout() else QVBoxLayout(self.tab_nutrition)
+        layout = QVBoxLayout(self.tab_nutrition)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(12)
 
@@ -535,104 +534,115 @@ class MemberDetailView(QWidget):
         top_box.addWidget(btn_assign_new)
         layout.addLayout(top_box)
 
-        # Assignments Archive Table
+        # Table & Empty Label
+        self.table_nutrition = QTableWidget()
+        self.table_nutrition.setColumnCount(8)
+        self.table_nutrition.setHorizontalHeaderLabels([
+            "ردیف", "عنوان برنامه غذایی", "هدف رژیم", "کالری هدف", "درشت‌مغذی‌ها (P/C/F)", "تاریخ تخصیص", "وضعیت", "عملیات"
+        ])
+        header = self.table_nutrition.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table_nutrition.setColumnWidth(0, 45)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_nutrition.setColumnWidth(2, 160)
+        self.table_nutrition.setColumnWidth(3, 90)
+        self.table_nutrition.setColumnWidth(4, 150)
+        self.table_nutrition.setColumnWidth(5, 100)
+        self.table_nutrition.setColumnWidth(6, 120)
+        self.table_nutrition.setColumnWidth(7, 240)
+        self.table_nutrition.verticalHeader().setVisible(False)
+        self.table_nutrition.verticalHeader().setDefaultSectionSize(46)
+        self.table_nutrition.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.table_nutrition.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        layout.addWidget(self.table_nutrition)
+
+        self.lbl_no_nutrition = QLabel("هیچ برنامه غذایی در تاریخچه این ورزشکار ثبت نشده است.")
+        self.lbl_no_nutrition.setStyleSheet("color: #888888; font-size: 14px; padding: 30px;")
+        self.lbl_no_nutrition.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_no_nutrition.setVisible(False)
+        layout.addWidget(self.lbl_no_nutrition)
+
+        self.load_nutrition_archive()
+
+    def load_nutrition_archive(self):
         assignments = NutritionService.get_member_assignments(self.member_id)
-        if assignments:
-            table = QTableWidget()
-            table.setColumnCount(8)
-            table.setHorizontalHeaderLabels([
-                "ردیف", "عنوان برنامه غذایی", "هدف رژیم", "کالری هدف", "درشت‌مغذی‌ها (P/C/F)", "تاریخ تخصیص", "وضعیت", "عملیات"
-            ])
-            header = table.horizontalHeader()
-            header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-            table.setColumnWidth(0, 45)
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-            table.setColumnWidth(2, 160)
-            table.setColumnWidth(3, 90)
-            table.setColumnWidth(4, 150)
-            table.setColumnWidth(5, 100)
-            table.setColumnWidth(6, 120)
-            table.setColumnWidth(7, 240)
-            table.verticalHeader().setVisible(False)
-            table.verticalHeader().setDefaultSectionSize(46)
-            table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-            table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        if not assignments:
+            self.table_nutrition.setRowCount(0)
+            self.table_nutrition.setVisible(False)
+            self.lbl_no_nutrition.setVisible(True)
+            return
 
-            nutrition_goals = {
-                "muscle_gain": "عضله‌سازی (Muscle Gain)",
-                "weight_loss": "کاهش وزن و چربی‌سوزی (Weight Loss)",
-                "weight_gain": "افزایش وزن (Weight Gain)",
-                "maintenance": "تثبیت وزن (Maintenance)"
-            }
+        self.lbl_no_nutrition.setVisible(False)
+        self.table_nutrition.setVisible(True)
+        self.table_nutrition.setRowCount(len(assignments))
 
-            table.setRowCount(len(assignments))
-            for row, asgn in enumerate(assignments):
-                p = asgn.plan
-                plan_title = p.title if p else "بدون عنوان"
-                goal_fa = nutrition_goals.get(p.goal, p.goal or "-") if p else "-"
-                cal_fa = f"{int(p.target_calories or 0)} kcal" if p else "-"
-                macros_fa = f"P:{int(p.target_protein or 0)}g | C:{int(p.target_carbs or 0)}g | F:{int(p.target_fat or 0)}g" if p else "-"
-                date_fa = asgn.assigned_date_shamsi or "-"
-                status_fa = "🟢 فعال (جاری)" if asgn.is_active else "⚪ بایگانی (سابق)"
+        nutrition_goals = {
+            "muscle_gain": "عضله‌سازی (Muscle Gain)",
+            "weight_loss": "کاهش وزن و چربی‌سوزی (Weight Loss)",
+            "weight_gain": "افزایش وزن (Weight Gain)",
+            "maintenance": "تثبیت وزن (Maintenance)"
+        }
 
-                table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
-                table.setItem(row, 1, QTableWidgetItem(plan_title))
-                table.setItem(row, 2, QTableWidgetItem(goal_fa))
-                table.setItem(row, 3, QTableWidgetItem(cal_fa))
-                table.setItem(row, 4, QTableWidgetItem(macros_fa))
-                table.setItem(row, 5, QTableWidgetItem(date_fa))
-                table.setItem(row, 6, QTableWidgetItem(status_fa))
+        for row, asgn in enumerate(assignments):
+            p = asgn.plan
+            plan_title = p.title if p else "بدون عنوان"
+            goal_fa = nutrition_goals.get(p.goal, p.goal or "-") if p else "-"
+            cal_fa = f"{int(p.target_calories or 0)} kcal" if p else "-"
+            macros_fa = f"P:{int(p.target_protein or 0)}g | C:{int(p.target_carbs or 0)}g | F:{int(p.target_fat or 0)}g" if p else "-"
+            date_fa = asgn.assigned_date_shamsi or "-"
+            status_fa = "🟢 فعال (جاری)" if asgn.is_active else "⚪ بایگانی (سابق)"
 
-                for c in (0, 2, 3, 4, 5, 6):
-                    it = table.item(row, c)
-                    if it: it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.table_nutrition.setItem(row, 0, QTableWidgetItem(str(row + 1)))
+            self.table_nutrition.setItem(row, 1, QTableWidgetItem(plan_title))
+            self.table_nutrition.setItem(row, 2, QTableWidgetItem(goal_fa))
+            self.table_nutrition.setItem(row, 3, QTableWidgetItem(cal_fa))
+            self.table_nutrition.setItem(row, 4, QTableWidgetItem(macros_fa))
+            self.table_nutrition.setItem(row, 5, QTableWidgetItem(date_fa))
+            self.table_nutrition.setItem(row, 6, QTableWidgetItem(status_fa))
 
-                action_w = QWidget()
-                action_w.setStyleSheet("background: transparent;")
-                action_l = QHBoxLayout(action_w)
-                action_l.setContentsMargins(4, 4, 4, 4)
-                action_l.setSpacing(6)
-                action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            for c in (0, 2, 3, 4, 5, 6):
+                it = self.table_nutrition.item(row, c)
+                if it: it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 
-                btn_view = QPushButton("👁️ مشاهده")
-                btn_view.setToolTip("مشاهده کامل جدول برنامه غذایی")
-                btn_view.setFixedHeight(30)
-                btn_view.setStyleSheet("background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
-                if p:
-                    btn_view.clicked.connect(lambda _, pl=p: self.view_nutrition_plan(pl))
+            action_w = QWidget()
+            action_w.setStyleSheet("background: transparent;")
+            action_l = QHBoxLayout(action_w)
+            action_l.setContentsMargins(4, 4, 4, 4)
+            action_l.setSpacing(6)
+            action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-                btn_edit = QPushButton("✏️ ویرایش")
-                btn_edit.setToolTip("باز کردن در طراح برنامه غذایی جهت ویرایش")
-                btn_edit.setFixedHeight(30)
-                btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
-                if p:
-                    btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_nutrition_requested.emit(pid))
+            btn_view = QPushButton("👁️ مشاهده")
+            btn_view.setToolTip("مشاهده کامل جدول برنامه غذایی")
+            btn_view.setFixedHeight(30)
+            btn_view.setStyleSheet("background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
+            if p:
+                btn_view.clicked.connect(lambda _, pl=p: self.view_nutrition_plan(pl))
 
-                btn_pdf = QPushButton("📄 PDF")
-                btn_pdf.setToolTip("صدور فایل PDF برای چاپ")
-                btn_pdf.setFixedHeight(30)
-                btn_pdf.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
-                if p:
-                    btn_pdf.clicked.connect(lambda _, pl=p: self.export_nutrition_pdf(pl))
+            btn_edit = QPushButton("✏️ ویرایش")
+            btn_edit.setToolTip("باز کردن در طراح برنامه غذایی جهت ویرایش")
+            btn_edit.setFixedHeight(30)
+            btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
+            if p:
+                btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_nutrition_requested.emit(pid))
 
-                btn_del = QPushButton("🗑️")
-                btn_del.setToolTip("حذف این برنامه از بایگانی ورزشکار")
-                btn_del.setFixedSize(30, 30)
-                btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
-                btn_del.clicked.connect(lambda _, aid=asgn.id, ptitle=plan_title: self.delete_nutrition_plan(aid, ptitle))
+            btn_pdf = QPushButton("📄 PDF")
+            btn_pdf.setToolTip("صدور فایل PDF برای چاپ")
+            btn_pdf.setFixedHeight(30)
+            btn_pdf.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
+            if p:
+                btn_pdf.clicked.connect(lambda _, pl=p: self.export_nutrition_pdf(pl))
 
-                action_l.addWidget(btn_view)
-                action_l.addWidget(btn_edit)
-                action_l.addWidget(btn_pdf)
-                action_l.addWidget(btn_del)
-                table.setCellWidget(row, 7, action_w)
+            btn_del = QPushButton("🗑️")
+            btn_del.setToolTip("حذف این برنامه از بایگانی ورزشکار")
+            btn_del.setFixedSize(30, 30)
+            btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
+            btn_del.clicked.connect(lambda _, aid=asgn.id, ptitle=plan_title: self.delete_nutrition_plan(aid, ptitle))
 
-            layout.addWidget(table)
-        else:
-            lbl = QLabel("هیچ برنامه غذایی در تاریخچه این ورزشکار ثبت نشده است.")
-            lbl.setStyleSheet("color: #888888; font-size: 14px; padding: 30px;")
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addWidget(lbl)
+            action_l.addWidget(btn_view)
+            action_l.addWidget(btn_edit)
+            action_l.addWidget(btn_pdf)
+            action_l.addWidget(btn_del)
+            self.table_nutrition.setCellWidget(row, 7, action_w)
 
     def view_workout_plan(self, plan):
         member = MemberService.get_member_by_id(self.member_id)
@@ -653,7 +663,7 @@ class MemberDetailView(QWidget):
         )
         if reply == QMessageBox.StandardButton.Yes:
             WorkoutService.delete_workout_assignment(assignment_id)
-            self.init_workout_tab()
+            self.load_workout_archive()
             QMessageBox.information(self, "موفقیت", f"برنامه تمرینی «{plan_title}» با موفقیت از بایگانی ورزشکار حذف گردید.")
 
     def delete_nutrition_plan(self, assignment_id: int, plan_title: str):
@@ -665,7 +675,7 @@ class MemberDetailView(QWidget):
         )
         if reply == QMessageBox.StandardButton.Yes:
             NutritionService.delete_nutrition_assignment(assignment_id)
-            self.init_nutrition_tab()
+            self.load_nutrition_archive()
             QMessageBox.information(self, "موفقیت", f"برنامه غذایی «{plan_title}» با موفقیت از بایگانی ورزشکار حذف گردید.")
 
     def export_workout_pdf(self, plan):

@@ -46,26 +46,7 @@ class ExitBackupDialog(QDialog):
         lbl_msg.setWordWrap(True)
         layout.addWidget(lbl_msg)
 
-        # Tip Box (Local backup guarantee)
-        tip_frame = QFrame()
-        tip_frame.setStyleSheet("""
-            QFrame {
-                background-color: #1E1E1E;
-                border: 1px solid #333333;
-                border-right: 4px solid #8B0000;
-                border-radius: 8px;
-                padding: 10px;
-            }
-        """)
-        tip_layout = QVBoxLayout(tip_frame)
-        tip_layout.setContentsMargins(10, 8, 10, 8)
-        lbl_tip = QLabel("💡 <b>ذخیره خودکار:</b> در هر ۳ حالت، آخرین اطلاعات شما به صورت خودکار در حافظه لوکال سیستم ذخیره و جایگزین می‌شود تا در اجرای بعدی بدون مشکل لود گردد.")
-        lbl_tip.setStyleSheet("color: #B0B0B0; font-size: 12px; line-height: 1.4;")
-        lbl_tip.setWordWrap(True)
-        tip_layout.addWidget(lbl_tip)
-        layout.addWidget(tip_frame)
-
-        layout.addSpacing(6)
+        layout.addSpacing(4)
 
         # ----------------------------------------------------
         # Action Buttons
@@ -93,7 +74,7 @@ class ExitBackupDialog(QDialog):
         layout.addWidget(self.btn_cloud)
 
         # 2. Offline Custom Path Backup
-        self.btn_offline = QPushButton("💻 ذخیره در کامپیوتر (مسیر دلخواه مربی)")
+        self.btn_offline = QPushButton("💻 ذخیره در کامپیوتر (آفلاین)")
         self.btn_offline.setFixedHeight(46)
         self.btn_offline.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_offline.setStyleSheet("""
@@ -115,7 +96,7 @@ class ExitBackupDialog(QDialog):
         layout.addWidget(self.btn_offline)
 
         # 3. Regular Exit (Only Local Save)
-        self.btn_normal_exit = QPushButton("🚪 خیر، فقط خروج عادی (ذخیره در سیستم)")
+        self.btn_normal_exit = QPushButton("🚪 خیر")
         self.btn_normal_exit.setFixedHeight(42)
         self.btn_normal_exit.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_normal_exit.setStyleSheet("""

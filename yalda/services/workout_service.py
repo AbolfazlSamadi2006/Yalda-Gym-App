@@ -1,4 +1,4 @@
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from yalda.database.connection import get_session
 from yalda.models.database_models import (
     Exercise, WorkoutPlan, WorkoutDay, WorkoutExercise, WorkoutAssignment, Member, HealthRecord
@@ -65,8 +65,8 @@ class WorkoutService:
         try:
             return session.query(WorkoutPlan)\
                 .options(
-                    joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise),
-                    joinedload(WorkoutPlan.assignments)
+                    selectinload(WorkoutPlan.days).selectinload(WorkoutDay.workout_exercises).selectinload(WorkoutExercise.exercise),
+                    selectinload(WorkoutPlan.assignments)
                 )\
                 .order_by(WorkoutPlan.id.desc()).all()
         finally:
@@ -78,8 +78,8 @@ class WorkoutService:
         try:
             return session.query(WorkoutPlan)\
                 .options(
-                    joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise),
-                    joinedload(WorkoutPlan.assignments)
+                    selectinload(WorkoutPlan.days).selectinload(WorkoutDay.workout_exercises).selectinload(WorkoutExercise.exercise),
+                    selectinload(WorkoutPlan.assignments)
                 )\
                 .filter(WorkoutPlan.id == plan_id).first()
         finally:
@@ -214,7 +214,7 @@ class WorkoutService:
         session = get_session()
         try:
             return session.query(WorkoutAssignment)\
-                .options(joinedload(WorkoutAssignment.plan).joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise))\
+                .options(selectinload(WorkoutAssignment.plan).selectinload(WorkoutPlan.days).selectinload(WorkoutDay.workout_exercises).selectinload(WorkoutExercise.exercise))\
                 .filter(WorkoutAssignment.member_id == member_id, WorkoutAssignment.is_active == True)\
                 .first()
         finally:
@@ -225,7 +225,7 @@ class WorkoutService:
         session = get_session()
         try:
             return session.query(WorkoutAssignment)\
-                .options(joinedload(WorkoutAssignment.plan).joinedload(WorkoutPlan.days).joinedload(WorkoutDay.workout_exercises).joinedload(WorkoutExercise.exercise))\
+                .options(selectinload(WorkoutAssignment.plan).selectinload(WorkoutPlan.days).selectinload(WorkoutDay.workout_exercises).selectinload(WorkoutExercise.exercise))\
                 .filter(WorkoutAssignment.member_id == member_id)\
                 .order_by(WorkoutAssignment.id.desc())\
                 .all()

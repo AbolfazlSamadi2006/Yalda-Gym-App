@@ -57,7 +57,7 @@ class NutritionEditorView(QWidget):
         layout_goal.setSpacing(12)
         layout_goal.setContentsMargins(12, 12, 12, 12)
 
-        # Row 1: Title -> Goal -> Template Picker
+        # Row 1: Title -> Goal -> Days Pattern -> Template Picker
         row1 = QHBoxLayout()
         row1.setSpacing(12)
 
@@ -72,6 +72,17 @@ class NutritionEditorView(QWidget):
         self.combo_goal.addItem("افزایش وزن (Weight Gain)", "weight_gain")
         self.combo_goal.addItem("تثبیت وزن (Maintenance)", "maintenance")
 
+        lbl_days = QLabel("روزهای هفته:")
+        self.combo_days = QComboBox()
+        self.combo_days.addItem("الگوی ثابت (کلیه روزهای هفته)", "all_days")
+        self.combo_days.addItem("شنبه تا جمعه (۷ روز هفته)", "7_days")
+        self.combo_days.addItem("روزهای تمرین و استراحت (۲ روزه)", "2_days")
+        self.combo_days.addItem("۳ روز در هفته", "3_days")
+        self.combo_days.addItem("۴ روز در هفته", "4_days")
+        self.combo_days.addItem("۵ روز در هفته", "5_days")
+        self.combo_days.addItem("۶ روز در هفته", "6_days")
+        self.combo_days.currentIndexChanged.connect(self.setup_meal_tabs)
+
         lbl_template = QLabel("الگوی آماده:")
         self.combo_templates = QComboBox()
         self.load_template_dropdown()
@@ -81,6 +92,8 @@ class NutritionEditorView(QWidget):
         row1.addWidget(self.txt_title, 2)
         row1.addWidget(lbl_goal)
         row1.addWidget(self.combo_goal, 1)
+        row1.addWidget(lbl_days)
+        row1.addWidget(self.combo_days, 1)
         row1.addWidget(lbl_template)
         row1.addWidget(self.combo_templates, 2)
         layout_goal.addLayout(row1)
@@ -272,9 +285,15 @@ class NutritionEditorView(QWidget):
 
             for meal_key, table in self.meal_tables:
                 table.setRowCount(0)
-                if meal_key in meal_dict:
-                    m_plan = meal_dict[meal_key]
-                    for item in m_plan.items:
+                matched_m = meal_dict.get(meal_key)
+                if not matched_m:
+                    for k, v in meal_dict.items():
+                        if k in meal_key or meal_key in k:
+                            matched_m = v
+                            break
+
+                if matched_m:
+                    for item in matched_m.items:
                         row = table.rowCount()
                         table.insertRow(row)
 
@@ -314,6 +333,34 @@ class NutritionEditorView(QWidget):
         self.meal_tables.clear()
         foods_list = NutritionService.get_all_foods()
 
+        days_mode = self.combo_days.currentData() or "all_days"
+        
+        if days_mode == "7_days":
+            days = [
+                ("sat", "شنبه"),
+                ("sun", "یکشنبه"),
+                ("mon", "دوشنبه"),
+                ("tue", "سه‌شنبه"),
+                ("wed", "چهارشنبه"),
+                ("thu", "پنج‌شنبه"),
+                ("fri", "جمعه")
+            ]
+        elif days_mode == "2_days":
+            days = [
+                ("training", "روزهای تمرینی"),
+                ("rest", "روزهای استراحت")
+            ]
+        elif days_mode == "3_days":
+            days = [("day1", "روز اول"), ("day2", "روز دوم"), ("day3", "روز سوم")]
+        elif days_mode == "4_days":
+            days = [("day1", "روز اول"), ("day2", "روز دوم"), ("day3", "روز سوم"), ("day4", "روز چهارم")]
+        elif days_mode == "5_days":
+            days = [("day1", "روز اول"), ("day2", "روز دوم"), ("day3", "روز سوم"), ("day4", "روز چهارم"), ("day5", "روز پنجم")]
+        elif days_mode == "6_days":
+            days = [("day1", "روز اول"), ("day2", "روز دوم"), ("day3", "روز سوم"), ("day4", "روز چهارم"), ("day5", "روز پنجم"), ("day6", "روز ششم")]
+        else:
+            days = [("daily", "برنامه کلیه روزهای هفته")]
+
         meals = [
             ("breakfast", "🌅 صبحانه"),
             ("morning_snack", "🍎 میان‌وعده صبح"),
@@ -323,37 +370,50 @@ class NutritionEditorView(QWidget):
             ("evening_snack", "🥛 قبل از خواب")
         ]
 
-        for meal_key, meal_title in meals:
-            widget = QWidget()
-            layout_meal = QVBoxLayout(widget)
+        if len(days) == 1:
+            for meal_key, meal_title in meals:
+                widget = self._create_meal_widget(meal_key, meal_title, foods_list)
+                self.tabs.addTab(widget, meal_title)
+        else:
+            for day_key, day_title in days:
+                day_tab_widget = QTabWidget()
+                for meal_key, meal_title in meals:
+                    full_key = f"{day_title}: {meal_title}"
+                    widget = self._create_meal_widget(full_key, meal_title, foods_list)
+                    day_tab_widget.addTab(widget, meal_title)
+                self.tabs.addTab(day_tab_widget, f"📅 {day_title}")
 
-            row_top = QHBoxLayout()
-            btn_add_item = QPushButton("➕ افزودن ماده غذایی")
-            btn_add_item.setObjectName("secondary_button")
-            row_top.addStretch()
-            row_top.addWidget(btn_add_item)
-            layout_meal.addLayout(row_top)
+    def _create_meal_widget(self, meal_key: str, meal_title: str, foods_list: list) -> QWidget:
+        widget = QWidget()
+        layout_meal = QVBoxLayout(widget)
+        layout_meal.setContentsMargins(8, 8, 8, 8)
+        layout_meal.setSpacing(10)
 
-            table = QTableWidget(0, 4)
-            table.setHorizontalHeaderLabels(["نام ماده غذایی", "مقدار (ضریب واحد)", "توضیحات مربی", "حذف"])
-            
-            table.verticalHeader().setDefaultSectionSize(48)
-            table.verticalHeader().setMinimumSectionSize(40)
+        row_top = QHBoxLayout()
+        btn_add_item = QPushButton("➕ افزودن ماده غذایی")
+        btn_add_item.setObjectName("secondary_button")
+        row_top.addStretch()
+        row_top.addWidget(btn_add_item)
+        layout_meal.addLayout(row_top)
 
-            header = table.horizontalHeader()
-            header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-            header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
-            table.setColumnWidth(1, 140)
-            header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-            header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
-            table.setColumnWidth(3, 60)
+        table = QTableWidget(0, 4)
+        table.setHorizontalHeaderLabels(["نام ماده غذایی", "مقدار (ضریب واحد)", "توضیحات مربی", "حذف"])
+        table.verticalHeader().setDefaultSectionSize(48)
+        table.verticalHeader().setMinimumSectionSize(40)
 
-            btn_add_item.clicked.connect(lambda _, t=table: self.add_food_row(t, foods_list))
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Interactive)
+        table.setColumnWidth(1, 140)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(3, QHeaderView.ResizeMode.Fixed)
+        table.setColumnWidth(3, 60)
 
-            layout_meal.addWidget(table)
-            self.tabs.addTab(widget, meal_title)
-            self.meal_tables.append((meal_key, table))
-            # بدون ردیف پیش‌فرض - مربی مقادیر را خودش اضافه می‌کند
+        btn_add_item.clicked.connect(lambda _, t=table: self.add_food_row(t, foods_list))
+
+        layout_meal.addWidget(table)
+        self.meal_tables.append((meal_key, table))
+        return widget
 
     def update_macro_calculations(self):
         cal = self.spin_cal.value()
@@ -479,12 +539,13 @@ class NutritionEditorView(QWidget):
 
     def _do_reset_fields(self):
         """فقط پاکسازی فیلدهای کادر اهداف فیزیکی، بدون لمس جدول وعده‌ها"""
-        for w in [self.txt_title, self.combo_goal, self.spin_cal, self.spin_protein,
+        for w in [self.txt_title, self.combo_goal, self.combo_days, self.spin_cal, self.spin_protein,
                   self.spin_carbs, self.spin_fat, self.spin_total_grams, self.combo_templates]:
             w.blockSignals(True)
 
         self.txt_title.setText("")
         self.combo_goal.setCurrentIndex(0)
+        self.combo_days.setCurrentIndex(0)
         self.spin_cal.setValue(0.0)
         self.spin_protein.setValue(0.0)
         self.spin_carbs.setValue(0.0)
@@ -492,7 +553,7 @@ class NutritionEditorView(QWidget):
         self.spin_total_grams.setValue(0.0)
         self.txt_calorie_percent.setText("")
 
-        for w in [self.txt_title, self.combo_goal, self.spin_cal, self.spin_protein,
+        for w in [self.txt_title, self.combo_goal, self.combo_days, self.spin_cal, self.spin_protein,
                   self.spin_carbs, self.spin_fat, self.spin_total_grams, self.combo_templates]:
             w.blockSignals(False)
 

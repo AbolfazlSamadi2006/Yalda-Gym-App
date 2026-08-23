@@ -1,4 +1,4 @@
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from yalda.database.connection import get_session
 from yalda.models.database_models import (
     FoodItem, NutritionPlan, MealPlan, MealItem, NutritionAssignment
@@ -61,8 +61,8 @@ class NutritionService:
         try:
             return session.query(NutritionPlan)\
                 .options(
-                    joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food),
-                    joinedload(NutritionPlan.assignments)
+                    selectinload(NutritionPlan.meals).selectinload(MealPlan.items).selectinload(MealItem.food),
+                    selectinload(NutritionPlan.assignments)
                 )\
                 .order_by(NutritionPlan.id.desc()).all()
         finally:
@@ -74,8 +74,8 @@ class NutritionService:
         try:
             return session.query(NutritionPlan)\
                 .options(
-                    joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food),
-                    joinedload(NutritionPlan.assignments)
+                    selectinload(NutritionPlan.meals).selectinload(MealPlan.items).selectinload(MealItem.food),
+                    selectinload(NutritionPlan.assignments)
                 )\
                 .filter(NutritionPlan.id == plan_id).first()
         finally:
@@ -167,7 +167,7 @@ class NutritionService:
         session = get_session()
         try:
             return session.query(NutritionAssignment)\
-                .options(joinedload(NutritionAssignment.plan).joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food))\
+                .options(selectinload(NutritionAssignment.plan).selectinload(NutritionPlan.meals).selectinload(MealPlan.items).selectinload(MealItem.food))\
                 .filter(NutritionAssignment.member_id == member_id, NutritionAssignment.is_active == True)\
                 .first()
         finally:
@@ -178,7 +178,7 @@ class NutritionService:
         session = get_session()
         try:
             return session.query(NutritionAssignment)\
-                .options(joinedload(NutritionAssignment.plan).joinedload(NutritionPlan.meals).joinedload(MealPlan.items).joinedload(MealItem.food))\
+                .options(selectinload(NutritionAssignment.plan).selectinload(NutritionPlan.meals).selectinload(MealPlan.items).selectinload(MealItem.food))\
                 .filter(NutritionAssignment.member_id == member_id)\
                 .order_by(NutritionAssignment.id.desc())\
                 .all()

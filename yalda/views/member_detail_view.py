@@ -652,12 +652,14 @@ class MemberDetailView(QWidget):
 
     def view_workout_plan(self, plan):
         member = MemberService.get_member_by_id(self.member_id)
-        dlg = ViewWorkoutPlanDialog(plan, member, parent=self)
+        fresh_plan = WorkoutService.get_plan_by_id(plan.id) if hasattr(plan, 'id') and plan.id else plan
+        dlg = ViewWorkoutPlanDialog(fresh_plan, member, parent=self)
         dlg.exec()
 
     def view_nutrition_plan(self, plan):
         member = MemberService.get_member_by_id(self.member_id)
-        dlg = ViewNutritionPlanDialog(plan, member, parent=self)
+        fresh_plan = NutritionService.get_plan_by_id(plan.id) if hasattr(plan, 'id') and plan.id else plan
+        dlg = ViewNutritionPlanDialog(fresh_plan, member, parent=self)
         dlg.exec()
 
     def delete_workout_plan(self, assignment_id: int, plan_title: str):

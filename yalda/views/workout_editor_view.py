@@ -240,10 +240,11 @@ class WorkoutEditorView(QWidget):
         txt_tempo = QLineEdit("2-0-2-0")
         txt_tempo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        btn_del = QPushButton("❌")
-        btn_del.setFixedWidth(36)
+        btn_del = QPushButton("🗑️")
+        btn_del.setObjectName("danger_button")
+        btn_del.setToolTip("حذف حرکت ورزشی")
         btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_del.clicked.connect(lambda: table.removeRow(table.currentRow()))
+        btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
 
         table.setCellWidget(row, 0, combo_ex)
         table.setCellWidget(row, 1, txt_sets)
@@ -479,3 +480,4 @@ class WorkoutEditorView(QWidget):
         plan = self.save_plan()
         WorkoutService.assign_plan_to_member(member_id, plan.id)
         QMessageBox.information(self, "موفقیت", "برنامه تمرینی با موفقیت به ورزشکار تخصیص یافت.")
+        self.reset_to_new_plan()

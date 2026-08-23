@@ -339,6 +339,8 @@ class PDFGenerator:
         }
 
         for meal in nutrition_plan.meals:
+            if not meal.items:
+                continue
             fa_meal_name = meal_names_map.get(meal.meal_name, meal.meal_name)
             meal_header = Paragraph(reshape_text(f"◄ وعده: {fa_meal_name}"), ParagraphStyle('MealTitle', fontName=FONT_NAME, fontSize=12, textColor=colors.HexColor(config.COLOR_PRIMARY_ACCENT)))
             elements.append(meal_header)

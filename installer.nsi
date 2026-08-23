@@ -1,4 +1,4 @@
-; NSIS Script for Yalda Gym Management Application
+﻿; NSIS Script for Yalda Gym Management Application
 Unicode True
 !include "MUI2.nsh"
 !include "FileFunc.nsh"

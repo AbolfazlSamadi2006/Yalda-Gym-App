@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from yalda.services.nutrition_service import NutritionService
 from yalda.services.member_service import MemberService
+from yalda.views.components.searchable_combo_box import SearchableComboBox
 
 class NutritionEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
@@ -59,96 +60,69 @@ class NutritionEditorView(QWidget):
         row1 = QHBoxLayout()
         row1.setSpacing(12)
 
+        lbl_title = QLabel("عنوان رژیم:")
         self.txt_title = QLineEdit()
-        self.txt_title.setPlaceholderText("عنوان رژیم (مثلاً: رژیم هایپرتروفی ۲۵۰۰ کالری)...")
+        self.txt_title.setPlaceholderText("مثلاً: رژیم افزایش حجم عضلانی...")
 
+        lbl_goal = QLabel("هدف رژیم:")
         self.combo_goal = QComboBox()
         self.combo_goal.addItem("عضله‌سازی (Muscle Gain)", "muscle_gain")
         self.combo_goal.addItem("کاهش وزن و چربی‌سوزی (Weight Loss)", "weight_loss")
         self.combo_goal.addItem("افزایش وزن (Weight Gain)", "weight_gain")
         self.combo_goal.addItem("تثبیت وزن (Maintenance)", "maintenance")
 
+        lbl_template = QLabel("الگوی آماده:")
         self.combo_templates = QComboBox()
-        self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده رژیم از بانک ---", None)
         self.load_template_dropdown()
         self.combo_templates.currentIndexChanged.connect(self.on_template_selected)
 
-        h_title = QHBoxLayout()
-        h_title.setSpacing(4)
-        h_title.addWidget(QLabel("عنوان رژیم:"))
-        h_title.addWidget(self.txt_title)
-
-        h_goal = QHBoxLayout()
-        h_goal.setSpacing(4)
-        h_goal.addWidget(QLabel("هدف رژیم:"))
-        h_goal.addWidget(self.combo_goal)
-
-        h_tpl = QHBoxLayout()
-        h_tpl.setSpacing(4)
-        h_tpl.addWidget(QLabel("📂 الگوهای آماده بانک رژیم غذایی:"))
-        h_tpl.addWidget(self.combo_templates)
-
-        row1.addLayout(h_title)
-        row1.addLayout(h_goal)
-        row1.addLayout(h_tpl)
+        row1.addWidget(lbl_title)
+        row1.addWidget(self.txt_title, 2)
+        row1.addWidget(lbl_goal)
+        row1.addWidget(self.combo_goal, 1)
+        row1.addWidget(lbl_template)
+        row1.addWidget(self.combo_templates, 2)
         layout_goal.addLayout(row1)
 
-        # Row 2: Cal, Protein, Carbs, Fat, Total Grams, Calorie Percent
+        # Row 2: Target Calories & Macros
         row2 = QHBoxLayout()
-        row2.setSpacing(8)
-
-        spin_style = "QDoubleSpinBox { padding: 2px 2px; font-size: 13px; font-weight: bold; border-radius: 4px; }"
+        row2.setSpacing(12)
 
         self.spin_cal = QDoubleSpinBox()
-        self.spin_cal.setRange(0, 5000)
-        self.spin_cal.setSpecialValueText("")
-        self.spin_cal.setValue(0.0)
+        self.spin_cal.setRange(500, 10000)
+        self.spin_cal.setValue(2000.0)
         self.spin_cal.setDecimals(0)
-        self.spin_cal.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.spin_cal.setFixedWidth(90)
-        self.spin_cal.setStyleSheet(spin_style)
+        self.spin_cal.setFixedWidth(100)
 
         self.spin_protein = QDoubleSpinBox()
-        self.spin_protein.setRange(0, 500)
-        self.spin_protein.setSpecialValueText("")
-        self.spin_protein.setValue(0.0)
+        self.spin_protein.setRange(0, 1000)
+        self.spin_protein.setValue(150.0)
         self.spin_protein.setDecimals(0)
-        self.spin_protein.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.spin_protein.setFixedWidth(78)
-        self.spin_protein.setStyleSheet(spin_style)
+        self.spin_protein.setFixedWidth(90)
 
         self.spin_carbs = QDoubleSpinBox()
         self.spin_carbs.setRange(0, 1000)
-        self.spin_carbs.setSpecialValueText("")
-        self.spin_carbs.setValue(0.0)
+        self.spin_carbs.setValue(200.0)
         self.spin_carbs.setDecimals(0)
-        self.spin_carbs.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.spin_carbs.setFixedWidth(78)
-        self.spin_carbs.setStyleSheet(spin_style)
+        self.spin_carbs.setFixedWidth(90)
 
         self.spin_fat = QDoubleSpinBox()
-        self.spin_fat.setRange(0, 500)
-        self.spin_fat.setSpecialValueText("")
-        self.spin_fat.setValue(0.0)
+        self.spin_fat.setRange(0, 1000)
+        self.spin_fat.setValue(60.0)
         self.spin_fat.setDecimals(0)
-        self.spin_fat.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.spin_fat.setFixedWidth(78)
-        self.spin_fat.setStyleSheet(spin_style)
+        self.spin_fat.setFixedWidth(90)
 
         self.spin_total_grams = QDoubleSpinBox()
-        self.spin_total_grams.setRange(0, 3000)
-        self.spin_total_grams.setSpecialValueText("")
-        self.spin_total_grams.setValue(0.0)
+        self.spin_total_grams.setRange(0, 5000)
+        self.spin_total_grams.setReadOnly(True)
         self.spin_total_grams.setDecimals(0)
-        self.spin_total_grams.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.spin_total_grams.setFixedWidth(78)
-        self.spin_total_grams.setStyleSheet(spin_style + " QDoubleSpinBox { color: #00FFC8; }")
+        self.spin_total_grams.setFixedWidth(90)
+        self.spin_total_grams.setStyleSheet("font-weight: bold; color: #4ADE80; background-color: #1A1A1A;")
 
         self.txt_calorie_percent = QLineEdit()
         self.txt_calorie_percent.setReadOnly(True)
         self.txt_calorie_percent.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.txt_calorie_percent.setFixedWidth(210)
-        self.txt_calorie_percent.setStyleSheet("font-weight: bold; color: #D4AF37; background-color: #1A1A1A; padding: 2px 4px; font-size: 11px;")
 
         h_cal = QHBoxLayout()
         h_cal.setSpacing(4)
@@ -206,7 +180,7 @@ class NutritionEditorView(QWidget):
         assign_box = QGroupBox("تخصیص برنامه تغذیه به ورزشکار")
         layout_assign = QHBoxLayout(assign_box)
 
-        self.combo_member = QComboBox()
+        self.combo_member = SearchableComboBox(placeholder="جستجو یا تایپ نام ورزشکار...")
         self.load_members_dropdown()
 
         btn_save = QPushButton("💾 ذخیره الگوی رژیم در بانک")
@@ -225,10 +199,18 @@ class NutritionEditorView(QWidget):
         layout.addWidget(assign_box)
 
     def load_members_dropdown(self):
+        cur = self.combo_member.currentData()
+        self.combo_member.blockSignals(True)
         self.combo_member.clear()
+        self.combo_member.addItem("--- انتخاب ورزشکار ---", None)
         members = MemberService.get_all_members(status_filter="active")
         for m in members:
             self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
+        if cur is not None:
+            idx = self.combo_member.findData(cur)
+            if idx >= 0:
+                self.combo_member.setCurrentIndex(idx)
+        self.combo_member.blockSignals(False)
 
     def set_selected_member(self, member_id: int):
         self.load_members_dropdown()
@@ -237,6 +219,7 @@ class NutritionEditorView(QWidget):
             self.combo_member.setCurrentIndex(idx)
 
     def load_template_dropdown(self):
+        cur = self.combo_templates.currentData()
         self.combo_templates.blockSignals(True)
         self.combo_templates.clear()
         self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده رژیم از بانک ---", None)
@@ -249,7 +232,12 @@ class NutritionEditorView(QWidget):
                 "maintenance": "تثبیت وزن"
             }.get(p.goal, p.goal)
             self.combo_templates.addItem(f"🥗 {p.title} ({int(p.target_calories)} kcal - {goal_title})", p.id)
-        self.combo_templates.setCurrentIndex(0)
+        if cur is not None:
+            idx = self.combo_templates.findData(cur)
+            if idx >= 0:
+                self.combo_templates.setCurrentIndex(idx)
+        else:
+            self.combo_templates.setCurrentIndex(0)
         self.combo_templates.blockSignals(False)
 
     def on_template_selected(self, index: int):
@@ -289,7 +277,7 @@ class NutritionEditorView(QWidget):
                         row = table.rowCount()
                         table.insertRow(row)
 
-                        combo_food = QComboBox()
+                        combo_food = SearchableComboBox(placeholder="جستجو یا تایپ نام ماده غذایی...")
                         for f in foods_list:
                             combo_food.addItem(f"{f.name_fa} ({f.unit} - {int(f.calories)}kcal)", f.id)
 
@@ -302,11 +290,13 @@ class NutritionEditorView(QWidget):
                         txt_amount.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
                         txt_notes = QLineEdit(item.notes or "")
+                        txt_notes.setAlignment(Qt.AlignmentFlag.AlignCenter)
                         txt_notes.setPlaceholderText("توضیحات اختصاصی...")
 
                         btn_del = QPushButton("🗑️")
                         btn_del.setObjectName("danger_button")
                         btn_del.setToolTip("حذف ماده غذایی")
+                        btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
                         btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
 
                         table.setCellWidget(row, 0, combo_food)
@@ -383,19 +373,23 @@ class NutritionEditorView(QWidget):
 
     def refresh_editor(self):
         self.load_members_dropdown()
+        cur_tpl = self.combo_templates.currentData()
         self.combo_templates.blockSignals(True)
         self.load_template_dropdown()
+        if cur_tpl is not None:
+            idx = self.combo_templates.findData(cur_tpl)
+            if idx >= 0:
+                self.combo_templates.setCurrentIndex(idx)
         self.combo_templates.blockSignals(False)
-        self._do_reset_fields()
-        self.setup_meal_tabs()
 
     def add_food_row(self, table: QTableWidget, foods_list: list = None):
         row = table.rowCount()
         table.insertRow(row)
 
-        foods_list = NutritionService.get_all_foods()
+        if not foods_list:
+            foods_list = NutritionService.get_all_foods()
 
-        combo_food = QComboBox()
+        combo_food = SearchableComboBox(placeholder="جستجو یا تایپ نام ماده غذایی...")
         for f in foods_list:
             combo_food.addItem(f"{f.name_fa} ({f.unit} - {int(f.calories)}kcal)", f.id)
 
@@ -403,11 +397,13 @@ class NutritionEditorView(QWidget):
         txt_amount.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         txt_notes = QLineEdit("")
+        txt_notes.setAlignment(Qt.AlignmentFlag.AlignCenter)
         txt_notes.setPlaceholderText("توضیحات اختصاصی...")
 
         btn_del = QPushButton("🗑️")
         btn_del.setObjectName("danger_button")
         btn_del.setToolTip("حذف ماده غذایی")
+        btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
 
         table.setCellWidget(row, 0, combo_food)

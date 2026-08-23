@@ -10,6 +10,7 @@ from yalda.services.nutrition_service import NutritionService
 from yalda.services.member_service import MemberService
 from yalda.pdf.pdf_generator import PDFGenerator
 from yalda.models.database_models import Member
+from yalda.views.components.searchable_combo_box import SearchableComboBox
 
 
 class AssignTemplateDialog(QDialog):
@@ -36,7 +37,7 @@ class AssignTemplateDialog(QDialog):
         layout.addWidget(lbl_info)
 
         layout.addWidget(QLabel("انتخاب ورزشکار (شاگرد):"))
-        self.combo_member = QComboBox()
+        self.combo_member = SearchableComboBox(placeholder="جستجو یا تایپ نام ورزشکار...")
         self.combo_member.setFixedHeight(36)
         self.load_members()
         layout.addWidget(self.combo_member)
@@ -63,6 +64,7 @@ class AssignTemplateDialog(QDialog):
 
     def load_members(self):
         self.combo_member.clear()
+        self.combo_member.addItem("--- انتخاب ورزشکار ---", None)
         members = MemberService.get_all_members()
         for m in members:
             self.combo_member.addItem(f"👤 {m.full_name} ({m.phone})", m.id)

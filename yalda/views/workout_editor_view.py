@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from yalda.services.workout_service import WorkoutService
 from yalda.services.member_service import MemberService
+from yalda.views.components.searchable_combo_box import SearchableComboBox
 
 class WorkoutEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
@@ -103,7 +104,7 @@ class WorkoutEditorView(QWidget):
         assign_box = QGroupBox("تخصیص برنامه به ورزشکار")
         layout_assign = QHBoxLayout(assign_box)
 
-        self.combo_member = QComboBox()
+        self.combo_member = SearchableComboBox(placeholder="جستجو یا تایپ نام ورزشکار...")
         self.load_members_dropdown()
 
         btn_save = QPushButton("💾 ذخیره الگو در بانک")
@@ -122,10 +123,18 @@ class WorkoutEditorView(QWidget):
         layout.addWidget(assign_box)
 
     def load_members_dropdown(self):
+        cur = self.combo_member.currentData()
+        self.combo_member.blockSignals(True)
         self.combo_member.clear()
+        self.combo_member.addItem("--- انتخاب ورزشکار ---", None)
         members = MemberService.get_all_members(status_filter="active")
         for m in members:
             self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
+        if cur is not None:
+            idx = self.combo_member.findData(cur)
+            if idx >= 0:
+                self.combo_member.setCurrentIndex(idx)
+        self.combo_member.blockSignals(False)
 
     def set_selected_member(self, member_id: int):
         self.load_members_dropdown()
@@ -189,15 +198,23 @@ class WorkoutEditorView(QWidget):
 
     def refresh_editor(self):
         self.load_members_dropdown()
-        self.setup_day_tabs()
+        cur_tpl = self.combo_templates.currentData()
+        self.load_template_dropdown()
+        if cur_tpl is not None:
+            idx = self.combo_templates.findData(cur_tpl)
+            if idx >= 0:
+                self.combo_templates.blockSignals(True)
+                self.combo_templates.setCurrentIndex(idx)
+                self.combo_templates.blockSignals(False)
 
     def add_exercise_row(self, table: QTableWidget, exercises_list: list = None):
         row = table.rowCount()
         table.insertRow(row)
 
-        exercises_list = WorkoutService.get_all_exercises()
+        if not exercises_list:
+            exercises_list = WorkoutService.get_all_exercises()
 
-        combo_ex = QComboBox()
+        combo_ex = SearchableComboBox(placeholder="جستجو یا تایپ نام حرکت...")
         for ex in exercises_list:
             combo_ex.addItem(f"{ex.name_fa} ({ex.primary_muscle})", ex.id)
 
@@ -218,6 +235,7 @@ class WorkoutEditorView(QWidget):
 
         btn_del = QPushButton("❌")
         btn_del.setFixedWidth(36)
+        btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_del.clicked.connect(lambda: table.removeRow(table.currentRow()))
 
         table.setCellWidget(row, 0, combo_ex)
@@ -269,6 +287,7 @@ class WorkoutEditorView(QWidget):
         return plan_info, days_data
 
     def load_template_dropdown(self):
+        cur = self.combo_templates.currentData()
         self.combo_templates.blockSignals(True)
         self.combo_templates.clear()
         self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده از بانک ---", None)
@@ -284,6 +303,10 @@ class WorkoutEditorView(QWidget):
         for p in plans:
             g_fa = goal_names.get(p.goal, p.goal)
             self.combo_templates.addItem(f"📋 {p.title} ({p.days_per_week} روزه - {g_fa})", p.id)
+        if cur is not None:
+            idx = self.combo_templates.findData(cur)
+            if idx >= 0:
+                self.combo_templates.setCurrentIndex(idx)
         self.combo_templates.blockSignals(False)
 
     def on_template_selected(self, index: int):
@@ -329,23 +352,33 @@ class WorkoutEditorView(QWidget):
                         row = table.rowCount()
                         table.insertRow(row)
 
-                        combo_ex = QComboBox()
+                        combo_ex = SearchableComboBox(placeholder="جستجو یا تایپ نام حرکت...")
                         for ex in self.all_exercises:
-                            combo_ex.addItem(ex.name_fa, ex.id)
+                            combo_ex.addItem(f"{ex.name_fa} ({ex.primary_muscle})", ex.id)
                         
                         if we.exercise_id:
                             idx_ex = combo_ex.findData(we.exercise_id)
                             if idx_ex >= 0: combo_ex.setCurrentIndex(idx_ex)
 
                         txt_sets = QLineEdit(str(we.sets or 3))
+                        txt_sets.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
                         txt_reps = QLineEdit(str(we.reps or "10-12"))
-                        txt_weight = QLineEdit(str(we.weight_suggestion or ""))
+                        txt_reps.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                        txt_weight = QLineEdit(str(we.weight_suggestion or "-"))
+                        txt_weight.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
                         txt_rest = QLineEdit(str(we.rest_seconds or 60))
+                        txt_rest.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
                         txt_tempo = QLineEdit(str(we.tempo or "2-0-2-0"))
+                        txt_tempo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
                         btn_del = QPushButton("🗑️")
                         btn_del.setObjectName("danger_button")
                         btn_del.setFixedWidth(35)
+                        btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
                         btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
 
                         table.setCellWidget(row, 0, combo_ex)

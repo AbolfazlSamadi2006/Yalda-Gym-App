@@ -480,7 +480,7 @@ class WorkoutEditorView(QWidget):
             if reply != QMessageBox.StandardButton.Yes:
                 return
 
-        plan = self.save_plan()
+        plan = WorkoutService.create_workout_plan(plan_info, days_data)
         WorkoutService.assign_plan_to_member(member_id, plan.id)
         QMessageBox.information(self, "موفقیت", "برنامه تمرینی با موفقیت به ورزشکار تخصیص یافت.")
         self.reset_to_new_plan()

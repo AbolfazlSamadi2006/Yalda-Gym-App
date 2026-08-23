@@ -74,13 +74,13 @@ class NutritionEditorView(QWidget):
 
         lbl_days = QLabel("روزهای هفته:")
         self.combo_days = QComboBox()
-        self.combo_days.addItem("الگوی ثابت (کلیه روزهای هفته)", "all_days")
-        self.combo_days.addItem("شنبه تا جمعه (۷ روز هفته)", "7_days")
-        self.combo_days.addItem("روزهای تمرین و استراحت (۲ روزه)", "2_days")
-        self.combo_days.addItem("۳ روز در هفته", "3_days")
-        self.combo_days.addItem("۴ روز در هفته", "4_days")
-        self.combo_days.addItem("۵ روز در هفته", "5_days")
-        self.combo_days.addItem("۶ روز در هفته", "6_days")
+        self.combo_days.addItem("📅 شنبه تا جمعه (۷ روز هفته)", "7_days")
+        self.combo_days.addItem("📅 روزهای تمرین و استراحت (۲ روزه)", "2_days")
+        self.combo_days.addItem("📅 ۳ روز در هفته", "3_days")
+        self.combo_days.addItem("📅 ۴ روز در هفته", "4_days")
+        self.combo_days.addItem("📅 ۵ روز در هفته", "5_days")
+        self.combo_days.addItem("📅 ۶ روز در هفته", "6_days")
+        self.combo_days.addItem("📅 الگوی ثابت (کلیه روزهای هفته)", "all_days")
         self.combo_days.currentIndexChanged.connect(self.setup_meal_tabs)
 
         lbl_template = QLabel("الگوی آماده:")
@@ -596,7 +596,8 @@ class NutritionEditorView(QWidget):
             QMessageBox.warning(self, "خطا", "لطفاً یک ورزشکار را جهت تخصیص انتخاب کنید.")
             return
 
-        plan = self.save_plan(auto_reset=False)
+        plan_info, meals_data = self.get_plan_data()
+        plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
         NutritionService.assign_nutrition_plan(member_id, plan.id)
         QMessageBox.information(self, "موفقیت", "برنامه غذایی با موفقیت به ورزشکار تخصیص یافت.")
         self.reset_form()

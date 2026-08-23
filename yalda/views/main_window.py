@@ -59,9 +59,11 @@ class MainWindow(QMainWindow):
 
         self.view_workouts = WorkoutEditorView()
         self.view_workouts.manage_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
+        self.view_workouts.open_exercise_bank_requested.connect(lambda: self.sidebar.navigate("exercises"))
 
         self.view_nutrition = NutritionEditorView()
         self.view_nutrition.manage_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
+        self.view_nutrition.open_food_bank_requested.connect(lambda: self.sidebar.navigate("foods"))
 
         self.view_templates = TemplatesManagerView()
         self.view_templates.edit_workout_requested.connect(self.open_workout_editor_with_plan)

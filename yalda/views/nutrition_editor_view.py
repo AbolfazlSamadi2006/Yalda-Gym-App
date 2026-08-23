@@ -8,6 +8,7 @@ from yalda.views.components.searchable_combo_box import SearchableComboBox
 
 class NutritionEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
+    open_food_bank_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -28,7 +29,7 @@ class NutritionEditorView(QWidget):
 
         # Header Title & Action Buttons
         header = QHBoxLayout()
-        self.lbl_header_title = QLabel("🥗 برنامه‌ریزی تغذیه و رژیم ایرانی")
+        self.lbl_header_title = QLabel("🥗 برنامه‌ریزی تغذیه")
         self.lbl_header_title.setObjectName("h1")
 
         btn_new_plan = QPushButton("➕ رژیم جدید")
@@ -41,7 +42,7 @@ class NutritionEditorView(QWidget):
 
         btn_food_bank = QPushButton("🥗 بانک مواد غذایی")
         btn_food_bank.setObjectName("secondary_button")
-        btn_food_bank.clicked.connect(self.open_food_bank)
+        btn_food_bank.clicked.connect(self.open_food_bank_requested.emit)
 
         header.addWidget(self.lbl_header_title)
         header.addStretch()
@@ -392,6 +393,7 @@ class NutritionEditorView(QWidget):
         combo_food = SearchableComboBox(placeholder="جستجو یا تایپ نام ماده غذایی...")
         for f in foods_list:
             combo_food.addItem(f"{f.name_fa} ({f.unit} - {int(f.calories)}kcal)", f.id)
+        combo_food.set_empty()
 
         txt_amount = QLineEdit("1.0")
         txt_amount.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -496,7 +498,7 @@ class NutritionEditorView(QWidget):
 
     def reset_form(self):
         self.editing_plan_id = None
-        self.lbl_header_title.setText("🥗 برنامه‌ریزی تغذیه و رژیم ایرانی")
+        self.lbl_header_title.setText("🥗 برنامه‌ریزی تغذیه")
         self._do_reset_fields()
         self.combo_templates.blockSignals(True)
         if self.combo_templates.count() > 0:

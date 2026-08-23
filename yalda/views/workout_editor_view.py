@@ -8,6 +8,7 @@ from yalda.views.components.searchable_combo_box import SearchableComboBox
 
 class WorkoutEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
+    open_exercise_bank_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -28,7 +29,7 @@ class WorkoutEditorView(QWidget):
 
         # Header Title and Action Bar
         header = QHBoxLayout()
-        self.lbl_header_title = QLabel("🏋️ برنامه‌ریزی هوشمند تمرینی")
+        self.lbl_header_title = QLabel("🏋️ برنامه‌ریزی تمرینی")
         self.lbl_header_title.setObjectName("h1")
 
         btn_new_plan = QPushButton("➕ برنامه جدید")
@@ -39,10 +40,15 @@ class WorkoutEditorView(QWidget):
         btn_manage_tpl.setObjectName("secondary_button")
         btn_manage_tpl.clicked.connect(self.manage_templates_requested.emit)
 
+        btn_exercise_bank = QPushButton("🏃 بانک حرکات ورزشی")
+        btn_exercise_bank.setObjectName("secondary_button")
+        btn_exercise_bank.clicked.connect(self.open_exercise_bank_requested.emit)
+
         header.addWidget(self.lbl_header_title)
         header.addStretch()
         header.addWidget(btn_new_plan)
         header.addWidget(btn_manage_tpl)
+        header.addWidget(btn_exercise_bank)
         layout.addLayout(header)
 
         # Program Details Form Box
@@ -217,6 +223,7 @@ class WorkoutEditorView(QWidget):
         combo_ex = SearchableComboBox(placeholder="جستجو یا تایپ نام حرکت...")
         for ex in exercises_list:
             combo_ex.addItem(f"{ex.name_fa} ({ex.primary_muscle})", ex.id)
+        combo_ex.set_empty()
 
         txt_sets = QLineEdit("3")
         txt_sets.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -396,7 +403,7 @@ class WorkoutEditorView(QWidget):
 
     def reset_to_new_plan(self):
         self.editing_plan_id = None
-        self.lbl_header_title.setText("🏋️ برنامه‌ریزی هوشمند تمرینی")
+        self.lbl_header_title.setText("🏋️ برنامه‌ریزی تمرینی")
         self.txt_title.clear()
         self.combo_goal.setCurrentIndex(0)
         self.combo_days.setCurrentIndex(1)

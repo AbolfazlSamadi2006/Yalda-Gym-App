@@ -13,6 +13,7 @@ class SearchableComboBox(QComboBox):
     1. Center-aligned text and popup list items
     2. Live search autocomplete / filtering on typing (case-insensitive substring match)
     3. Proper synchronization of selected item and data
+    4. Clean empty state with placeholder support
     """
     def __init__(self, parent=None, placeholder=""):
         super().__init__(parent)
@@ -35,9 +36,16 @@ class SearchableComboBox(QComboBox):
             if comp.popup():
                 comp.popup().setItemDelegate(CenteredItemDelegate(self))
 
+    def set_empty(self):
+        """Clears selection and lineEdit text so placeholder is visible."""
+        self.setCurrentIndex(-1)
+        if self.lineEdit():
+            self.lineEdit().clear()
+
     def _on_editing_finished(self):
         text = self.currentText().strip()
         if not text:
+            self.setCurrentIndex(-1)
             return
         idx = self.findText(text, Qt.MatchFlag.MatchExactly)
         if idx >= 0:

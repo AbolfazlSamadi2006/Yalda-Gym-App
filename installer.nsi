@@ -1,4 +1,4 @@
-﻿; NSIS Script for Yalda Gym Management Application
+; NSIS Script for Yalda Gym Management Application
 Unicode True
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
@@ -48,7 +48,16 @@ VIAddVersionKey "FileDescription" "${PRODUCT_NAME}"
 VIAddVersionKey "FileVersion" "${PRODUCT_VERSION}"
 VIAddVersionKey "ProductVersion" "${PRODUCT_VERSION}"
 
+Function .onInit
+    ; Close any running Yalda.exe instance before installation starts
+    nsExec::Exec 'taskkill /F /IM ${PRODUCT_EXE}'
+FunctionEnd
+
 Section "MainSection" SEC01
+    ; Ensure running app is closed before extracting files
+    nsExec::Exec 'taskkill /F /IM ${PRODUCT_EXE}'
+    Sleep 500
+
     SetOutPath "$INSTDIR"
     SetOverwrite on
     File /r "dist\Yalda\*.*"

@@ -257,6 +257,106 @@ class NutritionEditorView(QWidget):
             self.combo_templates.setCurrentIndex(0)
         self.combo_templates.blockSignals(False)
 
+    def _load_plan_data_to_form(self, plan):
+        if not plan:
+            return
+
+        self.txt_title.setText(plan.title or "")
+
+        idx_g = self.combo_goal.findData(plan.goal)
+        if idx_g >= 0:
+            self.combo_goal.setCurrentIndex(idx_g)
+
+        self.spin_cal.setValue(plan.target_calories or 2000.0)
+        self.spin_protein.setValue(plan.target_protein or 150.0)
+        self.spin_carbs.setValue(plan.target_carbs or 200.0)
+        self.spin_fat.setValue(plan.target_fat or 60.0)
+
+        # Detect days pattern from meal names in plan
+        has_7_days = any(any(d in m.meal_name for d in ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"]) for m in plan.meals)
+        has_2_days = any("تمرین" in m.meal_name or "استراحت" in m.meal_name for m in plan.meals)
+
+        self.combo_days.blockSignals(True)
+        if has_2_days:
+            idx_d = self.combo_days.findData("2_days")
+            if idx_d >= 0: self.combo_days.setCurrentIndex(idx_d)
+        elif has_7_days:
+            idx_d = self.combo_days.findData("7_days")
+            if idx_d >= 0: self.combo_days.setCurrentIndex(idx_d)
+        self.combo_days.blockSignals(False)
+
+        # Rebuild meal tabs
+        self.setup_meal_tabs()
+
+        foods_list = NutritionService.get_all_foods()
+
+        meal_alias_map = {
+            "breakfast": ["breakfast", "صبحانه"],
+            "morning_snack": ["morning_snack", "میان‌وعده صبح", "میان وعده صبح"],
+            "lunch": ["lunch", "ناهار"],
+            "afternoon_snack": ["afternoon_snack", "عصرانه"],
+            "dinner": ["dinner", "شام"],
+            "evening_snack": ["evening_snack", "قبل از خواب", "خواب"]
+        }
+        day_keys = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "تمرین", "استراحت", "روز اول", "روز دوم", "روز سوم", "روز چهارم", "روز پنجم", "روز ششم"]
+
+        def match_meal(table_k, m_name):
+            if table_k == m_name or m_name in table_k or table_k in m_name:
+                return True
+            for meal_code, aliases in meal_alias_map.items():
+                if any(a in table_k for a in aliases):
+                    if any(a in m_name for a in aliases):
+                        # Check if both have days
+                        t_day = next((d for d in day_keys if d in table_k), None)
+                        m_day = next((d for d in day_keys if d in m_name), None)
+                        if t_day and m_day:
+                            return t_day == m_day
+                        # If saved plan didn't have day prefix, populate into Saturday (or current day)
+                        if t_day and not m_day:
+                            return t_day == "شنبه" or len(plan.meals) <= 6
+                        return True
+            return False
+
+        for meal_key, table in self.meal_tables:
+            table.setRowCount(0)
+            matched_m = None
+            for m in plan.meals:
+                if match_meal(meal_key, m.meal_name):
+                    matched_m = m
+                    break
+
+            if matched_m and matched_m.items:
+                for item in matched_m.items:
+                    row = table.rowCount()
+                    table.insertRow(row)
+
+                    combo_food = SearchableComboBox(placeholder="جستجو یا تایپ نام ماده غذایی...")
+                    for f in foods_list:
+                        combo_food.addItem(f"{f.name_fa} ({f.unit} - {int(f.calories)}kcal)", f.id)
+
+                    if item.food_id:
+                        idx_f = combo_food.findData(item.food_id)
+                        if idx_f >= 0:
+                            combo_food.setCurrentIndex(idx_f)
+
+                    txt_amount = QLineEdit(str(item.amount or 1.0))
+                    txt_amount.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    txt_notes = QLineEdit(item.notes or "")
+                    txt_notes.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                    txt_notes.setPlaceholderText("توضیحات اختصاصی...")
+
+                    btn_del = QPushButton("🗑️")
+                    btn_del.setObjectName("danger_button")
+                    btn_del.setToolTip("حذف ماده غذایی")
+                    btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
+                    btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
+
+                    table.setCellWidget(row, 0, combo_food)
+                    table.setCellWidget(row, 1, txt_amount)
+                    table.setCellWidget(row, 2, txt_notes)
+                    table.setCellWidget(row, 3, btn_del)
+
     def on_template_selected(self, index: int):
         try:
             plan_id = self.combo_templates.currentData()
@@ -267,66 +367,7 @@ class NutritionEditorView(QWidget):
             if not plan:
                 return
 
-            self.txt_title.setText(plan.title or "")
-
-            idx_g = self.combo_goal.findData(plan.goal)
-            if idx_g >= 0:
-                self.combo_goal.setCurrentIndex(idx_g)
-
-            self.spin_cal.setValue(plan.target_calories or 2000.0)
-            self.spin_protein.setValue(plan.target_protein or 150.0)
-            self.spin_carbs.setValue(plan.target_carbs or 200.0)
-            self.spin_fat.setValue(plan.target_fat or 60.0)
-
-            # Rebuild meal tabs
-            self.setup_meal_tabs()
-
-            foods_list = NutritionService.get_all_foods()
-
-            # Map meals from loaded plan into meal tables
-            meal_dict = {m.meal_name: m for m in plan.meals}
-
-            for meal_key, table in self.meal_tables:
-                table.setRowCount(0)
-                matched_m = meal_dict.get(meal_key)
-                if not matched_m:
-                    for k, v in meal_dict.items():
-                        if k in meal_key or meal_key in k:
-                            matched_m = v
-                            break
-
-                if matched_m:
-                    for item in matched_m.items:
-                        row = table.rowCount()
-                        table.insertRow(row)
-
-                        combo_food = SearchableComboBox(placeholder="جستجو یا تایپ نام ماده غذایی...")
-                        for f in foods_list:
-                            combo_food.addItem(f"{f.name_fa} ({f.unit} - {int(f.calories)}kcal)", f.id)
-
-                        if item.food_id:
-                            idx_f = combo_food.findData(item.food_id)
-                            if idx_f >= 0:
-                                combo_food.setCurrentIndex(idx_f)
-
-                        txt_amount = QLineEdit(str(item.amount or 1.0))
-                        txt_amount.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                        txt_notes = QLineEdit(item.notes or "")
-                        txt_notes.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                        txt_notes.setPlaceholderText("توضیحات اختصاصی...")
-
-                        btn_del = QPushButton("🗑️")
-                        btn_del.setObjectName("danger_button")
-                        btn_del.setToolTip("حذف ماده غذایی")
-                        btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
-                        btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
-
-                        table.setCellWidget(row, 0, combo_food)
-                        table.setCellWidget(row, 1, txt_amount)
-                        table.setCellWidget(row, 2, txt_notes)
-                        table.setCellWidget(row, 3, btn_del)
-
+            self._load_plan_data_to_form(plan)
             QMessageBox.information(self, "موفقیت", f"الگوی رژیم '{plan.title}' با موفقیت در فرم بارگذاری شد.")
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"خطا در بارگذاری الگوی رژیم: {str(e)}")
@@ -572,23 +613,10 @@ class NutritionEditorView(QWidget):
 
     def load_plan_for_edit(self, plan_id: int):
         self.editing_plan_id = plan_id
-        idx_tpl = self.combo_templates.findData(plan_id)
-        if idx_tpl >= 0:
-            self.combo_templates.setCurrentIndex(idx_tpl)
-        else:
-            plan = NutritionService.get_plan_by_id(plan_id)
-            if plan:
-                self.txt_title.setText(plan.title or "")
-                idx_g = self.combo_goal.findData(plan.goal)
-                if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
-                self.spin_cal.setValue(plan.target_calories or 0.0)
-                self.spin_protein.setValue(plan.target_protein or 0.0)
-                self.spin_carbs.setValue(plan.target_carbs or 0.0)
-                self.spin_fat.setValue(plan.target_fat or 0.0)
-
         plan = NutritionService.get_plan_by_id(plan_id)
         if plan:
             self.lbl_header_title.setText(f"✏️ ویرایش الگوی غذایی: {plan.title}")
+            self._load_plan_data_to_form(plan)
 
     def assign_plan(self):
         member_id = self.combo_member.currentData()

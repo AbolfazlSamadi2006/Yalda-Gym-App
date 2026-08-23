@@ -320,6 +320,80 @@ class WorkoutEditorView(QWidget):
                 self.combo_templates.setCurrentIndex(idx)
         self.combo_templates.blockSignals(False)
 
+    def _load_plan_data_to_form(self, plan):
+        if not plan:
+            return
+
+        self.txt_title.setText(plan.title or "")
+        
+        idx_g = self.combo_goal.findData(plan.goal)
+        if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
+
+        # Update days per week without triggering signals recursively
+        self.combo_days.blockSignals(True)
+        idx_d = self.combo_days.findData(plan.days_per_week)
+        if idx_d >= 0:
+            self.combo_days.setCurrentIndex(idx_d)
+        self.combo_days.blockSignals(False)
+
+        idx_l = self.combo_level.findData(plan.training_level)
+        if idx_l >= 0: self.combo_level.setCurrentIndex(idx_l)
+
+        # Rebuild day tabs for loaded template's days_per_week
+        self.setup_day_tabs()
+
+        # Ensure all_exercises is populated
+        if not hasattr(self, 'all_exercises') or not self.all_exercises:
+            self.all_exercises = WorkoutService.get_all_exercises()
+
+        # Populate day tables with exercises from loaded template
+        for day_idx, w_day in enumerate(plan.days):
+            if day_idx < len(self.day_tables):
+                txt_day_title, table = self.day_tables[day_idx]
+                txt_day_title.setText(w_day.day_title or f"روز {day_idx + 1}")
+                table.setRowCount(0)
+                
+                for we in w_day.workout_exercises:
+                    row = table.rowCount()
+                    table.insertRow(row)
+
+                    combo_ex = SearchableComboBox(placeholder="جستجو یا تایپ نام حرکت...")
+                    for ex in self.all_exercises:
+                        combo_ex.addItem(f"{ex.name_fa} ({ex.primary_muscle})", ex.id)
+                    
+                    if we.exercise_id:
+                        idx_ex = combo_ex.findData(we.exercise_id)
+                        if idx_ex >= 0: combo_ex.setCurrentIndex(idx_ex)
+
+                    txt_sets = QLineEdit(str(we.sets or 3))
+                    txt_sets.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    txt_reps = QLineEdit(str(we.reps or "10-12"))
+                    txt_reps.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    txt_weight = QLineEdit(str(we.weight_suggestion or "-"))
+                    txt_weight.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    txt_rest = QLineEdit(str(we.rest_seconds or 60))
+                    txt_rest.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    txt_tempo = QLineEdit(str(we.tempo or "2-0-2-0"))
+                    txt_tempo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+                    btn_del = QPushButton("🗑️")
+                    btn_del.setObjectName("danger_button")
+                    btn_del.setFixedWidth(35)
+                    btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
+                    btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
+
+                    table.setCellWidget(row, 0, combo_ex)
+                    table.setCellWidget(row, 1, txt_sets)
+                    table.setCellWidget(row, 2, txt_reps)
+                    table.setCellWidget(row, 3, txt_weight)
+                    table.setCellWidget(row, 4, txt_rest)
+                    table.setCellWidget(row, 5, txt_tempo)
+                    table.setCellWidget(row, 6, btn_del)
+
     def on_template_selected(self, index: int):
         try:
             plan_id = self.combo_templates.currentData()
@@ -330,75 +404,7 @@ class WorkoutEditorView(QWidget):
             if not plan:
                 return
 
-            self.txt_title.setText(plan.title or "")
-            
-            idx_g = self.combo_goal.findData(plan.goal)
-            if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
-
-            # Update days per week without triggering signals recursively
-            self.combo_days.blockSignals(True)
-            idx_d = self.combo_days.findData(plan.days_per_week)
-            if idx_d >= 0:
-                self.combo_days.setCurrentIndex(idx_d)
-            self.combo_days.blockSignals(False)
-
-            idx_l = self.combo_level.findData(plan.training_level)
-            if idx_l >= 0: self.combo_level.setCurrentIndex(idx_l)
-
-            # Rebuild day tabs for loaded template's days_per_week
-            self.setup_day_tabs()
-
-            # Ensure all_exercises is populated
-            if not hasattr(self, 'all_exercises') or not self.all_exercises:
-                self.all_exercises = WorkoutService.get_all_exercises()
-
-            # Populate day tables with exercises from loaded template
-            for day_idx, w_day in enumerate(plan.days):
-                if day_idx < len(self.day_tables):
-                    txt_day_title, table = self.day_tables[day_idx]
-                    txt_day_title.setText(w_day.day_title or f"روز {day_idx + 1}")
-                    table.setRowCount(0)
-                    
-                    for we in w_day.workout_exercises:
-                        row = table.rowCount()
-                        table.insertRow(row)
-
-                        combo_ex = SearchableComboBox(placeholder="جستجو یا تایپ نام حرکت...")
-                        for ex in self.all_exercises:
-                            combo_ex.addItem(f"{ex.name_fa} ({ex.primary_muscle})", ex.id)
-                        
-                        if we.exercise_id:
-                            idx_ex = combo_ex.findData(we.exercise_id)
-                            if idx_ex >= 0: combo_ex.setCurrentIndex(idx_ex)
-
-                        txt_sets = QLineEdit(str(we.sets or 3))
-                        txt_sets.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                        txt_reps = QLineEdit(str(we.reps or "10-12"))
-                        txt_reps.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                        txt_weight = QLineEdit(str(we.weight_suggestion or "-"))
-                        txt_weight.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                        txt_rest = QLineEdit(str(we.rest_seconds or 60))
-                        txt_rest.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                        txt_tempo = QLineEdit(str(we.tempo or "2-0-2-0"))
-                        txt_tempo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                        btn_del = QPushButton("🗑️")
-                        btn_del.setObjectName("danger_button")
-                        btn_del.setFixedWidth(35)
-                        btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
-                        btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
-
-                        table.setCellWidget(row, 0, combo_ex)
-                        table.setCellWidget(row, 1, txt_sets)
-                        table.setCellWidget(row, 2, txt_reps)
-                        table.setCellWidget(row, 3, txt_weight)
-                        table.setCellWidget(row, 4, txt_rest)
-                        table.setCellWidget(row, 5, txt_tempo)
-                        table.setCellWidget(row, 6, btn_del)
+            self._load_plan_data_to_form(plan)
 
             if not hasattr(self, '_suppress_loaded_alert') or not self._suppress_loaded_alert:
                 QMessageBox.information(self, "موفقیت", f"الگوی '{plan.title}' با موفقیت در فرم بارگذاری شد.")
@@ -421,25 +427,10 @@ class WorkoutEditorView(QWidget):
         self._suppress_loaded_alert = True
         try:
             self.editing_plan_id = plan_id
-            idx_tpl = self.combo_templates.findData(plan_id)
-            if idx_tpl >= 0:
-                self.combo_templates.setCurrentIndex(idx_tpl)
-            else:
-                # Direct load
-                plan = WorkoutService.get_plan_by_id(plan_id)
-                if plan:
-                    self.txt_title.setText(plan.title or "")
-                    idx_g = self.combo_goal.findData(plan.goal)
-                    if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
-                    idx_d = self.combo_days.findData(plan.days_per_week)
-                    if idx_d >= 0: self.combo_days.setCurrentIndex(idx_d)
-                    idx_l = self.combo_level.findData(plan.training_level)
-                    if idx_l >= 0: self.combo_level.setCurrentIndex(idx_l)
-                    self.setup_day_tabs()
-            
             plan = WorkoutService.get_plan_by_id(plan_id)
             if plan:
                 self.lbl_header_title.setText(f"✏️ ویرایش الگوی تمرینی: {plan.title}")
+                self._load_plan_data_to_form(plan)
         finally:
             self._suppress_loaded_alert = False
 

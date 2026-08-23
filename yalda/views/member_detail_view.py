@@ -249,8 +249,8 @@ class ViewNutritionPlanDialog(QDialog):
 
 class MemberDetailView(QWidget):
     back_requested = pyqtSignal()
-    edit_workout_requested = pyqtSignal(int)
-    edit_nutrition_requested = pyqtSignal(int)
+    edit_workout_requested = pyqtSignal(int, int)
+    edit_nutrition_requested = pyqtSignal(int, int)
     create_workout_requested = pyqtSignal(int)
     create_nutrition_requested = pyqtSignal(int)
 
@@ -488,7 +488,7 @@ class MemberDetailView(QWidget):
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
-                btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_workout_requested.emit(pid))
+                btn_edit.clicked.connect(lambda _, pid=p.id, mid=self.member_id: self.edit_workout_requested.emit(pid, mid))
 
             btn_pdf = QPushButton("📄 PDF")
             btn_pdf.setToolTip("صدور فایل PDF برای چاپ")
@@ -627,7 +627,7 @@ class MemberDetailView(QWidget):
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
-                btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_nutrition_requested.emit(pid))
+                btn_edit.clicked.connect(lambda _, pid=p.id, mid=self.member_id: self.edit_nutrition_requested.emit(pid, mid))
 
             btn_pdf = QPushButton("📄 PDF")
             btn_pdf.setToolTip("صدور فایل PDF برای چاپ")

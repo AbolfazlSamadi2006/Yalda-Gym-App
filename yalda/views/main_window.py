@@ -121,13 +121,17 @@ class MainWindow(QMainWindow):
                 self.view_backup.load_backups()
             self.stack.setCurrentIndex(page_map[page_id])
 
-    def open_workout_editor_with_plan(self, plan_id: int):
+    def open_workout_editor_with_plan(self, plan_id: int, member_id: int = None):
         self.sidebar.navigate("workouts")
         self.view_workouts.load_plan_for_edit(plan_id)
+        if member_id:
+            self.view_workouts.set_selected_member(member_id)
 
-    def open_nutrition_editor_with_plan(self, plan_id: int):
+    def open_nutrition_editor_with_plan(self, plan_id: int, member_id: int = None):
         self.sidebar.navigate("nutrition")
         self.view_nutrition.load_plan_for_edit(plan_id)
+        if member_id:
+            self.view_nutrition.set_selected_member(member_id)
 
     def open_new_workout_editor(self):
         self.sidebar.navigate("workouts")

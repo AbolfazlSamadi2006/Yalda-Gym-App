@@ -286,8 +286,11 @@ class WorkoutService:
                 if hasattr(plan, key) and val is not None:
                     setattr(plan, key, val)
 
-            # Clear existing days & exercises
-            session.query(WorkoutDay).filter(WorkoutDay.plan_id == plan.id).delete()
+            # Clear existing days & exercises cleanly
+            day_ids = [d[0] for d in session.query(WorkoutDay.id).filter(WorkoutDay.plan_id == plan.id).all()]
+            if day_ids:
+                session.query(WorkoutExercise).filter(WorkoutExercise.day_id.in_(day_ids)).delete(synchronize_session=False)
+            session.query(WorkoutDay).filter(WorkoutDay.plan_id == plan.id).delete(synchronize_session=False)
             session.flush()
 
             for day_info in days_data:

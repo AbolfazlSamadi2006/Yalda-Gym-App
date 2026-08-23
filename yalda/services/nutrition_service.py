@@ -239,8 +239,11 @@ class NutritionService:
                 if hasattr(plan, key) and val is not None:
                     setattr(plan, key, val)
 
-            # Clear existing meals
-            session.query(MealPlan).filter(MealPlan.plan_id == plan.id).delete()
+            # Clear existing meals & items cleanly
+            meal_ids = [m[0] for m in session.query(MealPlan.id).filter(MealPlan.plan_id == plan.id).all()]
+            if meal_ids:
+                session.query(MealItem).filter(MealItem.meal_id.in_(meal_ids)).delete(synchronize_session=False)
+            session.query(MealPlan).filter(MealPlan.plan_id == plan.id).delete(synchronize_session=False)
             session.flush()
 
             for idx, m_info in enumerate(meals_data, start=1):

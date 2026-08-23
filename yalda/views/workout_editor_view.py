@@ -132,7 +132,6 @@ class WorkoutEditorView(QWidget):
         cur = self.combo_member.currentData()
         self.combo_member.blockSignals(True)
         self.combo_member.clear()
-        self.combo_member.addItem("--- انتخاب ورزشکار ---", None)
         members = MemberService.get_all_members(status_filter="active")
         for m in members:
             self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
@@ -140,6 +139,10 @@ class WorkoutEditorView(QWidget):
             idx = self.combo_member.findData(cur)
             if idx >= 0:
                 self.combo_member.setCurrentIndex(idx)
+            else:
+                self.combo_member.set_empty()
+        else:
+            self.combo_member.set_empty()
         self.combo_member.blockSignals(False)
 
     def set_selected_member(self, member_id: int):

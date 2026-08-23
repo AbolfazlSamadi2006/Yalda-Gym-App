@@ -64,10 +64,10 @@ class AssignTemplateDialog(QDialog):
 
     def load_members(self):
         self.combo_member.clear()
-        self.combo_member.addItem("--- انتخاب ورزشکار ---", None)
-        members = MemberService.get_all_members()
+        members = MemberService.get_all_members(status_filter="active")
         for m in members:
-            self.combo_member.addItem(f"👤 {m.full_name} ({m.phone})", m.id)
+            self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
+        self.combo_member.set_empty()
 
     def assign(self):
         member_id = self.combo_member.currentData()

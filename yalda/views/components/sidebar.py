@@ -29,7 +29,7 @@ class Sidebar(QFrame):
                 font-size: 14px;
             }
             QPushButton:hover {
-                background-color: #222222;
+                background-color: #8B0000;
                 color: #FFFFFF;
             }
             QPushButton[active="true"] {
@@ -80,7 +80,6 @@ class Sidebar(QFrame):
             ("templates", "📋  مدیریت الگوها"),
             ("exercises", "🏃  بانک حرکات ورزشی"),
             ("foods", "🍎  بانک مواد غذایی"),
-            ("developer", "👨‍💻  درباره برنامه‌نویس"),
             ("backup", "💾  تنظیمات و پشتیبان‌گیری")
         ]
 
@@ -124,7 +123,12 @@ class Sidebar(QFrame):
         layout.addWidget(self.notification_frame)
         self.notification_frame.setVisible(False)
 
-
+        # About Developer Button (Placed above logout button)
+        btn_dev = QPushButton("👨‍💻  درباره برنامه‌نویس")
+        btn_dev.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_dev.clicked.connect(lambda: self.navigate("developer"))
+        layout.addWidget(btn_dev)
+        self.buttons["developer"] = btn_dev
 
         # Logout Button
         btn_logout = QPushButton("🚪  خروج از حساب")

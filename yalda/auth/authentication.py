@@ -76,6 +76,7 @@ def get_developer_info() -> dict:
         "phone": "09336427711",
         "email": "a.samadi2006@gmail.com",
         "github": "github.com/AbolfazlSamadi2006",
+        "telegram": "t.me/AqaSamadi",
         "photo_path": default_photo
     }
 

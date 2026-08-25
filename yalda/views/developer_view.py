@@ -67,6 +67,11 @@ class DeveloperView(QWidget):
         self.lbl_dev_email.setTextInteractionFlags(SELECTABLE_FLAGS)
         self.lbl_dev_email.setStyleSheet("font-size: 14px; color: #DDDDDD;")
 
+        self.lbl_dev_telegram = QLabel()
+        self.lbl_dev_telegram.setOpenExternalLinks(True)
+        self.lbl_dev_telegram.setTextInteractionFlags(SELECTABLE_FLAGS)
+        self.lbl_dev_telegram.setStyleSheet("font-size: 14px; color: #DDDDDD;")
+
         self.lbl_dev_github = QLabel()
         self.lbl_dev_github.setOpenExternalLinks(True)
         self.lbl_dev_github.setTextInteractionFlags(SELECTABLE_FLAGS)
@@ -76,6 +81,7 @@ class DeveloperView(QWidget):
         v_info.addWidget(self.lbl_dev_role)
         v_info.addWidget(self.lbl_dev_phone)
         v_info.addWidget(self.lbl_dev_email)
+        v_info.addWidget(self.lbl_dev_telegram)
         v_info.addWidget(self.lbl_dev_github)
 
         layout_card.addWidget(self.lbl_dev_photo)
@@ -163,11 +169,15 @@ class DeveloperView(QWidget):
         grid_dev.addWidget(QLabel("ایمیل:"), 1, 3)
         grid_dev.addWidget(self.txt_dev_email, 1, 4)
 
+        self.txt_dev_telegram = QLineEdit()
+        self.txt_dev_telegram.setFixedHeight(36)
         self.txt_dev_github = QLineEdit()
         self.txt_dev_github.setFixedHeight(36)
 
-        grid_dev.addWidget(QLabel("آدرس گیت‌هاب:"), 2, 1)
-        grid_dev.addWidget(self.txt_dev_github, 2, 2, 1, 3)
+        grid_dev.addWidget(QLabel("آیدی تلگرام:"), 2, 1)
+        grid_dev.addWidget(self.txt_dev_telegram, 2, 2)
+        grid_dev.addWidget(QLabel("آدرس گیت‌هاب:"), 2, 3)
+        grid_dev.addWidget(self.txt_dev_github, 2, 4)
 
         layout_dev_edit.addLayout(grid_dev)
 
@@ -218,6 +228,7 @@ class DeveloperView(QWidget):
             "last_name": self.txt_dev_lname.text().strip(),
             "phone": self.txt_dev_phone.text().strip(),
             "email": self.txt_dev_email.text().strip(),
+            "telegram": self.txt_dev_telegram.text().strip(),
             "github": self.txt_dev_github.text().strip(),
         }
         if self.selected_dev_photo_path:
@@ -250,6 +261,7 @@ class DeveloperView(QWidget):
         lname = info.get("last_name", "صمدی کوچکسرائی")
         phone = info.get("phone", "09336427711")
         email = info.get("email", "a.samadi2006@gmail.com")
+        telegram = info.get("telegram", "t.me/AqaSamadi")
         github = info.get("github", "github.com/AbolfazlSamadi2006")
         photo_path = info.get("photo_path")
 
@@ -258,9 +270,13 @@ class DeveloperView(QWidget):
 
         self.lbl_dev_email.setText(f'✉️ پست الکترونیک: <a href="mailto:{email}" style="color: #60A5FA; text-decoration: underline;">{email}</a>')
 
+        tg_clean = telegram.replace("https://", "").replace("http://", "").replace("t.me/", "").replace("@", "").strip()
+        tg_url = f"https://t.me/{tg_clean}" if tg_clean else "https://t.me/AqaSamadi"
+        tg_display = f"t.me/{tg_clean}" if tg_clean else "t.me/AqaSamadi"
+        self.lbl_dev_telegram.setText(f'✈️ تلگرام: <a href="{tg_url}" style="color: #60A5FA; text-decoration: underline;">{tg_display}</a>')
+
         github_url = github if github.startswith("http") else f"https://{github}"
         self.lbl_dev_github.setText(f'🐙 گیت‌هاب: <a href="{github_url}" style="color: #60A5FA; text-decoration: underline;">{github}</a>')
-
 
         if photo_path and os.path.exists(photo_path):
             pixmap = QPixmap(photo_path)
@@ -297,6 +313,7 @@ class DeveloperView(QWidget):
             self.txt_dev_lname.setText(lname)
             self.txt_dev_phone.setText(phone)
             self.txt_dev_email.setText(email)
+            self.txt_dev_telegram.setText(telegram)
             self.txt_dev_github.setText(github)
             self.selected_dev_photo_path = photo_path
             if photo_path and os.path.exists(photo_path):

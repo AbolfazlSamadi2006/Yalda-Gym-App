@@ -223,17 +223,17 @@ class BackupView(QWidget):
         self.table_trainers.setHorizontalHeaderLabels(["ردیف", "نام و نام خانوادگی مربی", "نام کاربری", "شماره تماس", "تعداد شاگردان", "عملیات"])
         header_tr = self.table_trainers.horizontalHeader()
         header_tr.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table_trainers.setColumnWidth(0, 50)
+        self.table_trainers.setColumnWidth(0, 55)
         header_tr.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.table_trainers.setColumnWidth(2, 130)
-        self.table_trainers.setColumnWidth(3, 130)
-        self.table_trainers.setColumnWidth(4, 110)
-        self.table_trainers.setColumnWidth(5, 190)
+        self.table_trainers.setColumnWidth(2, 160)
+        self.table_trainers.setColumnWidth(3, 160)
+        self.table_trainers.setColumnWidth(4, 140)
+        self.table_trainers.setColumnWidth(5, 200)
         self.table_trainers.verticalHeader().setVisible(False)
-        self.table_trainers.verticalHeader().setDefaultSectionSize(44)
+        self.table_trainers.verticalHeader().setDefaultSectionSize(54)
         self.table_trainers.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_trainers.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table_trainers.setMinimumHeight(180)
+        self.table_trainers.setMinimumHeight(200)
         layout_adm.addWidget(self.table_trainers)
 
         layout.addWidget(self.box_admin_trainers)
@@ -396,20 +396,20 @@ class BackupView(QWidget):
             action_w = QWidget()
             action_w.setStyleSheet("background: transparent;")
             action_l = QHBoxLayout(action_w)
-            action_l.setContentsMargins(6, 4, 6, 4)
+            action_l.setContentsMargins(8, 6, 8, 6)
             action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
             btn_del = QPushButton("🗑️ حذف مربی و شاگردان")
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn_del.setFixedHeight(30)
+            btn_del.setFixedHeight(34)
             btn_del.setStyleSheet("""
                 QPushButton {
                     background-color: transparent;
                     color: #EF4444;
                     border: 1px solid #DC2626;
-                    border-radius: 5px;
+                    border-radius: 6px;
                     font-weight: bold;
-                    padding: 2px 10px;
+                    padding: 4px 14px;
                     font-size: 12px;
                 }
                 QPushButton:hover {

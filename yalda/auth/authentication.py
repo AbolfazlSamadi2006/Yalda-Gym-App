@@ -1,5 +1,5 @@
 from datetime import datetime
-from yalda.database.connection import get_session
+from yalda.database.connection import get_session, mark_data_changed
 from yalda.models.database_models import User, SystemSetting
 from yalda.utils.security import verify_password, hash_password
 
@@ -104,6 +104,7 @@ def set_developer_info(data: dict):
             else:
                 setting.value = str(v) if v is not None else ""
         session.commit()
+        mark_data_changed()
     except Exception as e:
         session.rollback()
         raise e
@@ -217,6 +218,7 @@ def register_trainer(first_name: str, last_name: str, phone: str, birth_date_sha
         session.add(new_trainer)
         session.commit()
         session.refresh(new_trainer)
+        mark_data_changed()
         return new_trainer
     except Exception as e:
         session.rollback()
@@ -282,6 +284,7 @@ def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone:
             user.recovery_code = normalize_digits(recovery_code)
 
         session.commit()
+        mark_data_changed()
         # update current user session object
         if CurrentUser.get() and CurrentUser.get().id == user_id:
             CurrentUser.set(user)
@@ -353,6 +356,7 @@ def delete_trainer_account(user_id: int) -> bool:
         # 4. Delete the User record
         session.delete(user)
         session.commit()
+        mark_data_changed()
 
         # 5. Overwrite/Sync local backup
         try:

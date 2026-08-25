@@ -1,5 +1,5 @@
 from sqlalchemy.orm import joinedload, selectinload
-from yalda.database.connection import get_session
+from yalda.database.connection import get_session, mark_data_changed
 from yalda.models.database_models import (
     Exercise, WorkoutPlan, WorkoutDay, WorkoutExercise, WorkoutAssignment, Member, HealthRecord
 )
@@ -40,6 +40,7 @@ class WorkoutService:
             )
             session.add(ex)
             session.commit()
+            mark_data_changed()
             return ex
         finally:
             session.close()
@@ -55,6 +56,7 @@ class WorkoutService:
                 if hasattr(ex, key):
                     setattr(ex, key, val)
             session.commit()
+            mark_data_changed()
             return ex
         finally:
             session.close()
@@ -139,6 +141,7 @@ class WorkoutService:
                     session.add(w_ex)
 
             session.commit()
+            mark_data_changed()
             return plan
         except Exception as e:
             session.rollback()
@@ -205,6 +208,7 @@ class WorkoutService:
             )
             session.add(assignment)
             session.commit()
+            mark_data_changed()
             return assignment
         finally:
             session.close()
@@ -240,6 +244,7 @@ class WorkoutService:
             if ex:
                 session.delete(ex)
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         except Exception as e:
@@ -266,6 +271,7 @@ class WorkoutService:
                         session.delete(orphan_plan)
 
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         except Exception as e:
@@ -317,6 +323,7 @@ class WorkoutService:
                     session.add(w_ex)
 
             session.commit()
+            mark_data_changed()
             return plan
         except Exception as e:
             session.rollback()
@@ -335,6 +342,7 @@ class WorkoutService:
                 # Delete plan (SQLAlchemy cascade deletes days and exercises)
                 session.delete(plan)
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         except Exception as e:

@@ -1,4 +1,4 @@
-from yalda.database.connection import get_session
+from yalda.database.connection import get_session, mark_data_changed
 from yalda.models.database_models import PhysicalAssessment, Member
 from yalda.utils.jalali_date import get_today_shamsi
 
@@ -37,6 +37,7 @@ class AssessmentService:
             )
             session.add(assessment)
             session.commit()
+            mark_data_changed()
             return assessment
         finally:
             session.close()
@@ -114,6 +115,7 @@ class AssessmentService:
                 assessment.after_photo_path = data["after_photo_path"]
             
             session.commit()
+            mark_data_changed()
             return True
         finally:
             session.close()
@@ -126,6 +128,7 @@ class AssessmentService:
             if assessment:
                 session.delete(assessment)
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         finally:

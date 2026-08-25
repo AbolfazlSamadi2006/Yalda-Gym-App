@@ -1,5 +1,5 @@
 from sqlalchemy.orm import joinedload, selectinload
-from yalda.database.connection import get_session
+from yalda.database.connection import get_session, mark_data_changed
 from yalda.models.database_models import (
     FoodItem, NutritionPlan, MealPlan, MealItem, NutritionAssignment
 )
@@ -36,6 +36,7 @@ class NutritionService:
             )
             session.add(food)
             session.commit()
+            mark_data_changed()
             return food
         finally:
             session.close()
@@ -51,6 +52,7 @@ class NutritionService:
                 if hasattr(food, key):
                     setattr(food, key, val)
             session.commit()
+            mark_data_changed()
             return food
         finally:
             session.close()
@@ -130,6 +132,7 @@ class NutritionService:
                     session.add(m_item)
 
             session.commit()
+            mark_data_changed()
             return plan
         except Exception as e:
             session.rollback()
@@ -158,6 +161,7 @@ class NutritionService:
             )
             session.add(assignment)
             session.commit()
+            mark_data_changed()
             return assignment
         finally:
             session.close()
@@ -193,6 +197,7 @@ class NutritionService:
             if food:
                 session.delete(food)
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         except Exception as e:
@@ -219,6 +224,7 @@ class NutritionService:
                         session.delete(orphan_plan)
 
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         except Exception as e:
@@ -266,6 +272,7 @@ class NutritionService:
                     session.add(m_item)
 
             session.commit()
+            mark_data_changed()
             return plan
         except Exception as e:
             session.rollback()
@@ -284,6 +291,7 @@ class NutritionService:
                 # Delete plan (SQLAlchemy cascade deletes meals and meal items)
                 session.delete(plan)
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         except Exception as e:

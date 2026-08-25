@@ -20,12 +20,6 @@ def has_data_changed() -> bool:
     global _session_has_changes
     return _session_has_changes
 
-@event.listens_for(SessionLocal, 'after_flush')
-def receive_after_flush(session, flush_context):
-    global _session_has_changes
-    if session.new or session.dirty or session.deleted:
-        _session_has_changes = True
-
 def get_session():
     """Returns a new SQLAlchemy session."""
     return SessionLocal()

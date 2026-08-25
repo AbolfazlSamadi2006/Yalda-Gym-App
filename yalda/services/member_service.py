@@ -1,4 +1,4 @@
-from yalda.database.connection import get_session
+from yalda.database.connection import get_session, mark_data_changed
 from yalda.models.database_models import Member, HealthRecord, MedicalDocument
 from yalda.utils.jalali_date import get_today_shamsi, is_membership_active
 from sqlalchemy import or_
@@ -43,7 +43,6 @@ class MemberService:
                         m.status = "active"
                     else:
                         m.status = "expired"
-            session.commit()
             return members
         finally:
             session.close()
@@ -61,7 +60,6 @@ class MemberService:
                         member.status = "active"
                     else:
                         member.status = "expired"
-                session.commit()
             return member
         finally:
             session.close()
@@ -116,6 +114,7 @@ class MemberService:
             session.add(health_rec)
 
             session.commit()
+            mark_data_changed()
             return member
         except Exception as e:
             session.rollback()
@@ -144,6 +143,7 @@ class MemberService:
                     member.status = "expired"
 
             session.commit()
+            mark_data_changed()
             return member
         finally:
             session.close()
@@ -182,6 +182,7 @@ class MemberService:
                             session.delete(orphan_n)
 
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         except Exception as e:
@@ -217,6 +218,7 @@ class MemberService:
                     setattr(rec, key, val)
             
             session.commit()
+            mark_data_changed()
             return rec
         finally:
             session.close()
@@ -247,6 +249,7 @@ class MemberService:
             )
             session.add(doc)
             session.commit()
+            mark_data_changed()
             return doc
         finally:
             session.close()
@@ -259,6 +262,7 @@ class MemberService:
             if doc:
                 session.delete(doc)
                 session.commit()
+                mark_data_changed()
                 return True
             return False
         finally:

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog, QMessageBox, QGroupBox, QGridLayout, QComboBox, QFrame, QDialog
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog, QMessageBox, QGroupBox, QGridLayout, QComboBox, QFrame, QDialog, QScrollArea
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
@@ -29,7 +29,17 @@ class BackupView(QWidget):
         self.load_all_data()
 
     def init_ui(self):
-        layout = QVBoxLayout(self)
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
+
+        container = QWidget()
+        container.setStyleSheet("background-color: transparent;")
+        layout = QVBoxLayout(container)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
@@ -211,9 +221,19 @@ class BackupView(QWidget):
         self.table_trainers = QTableWidget()
         self.table_trainers.setColumnCount(6)
         self.table_trainers.setHorizontalHeaderLabels(["ردیف", "نام و نام خانوادگی مربی", "نام کاربری", "شماره تماس", "تعداد شاگردان", "عملیات"])
-        self.table_trainers.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        header_tr = self.table_trainers.horizontalHeader()
+        header_tr.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table_trainers.setColumnWidth(0, 50)
+        header_tr.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table_trainers.setColumnWidth(2, 130)
+        self.table_trainers.setColumnWidth(3, 130)
+        self.table_trainers.setColumnWidth(4, 110)
+        self.table_trainers.setColumnWidth(5, 190)
+        self.table_trainers.verticalHeader().setVisible(False)
+        self.table_trainers.verticalHeader().setDefaultSectionSize(44)
         self.table_trainers.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_trainers.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table_trainers.setMinimumHeight(180)
         layout_adm.addWidget(self.table_trainers)
 
         layout.addWidget(self.box_admin_trainers)
@@ -276,17 +296,22 @@ class BackupView(QWidget):
         self.table.setHorizontalHeaderLabels(["ردیف", "نام فایل پشتیبان", "تاریخ و زمان ثبت (شمسی)", "حجم فایل", "عملیات"])
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table.setColumnWidth(0, 45)
+        self.table.setColumnWidth(0, 50)
         header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.setColumnWidth(2, 175)
         self.table.setColumnWidth(3, 90)
-        self.table.setColumnWidth(4, 180)
+        self.table.setColumnWidth(4, 190)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(44)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.table.setMinimumHeight(270)
 
         layout.addWidget(self.table)
+
+        scroll_area.setWidget(container)
+        main_layout.addWidget(scroll_area)
+
         self.load_all_data()
 
     def toggle_eye(self, field: QLineEdit, button: QPushButton):
@@ -363,16 +388,29 @@ class BackupView(QWidget):
             self.table_trainers.setItem(row, 3, QTableWidgetItem(t["phone"]))
             self.table_trainers.setItem(row, 4, QTableWidgetItem(f"{t['member_count']} نفر"))
 
+            for c in (0, 2, 3, 4):
+                item = self.table_trainers.item(row, c)
+                if item:
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+
+            action_w = QWidget()
+            action_w.setStyleSheet("background: transparent;")
+            action_l = QHBoxLayout(action_w)
+            action_l.setContentsMargins(6, 4, 6, 4)
+            action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
             btn_del = QPushButton("🗑️ حذف مربی و شاگردان")
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_del.setFixedHeight(30)
             btn_del.setStyleSheet("""
                 QPushButton {
                     background-color: transparent;
                     color: #EF4444;
                     border: 1px solid #DC2626;
-                    border-radius: 4px;
+                    border-radius: 5px;
                     font-weight: bold;
-                    padding: 4px 8px;
+                    padding: 2px 10px;
+                    font-size: 12px;
                 }
                 QPushButton:hover {
                     background-color: #DC2626;
@@ -380,7 +418,8 @@ class BackupView(QWidget):
                 }
             """)
             btn_del.clicked.connect(lambda _, t_id=t["id"], t_name=t["full_name"], m_cnt=t["member_count"]: self.admin_delete_trainer(t_id, t_name, m_cnt))
-            self.table_trainers.setCellWidget(row, 5, btn_del)
+            action_l.addWidget(btn_del)
+            self.table_trainers.setCellWidget(row, 5, action_w)
 
     def admin_delete_trainer(self, trainer_id: int, trainer_name: str, member_count: int):
         reply1 = QMessageBox.warning(

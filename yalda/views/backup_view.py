@@ -250,6 +250,24 @@ class BackupView(QWidget):
         btn_create = QPushButton("⚡ ایجاد فایل پشتیبان جدید")
         btn_create.setFixedSize(220, 42)
         btn_create.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_create.setStyleSheet("""
+            QPushButton {
+                background-color: #8B0000;
+                color: #FFFFFF;
+                border: 1px solid #A91D22;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+                padding: 6px 14px;
+            }
+            QPushButton:hover {
+                background-color: #A00000;
+                border: 1px solid #DC2626;
+            }
+            QPushButton:pressed {
+                background-color: #700000;
+            }
+        """)
         btn_create.clicked.connect(self.create_backup)
 
         layout_act.addWidget(lbl_desc)
@@ -281,8 +299,22 @@ class BackupView(QWidget):
         btn_restore_cloud.clicked.connect(self.open_cloud_restore_dialog)
 
         btn_restore_file = QPushButton("📁 بازگردانی از فایل خارجی...")
-        btn_restore_file.setObjectName("secondary_button")
         btn_restore_file.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_restore_file.setStyleSheet("""
+            QPushButton {
+                background-color: #262626;
+                color: #FFFFFF;
+                border: 1px solid #3F3F46;
+                border-radius: 6px;
+                padding: 6px 12px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #333333;
+                border: 1px solid #71717A;
+            }
+        """)
         btn_restore_file.clicked.connect(self.restore_from_file)
 
         row_table_header.addWidget(lbl_table)

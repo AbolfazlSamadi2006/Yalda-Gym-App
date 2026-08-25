@@ -153,6 +153,9 @@ class MainWindow(QMainWindow):
 
     def refresh_on_login(self):
         """Refreshes sidebar, resets active index to Dashboard, and loads dashboard data instantly."""
+        from yalda.database.connection import reset_data_changed
+        reset_data_changed()
+
         if hasattr(self, 'sidebar'):
             self.sidebar.navigate("dashboard")
 
@@ -191,13 +194,22 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(idx)
 
     def logout(self):
-        dialog = ExitBackupDialog(self, is_logout=True)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
+        from yalda.database.connection import has_data_changed, reset_data_changed
+        if has_data_changed():
+            dialog = ExitBackupDialog(self, is_logout=True)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                reset_data_changed()
+                CurrentUser.logout()
+                self.logout_signal.emit()
+                self.hide()
+        else:
             CurrentUser.logout()
             self.logout_signal.emit()
             self.hide()
 
     def on_account_deleted(self):
+        from yalda.database.connection import reset_data_changed
+        reset_data_changed()
         CurrentUser.logout()
         self.logout_signal.emit()
         self.hide()
@@ -208,8 +220,13 @@ class MainWindow(QMainWindow):
             event.accept()
             return
 
-        dialog = ExitBackupDialog(self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            event.accept()
+        from yalda.database.connection import has_data_changed, reset_data_changed
+        if has_data_changed():
+            dialog = ExitBackupDialog(self)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                reset_data_changed()
+                event.accept()
+            else:
+                event.ignore()
         else:
-            event.ignore()
+            event.accept()

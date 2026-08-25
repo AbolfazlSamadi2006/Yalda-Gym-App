@@ -1,10 +1,30 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, scoped_session
 import config
 from yalda.models.database_models import Base
 
 engine = create_engine(config.DATABASE_URI, echo=False, connect_args={"check_same_thread": False})
 SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine, expire_on_commit=False))
+
+_session_has_changes = False
+
+def mark_data_changed():
+    global _session_has_changes
+    _session_has_changes = True
+
+def reset_data_changed():
+    global _session_has_changes
+    _session_has_changes = False
+
+def has_data_changed() -> bool:
+    global _session_has_changes
+    return _session_has_changes
+
+@event.listens_for(SessionLocal, 'after_flush')
+def receive_after_flush(session, flush_context):
+    global _session_has_changes
+    if session.new or session.dirty or session.deleted:
+        _session_has_changes = True
 
 def get_session():
     """Returns a new SQLAlchemy session."""

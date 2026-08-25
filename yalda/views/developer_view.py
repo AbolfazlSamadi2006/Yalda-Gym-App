@@ -58,31 +58,79 @@ class DeveloperView(QWidget):
         self.lbl_dev_role.setTextInteractionFlags(SELECTABLE_FLAGS)
         self.lbl_dev_role.setStyleSheet("font-size: 13px; color: #E53E3E; font-weight: bold;")
 
-        self.lbl_dev_phone = QLabel("📞 شماره همراه: 09336427711")
+        v_info.addWidget(self.lbl_dev_full_name)
+        v_info.addWidget(self.lbl_dev_role)
+        v_info.addSpacing(6)
+
+        icons_dir = config.BASE_DIR / "resources" / "images" / "icons"
+
+        # Row 1: Phone
+        row_phone = QHBoxLayout()
+        row_phone.setSpacing(10)
+        self.ico_phone = QLabel()
+        self.ico_phone.setFixedSize(22, 22)
+        phone_pix = QPixmap(str(icons_dir / "hd_icon_phone.png"))
+        if not phone_pix.isNull():
+            self.ico_phone.setPixmap(phone_pix.scaled(22, 22, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        self.lbl_dev_phone = QLabel()
         self.lbl_dev_phone.setTextInteractionFlags(SELECTABLE_FLAGS)
         self.lbl_dev_phone.setStyleSheet("font-size: 14px; color: #DDDDDD;")
+        row_phone.addWidget(self.ico_phone)
+        row_phone.addWidget(self.lbl_dev_phone)
+        row_phone.addStretch()
 
+        # Row 2: Email (Gmail)
+        row_email = QHBoxLayout()
+        row_email.setSpacing(10)
+        self.ico_email = QLabel()
+        self.ico_email.setFixedSize(22, 22)
+        email_pix = QPixmap(str(icons_dir / "hd_icon_gmail.png"))
+        if not email_pix.isNull():
+            self.ico_email.setPixmap(email_pix.scaled(22, 22, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         self.lbl_dev_email = QLabel()
         self.lbl_dev_email.setOpenExternalLinks(True)
         self.lbl_dev_email.setTextInteractionFlags(SELECTABLE_FLAGS)
         self.lbl_dev_email.setStyleSheet("font-size: 14px; color: #DDDDDD;")
+        row_email.addWidget(self.ico_email)
+        row_email.addWidget(self.lbl_dev_email)
+        row_email.addStretch()
 
+        # Row 3: Telegram
+        row_telegram = QHBoxLayout()
+        row_telegram.setSpacing(10)
+        self.ico_telegram = QLabel()
+        self.ico_telegram.setFixedSize(22, 22)
+        tg_pix = QPixmap(str(icons_dir / "hd_icon_telegram.png"))
+        if not tg_pix.isNull():
+            self.ico_telegram.setPixmap(tg_pix.scaled(22, 22, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         self.lbl_dev_telegram = QLabel()
         self.lbl_dev_telegram.setOpenExternalLinks(True)
         self.lbl_dev_telegram.setTextInteractionFlags(SELECTABLE_FLAGS)
         self.lbl_dev_telegram.setStyleSheet("font-size: 14px; color: #DDDDDD;")
+        row_telegram.addWidget(self.ico_telegram)
+        row_telegram.addWidget(self.lbl_dev_telegram)
+        row_telegram.addStretch()
 
+        # Row 4: GitHub
+        row_github = QHBoxLayout()
+        row_github.setSpacing(10)
+        self.ico_github = QLabel()
+        self.ico_github.setFixedSize(22, 22)
+        gh_pix = QPixmap(str(icons_dir / "hd_icon_github.png"))
+        if not gh_pix.isNull():
+            self.ico_github.setPixmap(gh_pix.scaled(22, 22, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
         self.lbl_dev_github = QLabel()
         self.lbl_dev_github.setOpenExternalLinks(True)
         self.lbl_dev_github.setTextInteractionFlags(SELECTABLE_FLAGS)
         self.lbl_dev_github.setStyleSheet("font-size: 14px; color: #DDDDDD;")
+        row_github.addWidget(self.ico_github)
+        row_github.addWidget(self.lbl_dev_github)
+        row_github.addStretch()
 
-        v_info.addWidget(self.lbl_dev_full_name)
-        v_info.addWidget(self.lbl_dev_role)
-        v_info.addWidget(self.lbl_dev_phone)
-        v_info.addWidget(self.lbl_dev_email)
-        v_info.addWidget(self.lbl_dev_telegram)
-        v_info.addWidget(self.lbl_dev_github)
+        v_info.addLayout(row_phone)
+        v_info.addLayout(row_email)
+        v_info.addLayout(row_telegram)
+        v_info.addLayout(row_github)
 
         layout_card.addWidget(self.lbl_dev_photo)
         layout_card.addLayout(v_info)
@@ -266,17 +314,17 @@ class DeveloperView(QWidget):
         photo_path = info.get("photo_path")
 
         self.lbl_dev_full_name.setText(f"{fname} {lname}".strip())
-        self.lbl_dev_phone.setText(f"📞 شماره همراه: {phone}")
+        self.lbl_dev_phone.setText(f"شماره همراه: {phone}")
 
-        self.lbl_dev_email.setText(f'✉️ پست الکترونیک: <a href="mailto:{email}" style="color: #60A5FA; text-decoration: underline;">{email}</a>')
+        self.lbl_dev_email.setText(f'پست الکترونیک (جیمیل): <a href="mailto:{email}" style="color: #60A5FA; text-decoration: underline;">{email}</a>')
 
         tg_clean = telegram.replace("https://", "").replace("http://", "").replace("t.me/", "").replace("@", "").strip()
         tg_url = f"https://t.me/{tg_clean}" if tg_clean else "https://t.me/AqaSamadi"
         tg_display = f"t.me/{tg_clean}" if tg_clean else "t.me/AqaSamadi"
-        self.lbl_dev_telegram.setText(f'✈️ تلگرام: <a href="{tg_url}" style="color: #60A5FA; text-decoration: underline;">{tg_display}</a>')
+        self.lbl_dev_telegram.setText(f'تلگرام: <a href="{tg_url}" style="color: #60A5FA; text-decoration: underline;">{tg_display}</a>')
 
         github_url = github if github.startswith("http") else f"https://{github}"
-        self.lbl_dev_github.setText(f'🐙 گیت‌هاب: <a href="{github_url}" style="color: #60A5FA; text-decoration: underline;">{github}</a>')
+        self.lbl_dev_github.setText(f'گیت‌هاب: <a href="{github_url}" style="color: #60A5FA; text-decoration: underline;">{github}</a>')
 
         if photo_path and os.path.exists(photo_path):
             pixmap = QPixmap(photo_path)

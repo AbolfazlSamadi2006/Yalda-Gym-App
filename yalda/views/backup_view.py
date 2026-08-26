@@ -505,10 +505,9 @@ class BackupView(QWidget):
                 birth_date_shamsi=birth_date,
                 photo_path=self.selected_photo_path,
                 username=username,
-                new_password=password if password else None,
+                password=password if password else None,
                 recovery_code=recovery_code if recovery_code else None
             )
-            QMessageBox.information(self, "موفقیت", "اطلاعات مربی با موفقیت به‌روزرسانی شد.")
             QMessageBox.information(self, "موفقیت", "اطلاعات مربی با موفقیت به‌روزرسانی شد.")
             self.load_all_data()
         except Exception as e:

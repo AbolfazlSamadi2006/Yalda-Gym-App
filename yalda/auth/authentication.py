@@ -249,7 +249,7 @@ def get_all_trainers() -> list:
     finally:
         session.close()
 
-def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone: str, birth_date_shamsi: str, photo_path: str, username: str, password: str = None, recovery_code: str = None) -> bool:
+def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone: str, birth_date_shamsi: str, photo_path: str, username: str, password: str = None, recovery_code: str = None, new_password: str = None) -> bool:
     """Updates trainer's profile and credentials."""
     session = get_session()
     try:
@@ -278,8 +278,9 @@ def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone:
         if photo_path is not None:
             user.photo_path = photo_path
 
-        if password:
-            user.password_hash = hash_password(password.strip())
+        effective_password = password or new_password
+        if effective_password:
+            user.password_hash = hash_password(effective_password.strip())
         if recovery_code:
             user.recovery_code = normalize_digits(recovery_code)
 

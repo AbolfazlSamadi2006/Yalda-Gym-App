@@ -230,19 +230,44 @@ class DeveloperView(QWidget):
 
         layout_dev_edit.addLayout(grid_dev)
 
-        btn_save_dev = QPushButton("💾 ذخیره تغییرات اطلاعات برنامه‌نویس")
-        btn_save_dev.setFixedHeight(38)
-        btn_save_dev.setFixedWidth(240)
-        btn_save_dev.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_save_dev.setStyleSheet("""
+        self.btn_save_dev = QPushButton("💾 ذخیره تغییرات اطلاعات برنامه‌نویس")
+        self.btn_save_dev.setFixedHeight(38)
+        self.btn_save_dev.setFixedWidth(240)
+        self.btn_save_dev.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_save_dev.setStyleSheet("""
             QPushButton { background-color: #065F46; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; }
             QPushButton:hover { background-color: #047857; }
+            QPushButton:disabled { background-color: #2D2D2D; color: #777777; border: 1px solid #444444; }
         """)
-        btn_save_dev.clicked.connect(self.save_dev_info)
-        layout_dev_edit.addWidget(btn_save_dev, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.btn_save_dev.setEnabled(False)
+        self.btn_save_dev.clicked.connect(self.save_dev_info)
+        layout_dev_edit.addWidget(self.btn_save_dev, alignment=Qt.AlignmentFlag.AlignLeft)
+
+        # Connect listeners to detect dev info changes
+        self.txt_dev_fname.textChanged.connect(self.check_dev_dirty)
+        self.txt_dev_lname.textChanged.connect(self.check_dev_dirty)
+        self.txt_dev_phone.textChanged.connect(self.check_dev_dirty)
+        self.txt_dev_email.textChanged.connect(self.check_dev_dirty)
+        self.txt_dev_telegram.textChanged.connect(self.check_dev_dirty)
+        self.txt_dev_github.textChanged.connect(self.check_dev_dirty)
 
         layout.addWidget(self.dev_edit_box)
         layout.addStretch()
+
+    def check_dev_dirty(self):
+        if getattr(self, "_loading_dev", False):
+            return
+        current = {
+            "first_name": self.txt_dev_fname.text().strip(),
+            "last_name": self.txt_dev_lname.text().strip(),
+            "phone": self.txt_dev_phone.text().strip(),
+            "email": self.txt_dev_email.text().strip(),
+            "telegram": self.txt_dev_telegram.text().strip(),
+            "github": self.txt_dev_github.text().strip(),
+            "photo_path": self.selected_dev_photo_path or ""
+        }
+        is_dirty = (current != getattr(self, "_baseline_dev", {}))
+        self.btn_save_dev.setEnabled(is_dirty)
 
     def choose_dev_photo(self):
         from yalda.utils.image_source_chooser import get_image_file_path
@@ -266,6 +291,7 @@ class DeveloperView(QWidget):
             self.lbl_dev_photo_edit.setPixmap(circ)
             self.lbl_dev_photo_edit.setText("")
             self.lbl_dev_photo_edit.setStyleSheet("border: none; background: transparent;")
+            self.check_dev_dirty()
 
     def save_dev_info(self):
         if not CurrentUser.is_admin():
@@ -369,6 +395,7 @@ class DeveloperView(QWidget):
                 }
                 QPushButton:hover { background-color: #1D4ED8; }
             """)
+            self._loading_dev = True
             self.txt_dev_fname.setText(fname)
             self.txt_dev_lname.setText(lname)
             self.txt_dev_phone.setText(phone)
@@ -382,6 +409,18 @@ class DeveloperView(QWidget):
                 self.lbl_dev_photo_edit.setPixmap(circ_edit)
                 self.lbl_dev_photo_edit.setText("")
                 self.lbl_dev_photo_edit.setStyleSheet("border: none; background: transparent;")
+
+            self._baseline_dev = {
+                "first_name": (fname or "").strip(),
+                "last_name": (lname or "").strip(),
+                "phone": (phone or "").strip(),
+                "email": (email or "").strip(),
+                "telegram": (telegram or "").strip(),
+                "github": (github or "").strip(),
+                "photo_path": photo_path or ""
+            }
+            self._loading_dev = False
+            self.btn_save_dev.setEnabled(False)
         else:
             # Dimmed/disabled styling for non-admin trainers
             self.combo_license.setStyleSheet("""

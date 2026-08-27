@@ -172,16 +172,40 @@ class BackupView(QWidget):
         row_prof_actions = QHBoxLayout()
         row_prof_actions.setSpacing(12)
 
-        btn_save_prof = QPushButton("💾 ذخیره مشخصات مربی")
-        btn_save_prof.setFixedHeight(40)
-        btn_save_prof.setFixedWidth(200)
-        btn_save_prof.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_save_prof.setStyleSheet("""
-            QPushButton { background-color: #8B0000; color: white; border-radius: 6px; font-weight: bold; }
-            QPushButton:hover { background-color: #A00000; }
+        self.btn_save_prof = QPushButton("💾 ذخیره مشخصات مربی")
+        self.btn_save_prof.setFixedHeight(40)
+        self.btn_save_prof.setFixedWidth(200)
+        self.btn_save_prof.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_save_prof.setStyleSheet("""
+            QPushButton {
+                background-color: #8B0000;
+                color: #FFFFFF;
+                border: 1px solid #A91D22;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background-color: #A00000;
+            }
+            QPushButton:disabled {
+                background-color: #2D2D2D;
+                color: #777777;
+                border: 1px solid #444444;
+            }
         """)
-        btn_save_prof.clicked.connect(self.save_trainer_profile)
-        row_prof_actions.addWidget(btn_save_prof)
+        self.btn_save_prof.setEnabled(False)
+        self.btn_save_prof.clicked.connect(self.save_trainer_profile)
+        row_prof_actions.addWidget(self.btn_save_prof)
+
+        # Connect listeners to detect profile changes
+        self.txt_first_name.textChanged.connect(self.check_profile_dirty)
+        self.txt_last_name.textChanged.connect(self.check_profile_dirty)
+        self.txt_phone.textChanged.connect(self.check_profile_dirty)
+        self.picker_birth_date.line_edit.textChanged.connect(self.check_profile_dirty)
+        self.txt_username.textChanged.connect(self.check_profile_dirty)
+        self.txt_password.textChanged.connect(self.check_profile_dirty)
+        self.txt_recovery_code.textChanged.connect(self.check_profile_dirty)
 
         btn_del_account = QPushButton("🗑️ حذف حساب مربی و کلیه شاگردان")
         btn_del_account.setFixedHeight(40)
@@ -373,6 +397,7 @@ class BackupView(QWidget):
             shutil.copy2(temp_path, dest_path)
             self.selected_photo_path = str(dest_path)
             self.display_photo(str(dest_path))
+            self.check_profile_dirty()
 
 
     def display_photo(self, photo_path: str):
@@ -386,10 +411,28 @@ class BackupView(QWidget):
             self.lbl_trainer_photo.setText("📷 بدون عکس")
             self.lbl_trainer_photo.setStyleSheet("border: 1px dashed #666; border-radius: 32px; color: #888;")
 
+    def check_profile_dirty(self):
+        if getattr(self, "_loading_profile", False):
+            return
+
+        current = {
+            "first_name": self.txt_first_name.text().strip(),
+            "last_name": self.txt_last_name.text().strip(),
+            "phone": self.txt_phone.text().strip(),
+            "birth_date": self.picker_birth_date.get_date().strip(),
+            "username": self.txt_username.text().strip(),
+            "recovery_code": self.txt_recovery_code.text().strip(),
+            "photo_path": self.selected_photo_path or ""
+        }
+        new_pass = self.txt_password.text().strip()
+        is_dirty = bool(new_pass) or (current != getattr(self, "_baseline_profile", {}))
+        self.btn_save_prof.setEnabled(is_dirty)
+
     def load_all_data(self):
         # 1. Current trainer profile
         u = CurrentUser.get()
         if u:
+            self._loading_profile = True
             self.txt_first_name.setText(u.first_name or "")
             self.txt_last_name.setText(u.last_name or "")
             self.txt_phone.setText(u.phone or "")
@@ -399,6 +442,18 @@ class BackupView(QWidget):
             self.txt_recovery_code.setText(u.recovery_code or "")
             self.selected_photo_path = u.photo_path
             self.display_photo(u.photo_path)
+
+            self._baseline_profile = {
+                "first_name": (u.first_name or "").strip(),
+                "last_name": (u.last_name or "").strip(),
+                "phone": (u.phone or "").strip(),
+                "birth_date": (u.birth_date_shamsi or "").strip(),
+                "username": (u.username or "").strip(),
+                "recovery_code": (u.recovery_code or "").strip(),
+                "photo_path": u.photo_path or ""
+            }
+            self._loading_profile = False
+            self.btn_save_prof.setEnabled(False)
 
         # 2. Admin Trainers Box visibility
         if CurrentUser.is_admin():

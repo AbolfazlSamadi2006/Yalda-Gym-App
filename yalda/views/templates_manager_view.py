@@ -130,20 +130,15 @@ class TemplatesManagerView(QWidget):
         btn_back.setObjectName("back_button")
         btn_back.clicked.connect(self.back_requested.emit)
 
-        title_box = QVBoxLayout()
         lbl_title = QLabel("📋 بانک و مدیریت الگوهای تمرینی و غذایی")
         lbl_title.setObjectName("h1")
-        lbl_sub = QLabel("مشاهده، جستجو، ویرایش، حذف و تخصیص الگوهای ذخیره‌شده به شاگردان باشگاه")
-        lbl_sub.setStyleSheet("color: #888888; font-size: 12px;")
-        title_box.addWidget(lbl_title)
-        title_box.addWidget(lbl_sub)
 
         btn_refresh = QPushButton("🔄 به‌روزرسانی لیست")
         btn_refresh.setObjectName("secondary_button")
         btn_refresh.clicked.connect(self.load_all_templates)
 
         header.addWidget(btn_back)
-        header.addLayout(title_box)
+        header.addWidget(lbl_title)
         header.addStretch()
         header.addWidget(btn_refresh)
         layout.addLayout(header)

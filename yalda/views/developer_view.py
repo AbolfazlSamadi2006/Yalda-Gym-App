@@ -28,8 +28,8 @@ class DeveloperView(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(25, 25, 25, 25)
-        layout.setSpacing(20)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
 
         # Header Title and Back Button
         header = QHBoxLayout()

@@ -566,12 +566,12 @@ class NutritionEditorView(QWidget):
         layout_meal.setSpacing(10)
 
         row_top = QHBoxLayout()
-        btn_undo = QPushButton("↩️ واگرد (Undo)")
+        btn_undo = QPushButton("↩️ Undo")
         btn_undo.setObjectName("undo_button")
         btn_undo.setToolTip("بازگشت به مرحله قبل (Ctrl+Z)")
         btn_undo.clicked.connect(self.undo)
 
-        btn_redo = QPushButton("↪️ مجدد (Redo)")
+        btn_redo = QPushButton("↪️ Redo")
         btn_redo.setObjectName("redo_button")
         btn_redo.setToolTip("انجام مجدد مرحله بعد (Ctrl+Y)")
         btn_redo.clicked.connect(self.redo)

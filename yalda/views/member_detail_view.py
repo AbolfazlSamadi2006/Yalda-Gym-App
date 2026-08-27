@@ -278,9 +278,9 @@ class MemberDetailView(QWidget):
         btn_edit.clicked.connect(self.open_edit_dialog)
 
         header.addWidget(btn_back)
-        header.addWidget(btn_edit)
-        header.addStretch()
         header.addWidget(self.lbl_title)
+        header.addStretch()
+        header.addWidget(btn_edit)
         layout.addLayout(header)
 
         # Member Info Card

@@ -39,23 +39,22 @@ class BackupView(QWidget):
         scroll_area.setStyleSheet("QScrollArea { background-color: transparent; border: none; }")
 
         container = QWidget()
-        container.setStyleSheet("background-color: transparent;")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
         # Header Title and Actions
         header = QHBoxLayout()
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("back_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
         title = QLabel("⚙️ اطلاعات شخص مربی و پشتیبان‌گیری دیتابیس")
         title.setObjectName("h1")
 
-        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
-        btn_back.setObjectName("secondary_button")
-        btn_back.clicked.connect(self.back_requested.emit)
-
         header.addWidget(btn_back)
-        header.addStretch()
         header.addWidget(title)
+        header.addStretch()
         layout.addLayout(header)
 
         # ----------------------------------------------------

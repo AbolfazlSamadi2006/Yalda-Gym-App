@@ -127,7 +127,7 @@ class TemplatesManagerView(QWidget):
         # Header Title and Action Bar
         header = QHBoxLayout()
         btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
-        btn_back.setObjectName("secondary_button")
+        btn_back.setObjectName("back_button")
         btn_back.clicked.connect(self.back_requested.emit)
 
         title_box = QVBoxLayout()

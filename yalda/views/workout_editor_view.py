@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QGroupBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QKeySequence, QShortcut
 from yalda.services.workout_service import WorkoutService
 from yalda.services.member_service import MemberService
 from yalda.views.components.searchable_combo_box import SearchableComboBox
@@ -16,7 +17,17 @@ class WorkoutEditorView(QWidget):
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.day_tables = []
         self.editing_plan_id = None
+        self._undo_stack = []
+        self._redo_stack = []
+        self._undo_buttons = []
+        self._redo_buttons = []
+        self._is_undoing_redoing = False
         self.init_ui()
+
+        # Keyboard shortcuts
+        QShortcut(QKeySequence("Ctrl+Z"), self, self.undo)
+        QShortcut(QKeySequence("Ctrl+Y"), self, self.redo)
+        QShortcut(QKeySequence("Ctrl+Shift+Z"), self, self.redo)
 
     def showEvent(self, event):
         super().showEvent(event)
@@ -34,7 +45,7 @@ class WorkoutEditorView(QWidget):
         self.lbl_header_title.setObjectName("h1")
 
         btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
-        btn_back.setObjectName("secondary_button")
+        btn_back.setObjectName("back_button")
         btn_back.clicked.connect(self.back_requested.emit)
 
         btn_reset = QPushButton("🔄 بازنشانی تغییرات")
@@ -80,6 +91,7 @@ class WorkoutEditorView(QWidget):
         row1 = QHBoxLayout()
         self.txt_title = QLineEdit()
         self.txt_title.setPlaceholderText("عنوان برنامه (مثلاً: برنامه حجمی ۴ روزه)...")
+        self.txt_title.textEdited.connect(lambda: self._push_undo_state())
 
         self.combo_goal = QComboBox()
         self.combo_goal.addItem("هایپرتروفی (عضله‌سازی)", "hypertrophy")
@@ -88,17 +100,19 @@ class WorkoutEditorView(QWidget):
         self.combo_goal.addItem("حرکات اصلاحی و بهبود قامت", "corrective")
         self.combo_goal.addItem("آمادگی جسمانی عمومی", "general_fitness")
         self.combo_goal.addItem("استقامت عضلانی", "endurance")
+        self.combo_goal.currentIndexChanged.connect(lambda: self._push_undo_state())
 
         self.combo_days = QComboBox()
         for d in range(2, 7):
             self.combo_days.addItem(f"{d} روز در هفته", d)
         self.combo_days.setCurrentIndex(1) # Default 3 days
-        self.combo_days.currentIndexChanged.connect(self.setup_day_tabs)
+        self.combo_days.currentIndexChanged.connect(self.on_days_changed)
 
         self.combo_level = QComboBox()
         self.combo_level.addItem("مبتدی", "beginner")
         self.combo_level.addItem("متوسط", "intermediate")
         self.combo_level.addItem("پیشرفته", "advanced")
+        self.combo_level.currentIndexChanged.connect(lambda: self._push_undo_state())
 
         row1.addWidget(QLabel("عنوان:"))
         row1.addWidget(self.txt_title)
@@ -162,9 +176,15 @@ class WorkoutEditorView(QWidget):
         if idx >= 0:
             self.combo_member.setCurrentIndex(idx)
 
+    def on_days_changed(self):
+        self.setup_day_tabs()
+        self._snapshot_change()
+
     def setup_day_tabs(self):
         self.tabs.clear()
         self.day_tables.clear()
+        self._undo_buttons.clear()
+        self._redo_buttons.clear()
         num_days = self.combo_days.currentData() or 3
         exercises_list = WorkoutService.get_all_exercises()
 
@@ -176,13 +196,29 @@ class WorkoutEditorView(QWidget):
             row_top = QHBoxLayout()
             lbl_title = QLabel(f"عنوان روز {d}:")
             txt_day_title = QLineEdit(f"روز {d}: تمرین عضلات")
-            
+            txt_day_title.textEdited.connect(lambda: self._snapshot_change())
+
+            btn_undo = QPushButton("↩️ واگرد (Undo)")
+            btn_undo.setObjectName("undo_button")
+            btn_undo.setToolTip("بازگشت به مرحله قبل (Ctrl+Z)")
+            btn_undo.clicked.connect(self.undo)
+
+            btn_redo = QPushButton("↪️ مجدد (Redo)")
+            btn_redo.setObjectName("redo_button")
+            btn_redo.setToolTip("انجام مجدد مرحله بعد (Ctrl+Y)")
+            btn_redo.clicked.connect(self.redo)
+
+            self._undo_buttons.append(btn_undo)
+            self._redo_buttons.append(btn_redo)
+
             btn_add_row = QPushButton("➕ افزودن حرکت")
             btn_add_row.setObjectName("secondary_button")
 
             row_top.addWidget(lbl_title)
             row_top.addWidget(txt_day_title)
             row_top.addStretch()
+            row_top.addWidget(btn_undo)
+            row_top.addWidget(btn_redo)
             row_top.addWidget(btn_add_row)
             layout_day.addLayout(row_top)
 
@@ -214,7 +250,124 @@ class WorkoutEditorView(QWidget):
             layout_day.addWidget(table)
             self.tabs.addTab(day_widget, f"روز {d}")
             self.day_tables.append((txt_day_title, table))
-            # بدون حرکت پیش‌فرض اولیه - مربی خودش حرکات را اضافه می‌کند
+
+        self._update_undo_redo_ui()
+
+    def _capture_state(self):
+        state = {
+            "title": self.txt_title.text(),
+            "goal": self.combo_goal.currentData(),
+            "days_per_week": self.combo_days.currentData(),
+            "level": self.combo_level.currentData(),
+            "tab_index": self.tabs.currentIndex(),
+            "days": []
+        }
+        for txt_day_title, table in self.day_tables:
+            day_items = []
+            for r in range(table.rowCount()):
+                combo = table.cellWidget(r, 0)
+                ex_id = combo.currentData() if combo else None
+                ex_text = combo.currentText() if combo else ""
+                txt_sets = table.cellWidget(r, 1)
+                txt_reps = table.cellWidget(r, 2)
+                txt_weight = table.cellWidget(r, 3)
+                txt_rest = table.cellWidget(r, 4)
+                txt_tempo = table.cellWidget(r, 5)
+
+                day_items.append({
+                    "exercise_id": ex_id,
+                    "exercise_text": ex_text,
+                    "sets": txt_sets.text() if txt_sets else "3",
+                    "reps": txt_reps.text() if txt_reps else "10-12",
+                    "weight": txt_weight.text() if txt_weight else "-",
+                    "rest": txt_rest.text() if txt_rest else "60",
+                    "tempo": txt_tempo.text() if txt_tempo else "2-0-2-0"
+                })
+            state["days"].append({
+                "day_title": txt_day_title.text(),
+                "exercises": day_items
+            })
+        return state
+
+    def _snapshot_change(self):
+        if self._is_undoing_redoing or getattr(self, '_loading_plan', False):
+            return
+        new_state = self._capture_state()
+        if not hasattr(self, '_last_state') or self._last_state is None:
+            self._last_state = new_state
+            return
+        if self._last_state == new_state:
+            return
+        self._undo_stack.append(self._last_state)
+        if len(self._undo_stack) > 50:
+            self._undo_stack.pop(0)
+        self._redo_stack.clear()
+        self._last_state = new_state
+        self._update_undo_redo_ui()
+
+    def undo(self):
+        if not self._undo_stack:
+            return
+        current = self._capture_state()
+        self._redo_stack.append(current)
+        prev = self._undo_stack.pop()
+        self._restore_state(prev)
+        self._last_state = prev
+        self._update_undo_redo_ui()
+
+    def redo(self):
+        if not self._redo_stack:
+            return
+        current = self._capture_state()
+        self._undo_stack.append(current)
+        next_st = self._redo_stack.pop()
+        self._restore_state(next_st)
+        self._last_state = next_st
+        self._update_undo_redo_ui()
+
+    def _update_undo_redo_ui(self):
+        can_undo = len(self._undo_stack) > 0
+        can_redo = len(self._redo_stack) > 0
+        for btn in getattr(self, '_undo_buttons', []):
+            btn.setEnabled(can_undo)
+        for btn in getattr(self, '_redo_buttons', []):
+            btn.setEnabled(can_redo)
+
+    def _restore_state(self, state: dict):
+        self._is_undoing_redoing = True
+        try:
+            self.txt_title.setText(state.get("title", ""))
+
+            idx_g = self.combo_goal.findData(state.get("goal"))
+            if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
+
+            days_count = state.get("days_per_week", 3)
+            idx_d = self.combo_days.findData(days_count)
+            if idx_d >= 0 and self.combo_days.currentIndex() != idx_d:
+                self.combo_days.blockSignals(True)
+                self.combo_days.setCurrentIndex(idx_d)
+                self.combo_days.blockSignals(False)
+                self.setup_day_tabs()
+
+            idx_l = self.combo_level.findData(state.get("level"))
+            if idx_l >= 0: self.combo_level.setCurrentIndex(idx_l)
+
+            exercises_list = WorkoutService.get_all_exercises()
+            for idx, day_info in enumerate(state.get("days", [])):
+                if idx < len(self.day_tables):
+                    txt_day_title, table = self.day_tables[idx]
+                    txt_day_title.setText(day_info.get("day_title", f"روز {idx+1}"))
+                    table.setRowCount(0)
+                    for ex in day_info.get("exercises", []):
+                        r = table.rowCount()
+                        table.insertRow(r)
+                        self._create_exercise_row_widgets(table, r, exercises_list, ex)
+
+            tab_idx = state.get("tab_index", 0)
+            if 0 <= tab_idx < self.tabs.count():
+                self.tabs.setCurrentIndex(tab_idx)
+        finally:
+            self._is_undoing_redoing = False
 
     def refresh_editor(self):
         self.load_members_dropdown()
@@ -227,38 +380,53 @@ class WorkoutEditorView(QWidget):
                 self.combo_templates.setCurrentIndex(idx)
                 self.combo_templates.blockSignals(False)
 
-    def add_exercise_row(self, table: QTableWidget, exercises_list: list = None):
-        row = table.rowCount()
-        table.insertRow(row)
-
-        if not exercises_list:
-            exercises_list = WorkoutService.get_all_exercises()
-
+    def _create_exercise_row_widgets(self, table: QTableWidget, row: int, exercises_list: list, data: dict = None):
+        if not data:
+            data = {}
         combo_ex = SearchableComboBox(placeholder="جستجو یا تایپ نام حرکت...")
         for ex in exercises_list:
             combo_ex.addItem(f"{ex.name_fa} ({ex.primary_muscle})", ex.id)
-        combo_ex.set_empty()
 
-        txt_sets = QLineEdit("3")
+        ex_id = data.get("exercise_id")
+        if ex_id:
+            idx = combo_ex.findData(ex_id)
+            if idx >= 0:
+                combo_ex.setCurrentIndex(idx)
+            else:
+                combo_ex.set_empty()
+        elif data.get("exercise_text"):
+            combo_ex.setCurrentText(data["exercise_text"])
+        else:
+            combo_ex.set_empty()
+
+        txt_sets = QLineEdit(str(data.get("sets", "3")))
         txt_sets.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        txt_reps = QLineEdit("10-12")
+        txt_reps = QLineEdit(str(data.get("reps", "10-12")))
         txt_reps.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        txt_weight = QLineEdit("-")
+        txt_weight = QLineEdit(str(data.get("weight", "-")))
         txt_weight.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        txt_rest = QLineEdit("60")
+        txt_rest = QLineEdit(str(data.get("rest", "60")))
         txt_rest.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        txt_tempo = QLineEdit("2-0-2-0")
+        txt_tempo = QLineEdit(str(data.get("tempo", "2-0-2-0")))
         txt_tempo.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         btn_del = QPushButton("🗑️")
         btn_del.setObjectName("danger_button")
         btn_del.setToolTip("حذف حرکت ورزشی")
         btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
+        btn_del.clicked.connect(lambda _, t=table, b=btn_del: self.remove_exercise_row(t, b))
+
+        # Connect listeners to snapshot undo
+        combo_ex.currentIndexChanged.connect(lambda: self._snapshot_change())
+        txt_sets.textEdited.connect(lambda: self._snapshot_change())
+        txt_reps.textEdited.connect(lambda: self._snapshot_change())
+        txt_weight.textEdited.connect(lambda: self._snapshot_change())
+        txt_rest.textEdited.connect(lambda: self._snapshot_change())
+        txt_tempo.textEdited.connect(lambda: self._snapshot_change())
 
         table.setCellWidget(row, 0, combo_ex)
         table.setCellWidget(row, 1, txt_sets)
@@ -267,6 +435,21 @@ class WorkoutEditorView(QWidget):
         table.setCellWidget(row, 4, txt_rest)
         table.setCellWidget(row, 5, txt_tempo)
         table.setCellWidget(row, 6, btn_del)
+
+    def add_exercise_row(self, table: QTableWidget, exercises_list: list = None):
+        row = table.rowCount()
+        table.insertRow(row)
+        if not exercises_list:
+            exercises_list = WorkoutService.get_all_exercises()
+        self._create_exercise_row_widgets(table, row, exercises_list)
+        self._snapshot_change()
+
+    def remove_exercise_row(self, table: QTableWidget, btn: QPushButton):
+        for r in range(table.rowCount()):
+            if table.cellWidget(r, 6) == btn:
+                table.removeRow(r)
+                break
+        self._snapshot_change()
 
     def get_plan_data(self):
         title = self.txt_title.text().strip() or "برنامه تمرینی سفارشی"
@@ -318,13 +501,13 @@ class WorkoutEditorView(QWidget):
             "fat_loss": "چربی‌سوزی",
             "strength": "قدرت",
             "corrective": "حرکات اصلاحی",
-            "general_fitness": "آمادگی جسمانی",
+            "general_fitness": "عمومی",
             "endurance": "استقامت"
         }
         plans = WorkoutService.get_all_plans()
         for p in plans:
-            g_fa = goal_names.get(p.goal, p.goal)
-            self.combo_templates.addItem(f"📋 {p.title} ({p.days_per_week} روزه - {g_fa})", p.id)
+            g_name = goal_names.get(p.goal, p.goal)
+            self.combo_templates.addItem(f"{p.title} ({g_name} - {p.days_per_week} روزه)", p.id)
         if cur is not None:
             idx = self.combo_templates.findData(cur)
             if idx >= 0:
@@ -332,78 +515,49 @@ class WorkoutEditorView(QWidget):
         self.combo_templates.blockSignals(False)
 
     def _load_plan_data_to_form(self, plan):
-        if not plan:
-            return
+        self._loading_plan = True
+        try:
+            self.txt_title.setText(plan.title or "")
+            idx_g = self.combo_goal.findData(plan.goal)
+            if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
 
-        self.txt_title.setText(plan.title or "")
-        
-        idx_g = self.combo_goal.findData(plan.goal)
-        if idx_g >= 0: self.combo_goal.setCurrentIndex(idx_g)
+            idx_d = self.combo_days.findData(plan.days_per_week)
+            self.combo_days.blockSignals(True)
+            if idx_d >= 0:
+                self.combo_days.setCurrentIndex(idx_d)
+            self.combo_days.blockSignals(False)
 
-        # Update days per week without triggering signals recursively
-        self.combo_days.blockSignals(True)
-        idx_d = self.combo_days.findData(plan.days_per_week)
-        if idx_d >= 0:
-            self.combo_days.setCurrentIndex(idx_d)
-        self.combo_days.blockSignals(False)
+            idx_l = self.combo_level.findData(plan.training_level)
+            if idx_l >= 0: self.combo_level.setCurrentIndex(idx_l)
 
-        idx_l = self.combo_level.findData(plan.training_level)
-        if idx_l >= 0: self.combo_level.setCurrentIndex(idx_l)
+            # Rebuild day tabs for loaded template's days_per_week
+            self.setup_day_tabs()
 
-        # Rebuild day tabs for loaded template's days_per_week
-        self.setup_day_tabs()
+            exercises_list = WorkoutService.get_all_exercises()
 
-        # Ensure all_exercises is populated
-        if not hasattr(self, 'all_exercises') or not self.all_exercises:
-            self.all_exercises = WorkoutService.get_all_exercises()
-
-        # Populate day tables with exercises from loaded template
-        for day_idx, w_day in enumerate(plan.days):
-            if day_idx < len(self.day_tables):
-                txt_day_title, table = self.day_tables[day_idx]
-                txt_day_title.setText(w_day.day_title or f"روز {day_idx + 1}")
-                table.setRowCount(0)
-                
-                for we in w_day.workout_exercises:
-                    row = table.rowCount()
-                    table.insertRow(row)
-
-                    combo_ex = SearchableComboBox(placeholder="جستجو یا تایپ نام حرکت...")
-                    for ex in self.all_exercises:
-                        combo_ex.addItem(f"{ex.name_fa} ({ex.primary_muscle})", ex.id)
-                    
-                    if we.exercise_id:
-                        idx_ex = combo_ex.findData(we.exercise_id)
-                        if idx_ex >= 0: combo_ex.setCurrentIndex(idx_ex)
-
-                    txt_sets = QLineEdit(str(we.sets or 3))
-                    txt_sets.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                    txt_reps = QLineEdit(str(we.reps or "10-12"))
-                    txt_reps.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                    txt_weight = QLineEdit(str(we.weight_suggestion or "-"))
-                    txt_weight.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                    txt_rest = QLineEdit(str(we.rest_seconds or 60))
-                    txt_rest.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                    txt_tempo = QLineEdit(str(we.tempo or "2-0-2-0"))
-                    txt_tempo.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-                    btn_del = QPushButton("🗑️")
-                    btn_del.setObjectName("danger_button")
-                    btn_del.setFixedWidth(35)
-                    btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
-                    btn_del.clicked.connect(lambda _, t=table, r=row: t.removeRow(r))
-
-                    table.setCellWidget(row, 0, combo_ex)
-                    table.setCellWidget(row, 1, txt_sets)
-                    table.setCellWidget(row, 2, txt_reps)
-                    table.setCellWidget(row, 3, txt_weight)
-                    table.setCellWidget(row, 4, txt_rest)
-                    table.setCellWidget(row, 5, txt_tempo)
-                    table.setCellWidget(row, 6, btn_del)
+            # Populate day tables with exercises from loaded template
+            for day_idx, w_day in enumerate(plan.days):
+                if day_idx < len(self.day_tables):
+                    txt_day_title, table = self.day_tables[day_idx]
+                    txt_day_title.setText(w_day.day_title or f"روز {day_idx + 1}")
+                    table.setRowCount(0)
+                    for we in w_day.workout_exercises:
+                        r = table.rowCount()
+                        table.insertRow(r)
+                        self._create_exercise_row_widgets(table, r, exercises_list, {
+                            "exercise_id": we.exercise_id,
+                            "sets": we.sets or 3,
+                            "reps": we.reps or "10-12",
+                            "weight": we.weight_suggestion or "-",
+                            "rest": we.rest_seconds or 60,
+                            "tempo": we.tempo or "2-0-2-0"
+                        })
+            self._undo_stack.clear()
+            self._redo_stack.clear()
+            self._last_state = self._capture_state()
+            self._update_undo_redo_ui()
+        finally:
+            self._loading_plan = False
 
     def on_template_selected(self, index: int):
         try:
@@ -441,6 +595,10 @@ class WorkoutEditorView(QWidget):
         self.combo_templates.blockSignals(True)
         self.combo_templates.setCurrentIndex(0)
         self.combo_templates.blockSignals(False)
+        self._undo_stack.clear()
+        self._redo_stack.clear()
+        self._last_state = self._capture_state()
+        self._update_undo_redo_ui()
 
     def load_plan_for_edit(self, plan_id: int):
         self._suppress_loaded_alert = True

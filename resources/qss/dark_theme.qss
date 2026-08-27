@@ -84,6 +84,48 @@ QPushButton#secondary_button:hover {
     color: #FFFFFF;
 }
 
+QPushButton#back_button {
+    background-color: #262626;
+    color: #E0E0E0;
+    border: 1px solid #444444;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+QPushButton#back_button:hover {
+    background-color: #363636;
+    color: #FFFFFF;
+    border-color: #666666;
+}
+
+QPushButton#back_button:pressed {
+    background-color: #1A1A1A;
+}
+
+QPushButton#undo_button, QPushButton#redo_button {
+    background-color: #242424;
+    color: #DDDDDD;
+    border: 1px solid #3E3E3E;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+QPushButton#undo_button:hover, QPushButton#redo_button:hover {
+    background-color: #333333;
+    color: #FFFFFF;
+    border-color: #555555;
+}
+
+QPushButton#undo_button:disabled, QPushButton#redo_button:disabled {
+    background-color: #1A1A1A;
+    color: #555555;
+    border: 1px solid #2B2B2B;
+}
+
 QPushButton#danger_button {
     background-color: #D32F2F;
 }

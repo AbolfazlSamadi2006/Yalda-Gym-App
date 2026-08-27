@@ -33,16 +33,16 @@ class DeveloperView(QWidget):
 
         # Header Title and Back Button
         header = QHBoxLayout()
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("back_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
         title = QLabel("👨‍💻 درباره برنامه‌نویس و وضعیت مجوز نرم‌افزار")
         title.setObjectName("h1")
 
-        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
-        btn_back.setObjectName("secondary_button")
-        btn_back.clicked.connect(self.back_requested.emit)
-
         header.addWidget(btn_back)
-        header.addStretch()
         header.addWidget(title)
+        header.addStretch()
         layout.addLayout(header)
 
         # ----------------------------------------------------

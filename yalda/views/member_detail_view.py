@@ -271,7 +271,7 @@ class MemberDetailView(QWidget):
         self.lbl_title.setObjectName("h1")
 
         btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
-        btn_back.setObjectName("secondary_button")
+        btn_back.setObjectName("back_button")
         btn_back.clicked.connect(self.back_requested.emit)
 
         btn_edit = QPushButton("ویرایش مشخصات ✏️")

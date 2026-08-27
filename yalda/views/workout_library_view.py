@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QDialog, QMessageBox, QTextEdit, QFileDialog
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from yalda.services.workout_service import WorkoutService
 from yalda.views.components.media_viewer_dialog import MediaViewerDialog
 import os
@@ -132,6 +132,8 @@ class ExerciseFormDialog(QDialog):
             self.lbl_media_status.setStyleSheet("color: #4CAF50; font-size: 11px;")
 
 class WorkoutLibraryView(QWidget):
+    back_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -144,12 +146,17 @@ class WorkoutLibraryView(QWidget):
 
         # Header Title & Add Button
         header = QHBoxLayout()
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("secondary_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
         title = QLabel("🏃 بانک حرکات ورزشی و آناتومیک")
         title.setObjectName("h1")
 
         btn_add = QPushButton("➕ افزودن حرکت جدید")
         btn_add.clicked.connect(self.open_add_dialog)
 
+        header.addWidget(btn_back)
         header.addWidget(title)
         header.addStretch()
         header.addWidget(btn_add)

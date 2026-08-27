@@ -9,6 +9,7 @@ from yalda.views.components.searchable_combo_box import SearchableComboBox
 class WorkoutEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
     open_exercise_bank_requested = pyqtSignal()
+    back_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,6 +33,14 @@ class WorkoutEditorView(QWidget):
         self.lbl_header_title = QLabel("🏋️ برنامه‌ریزی تمرینی")
         self.lbl_header_title.setObjectName("h1")
 
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("secondary_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
+        btn_reset = QPushButton("🔄 بازنشانی تغییرات")
+        btn_reset.setObjectName("secondary_button")
+        btn_reset.clicked.connect(self.revert_changes)
+
         btn_new_plan = QPushButton("➕ برنامه جدید")
         btn_new_plan.setObjectName("secondary_button")
         btn_new_plan.clicked.connect(self.reset_to_new_plan)
@@ -44,8 +53,10 @@ class WorkoutEditorView(QWidget):
         btn_exercise_bank.setObjectName("secondary_button")
         btn_exercise_bank.clicked.connect(self.open_exercise_bank_requested.emit)
 
+        header.addWidget(btn_back)
         header.addWidget(self.lbl_header_title)
         header.addStretch()
+        header.addWidget(btn_reset)
         header.addWidget(btn_new_plan)
         header.addWidget(btn_manage_tpl)
         header.addWidget(btn_exercise_bank)
@@ -410,6 +421,14 @@ class WorkoutEditorView(QWidget):
                 QMessageBox.information(self, "موفقیت", f"الگوی '{plan.title}' با موفقیت در فرم بارگذاری شد.")
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"خطا در لود الگوی تمرینی: {str(e)}")
+
+    def revert_changes(self):
+        if self.editing_plan_id:
+            self.load_plan_for_edit(self.editing_plan_id)
+            QMessageBox.information(self, "بازنشانی", "تغییرات لغو شد و برنامه تمرینی به حالت ذخیره‌شده اولیه بازگشت.")
+        else:
+            self.reset_to_new_plan()
+            QMessageBox.information(self, "بازنشانی", "فرم برنامه تمرینی بازنشانی شد.")
 
     def reset_to_new_plan(self):
         self.editing_plan_id = None

@@ -17,6 +17,7 @@ from yalda.utils.image_utils import get_circular_pixmap
 
 class BackupView(QWidget):
     account_deleted_signal = pyqtSignal()
+    back_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,10 +44,19 @@ class BackupView(QWidget):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
-        # Header Title
+        # Header Title and Actions
+        header = QHBoxLayout()
         title = QLabel("⚙️ اطلاعات شخص مربی و پشتیبان‌گیری دیتابیس")
         title.setObjectName("h1")
-        layout.addWidget(title)
+
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("secondary_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
+        header.addWidget(btn_back)
+        header.addStretch()
+        header.addWidget(title)
+        layout.addLayout(header)
 
         # ----------------------------------------------------
         # BOX 1: Trainer Profile & Credentials Settings
@@ -197,6 +207,14 @@ class BackupView(QWidget):
         self.btn_save_prof.setEnabled(False)
         self.btn_save_prof.clicked.connect(self.save_trainer_profile)
         row_prof_actions.addWidget(self.btn_save_prof)
+
+        self.btn_reset_prof = QPushButton("🔄 بازنشانی / لغو تغییرات")
+        self.btn_reset_prof.setFixedHeight(40)
+        self.btn_reset_prof.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_reset_prof.setObjectName("secondary_button")
+        self.btn_reset_prof.setEnabled(False)
+        self.btn_reset_prof.clicked.connect(self.revert_profile_changes)
+        row_prof_actions.addWidget(self.btn_reset_prof)
 
         # Connect listeners to detect profile changes
         self.txt_first_name.textChanged.connect(self.check_profile_dirty)
@@ -427,6 +445,27 @@ class BackupView(QWidget):
         new_pass = self.txt_password.text().strip()
         is_dirty = bool(new_pass) or (current != getattr(self, "_baseline_profile", {}))
         self.btn_save_prof.setEnabled(is_dirty)
+        if hasattr(self, "btn_reset_prof"):
+            self.btn_reset_prof.setEnabled(is_dirty)
+
+    def revert_profile_changes(self):
+        base = getattr(self, "_baseline_profile", {})
+        if not base:
+            return
+        self._loading_profile = True
+        self.txt_first_name.setText(base.get("first_name", ""))
+        self.txt_last_name.setText(base.get("last_name", ""))
+        self.txt_phone.setText(base.get("phone", ""))
+        self.picker_birth_date.set_date(base.get("birth_date", ""))
+        self.txt_username.setText(base.get("username", ""))
+        self.txt_password.clear()
+        self.txt_recovery_code.setText(base.get("recovery_code", ""))
+        self.selected_photo_path = base.get("photo_path", "")
+        self.display_photo(self.selected_photo_path)
+        self._loading_profile = False
+        self.btn_save_prof.setEnabled(False)
+        if hasattr(self, "btn_reset_prof"):
+            self.btn_reset_prof.setEnabled(False)
 
     def load_all_data(self):
         # 1. Current trainer profile
@@ -454,6 +493,8 @@ class BackupView(QWidget):
             }
             self._loading_profile = False
             self.btn_save_prof.setEnabled(False)
+            if hasattr(self, "btn_reset_prof"):
+                self.btn_reset_prof.setEnabled(False)
 
         # 2. Admin Trainers Box visibility
         if CurrentUser.is_admin():

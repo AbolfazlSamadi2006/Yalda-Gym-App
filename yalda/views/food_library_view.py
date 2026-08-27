@@ -1,11 +1,13 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QDialog, QMessageBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from yalda.services.nutrition_service import NutritionService
 from yalda.views.food_library_dialog import FoodFormDialog
 
 class FoodLibraryView(QWidget):
+    back_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -18,12 +20,17 @@ class FoodLibraryView(QWidget):
 
         # Header Title & Add Button
         header = QHBoxLayout()
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("secondary_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
         title = QLabel("🍎 بانک مواد و ارزش‌های غذایی")
         title.setObjectName("h1")
 
         btn_add = QPushButton("➕ افزودن ماده غذایی جدید")
         btn_add.clicked.connect(self.open_add_dialog)
 
+        header.addWidget(btn_back)
         header.addWidget(title)
         header.addStretch()
         header.addWidget(btn_add)

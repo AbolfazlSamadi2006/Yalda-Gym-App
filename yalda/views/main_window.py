@@ -60,22 +60,36 @@ class MainWindow(QMainWindow):
         self.view_workouts = WorkoutEditorView()
         self.view_workouts.manage_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
         self.view_workouts.open_exercise_bank_requested.connect(lambda: self.sidebar.navigate("exercises"))
+        self.view_workouts.back_requested.connect(self.go_back)
 
         self.view_nutrition = NutritionEditorView()
         self.view_nutrition.manage_templates_requested.connect(lambda: self.sidebar.navigate("templates"))
         self.view_nutrition.open_food_bank_requested.connect(lambda: self.sidebar.navigate("foods"))
+        self.view_nutrition.back_requested.connect(self.go_back)
 
         self.view_templates = TemplatesManagerView()
         self.view_templates.edit_workout_requested.connect(self.open_workout_editor_with_plan)
         self.view_templates.edit_nutrition_requested.connect(self.open_nutrition_editor_with_plan)
         self.view_templates.new_workout_requested.connect(self.open_new_workout_editor)
         self.view_templates.new_nutrition_requested.connect(self.open_new_nutrition_editor)
+        self.view_templates.back_requested.connect(self.go_back)
 
         self.view_exercises = WorkoutLibraryView()
+        self.view_exercises.back_requested.connect(self.go_back)
+
         self.view_foods = FoodLibraryView()
+        self.view_foods.back_requested.connect(self.go_back)
+
         self.view_developer = DeveloperView()
+        self.view_developer.back_requested.connect(self.go_back)
+
         self.view_backup = BackupView()
         self.view_backup.account_deleted_signal.connect(self.on_account_deleted)
+        self.view_backup.back_requested.connect(self.go_back)
+
+        self._nav_history = []
+        self._is_navigating_back = False
+        self._current_page_state = ("page", "dashboard")
 
         self.stack.addWidget(self.view_dashboard) # Index 0
         self.stack.addWidget(self.view_members)   # Index 1
@@ -86,6 +100,22 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.view_foods)     # Index 6
         self.stack.addWidget(self.view_developer) # Index 7
         self.stack.addWidget(self.view_backup)    # Index 8
+
+    def go_back(self):
+        if self._nav_history:
+            prev_state = self._nav_history.pop()
+            self._is_navigating_back = True
+            try:
+                kind = prev_state[0]
+                if kind == "page":
+                    self.sidebar.navigate(prev_state[1])
+                elif kind == "member_detail":
+                    self.open_member_detail(prev_state[1])
+                self._current_page_state = prev_state
+            finally:
+                self._is_navigating_back = False
+        else:
+            self.sidebar.navigate("dashboard")
 
     def switch_page(self, page_id: str):
         self.sidebar.refresh_notifications()
@@ -101,6 +131,11 @@ class MainWindow(QMainWindow):
             "backup": 8
         }
         if page_id in page_map:
+            if not self._is_navigating_back and hasattr(self, '_current_page_state'):
+                if self._current_page_state != ("page", page_id):
+                    self._nav_history.append(self._current_page_state)
+            self._current_page_state = ("page", page_id)
+
             if page_id == "dashboard":
                 self.view_dashboard.refresh_dashboard()
             elif page_id == "members":
@@ -155,6 +190,8 @@ class MainWindow(QMainWindow):
         """Refreshes sidebar, resets active index to Dashboard, and loads dashboard data instantly."""
         from yalda.database.connection import reset_data_changed
         reset_data_changed()
+        self._nav_history = []
+        self._current_page_state = ("page", "dashboard")
 
         if hasattr(self, 'sidebar'):
             self.sidebar.navigate("dashboard")
@@ -165,8 +202,6 @@ class MainWindow(QMainWindow):
             pass
 
         self.stack.setCurrentIndex(0)
-
-
 
     def handle_dashboard_navigation(self, target: str):
         if target == "add_member":
@@ -182,10 +217,14 @@ class MainWindow(QMainWindow):
         elif target == "new_nutrition":
             self.sidebar.navigate("nutrition")
 
-
     def open_member_detail(self, member_id: int):
+        if not self._is_navigating_back and hasattr(self, '_current_page_state'):
+            if self._current_page_state != ("member_detail", member_id):
+                self._nav_history.append(self._current_page_state)
+        self._current_page_state = ("member_detail", member_id)
+
         detail_view = MemberDetailView(member_id)
-        detail_view.back_requested.connect(lambda: self.sidebar.navigate("members"))
+        detail_view.back_requested.connect(self.go_back)
         detail_view.edit_workout_requested.connect(self.open_workout_editor_with_plan)
         detail_view.edit_nutrition_requested.connect(self.open_nutrition_editor_with_plan)
         detail_view.create_workout_requested.connect(self.open_new_workout_for_member)

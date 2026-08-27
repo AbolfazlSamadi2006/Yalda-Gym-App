@@ -106,6 +106,7 @@ class TemplatesManagerView(QWidget):
     edit_nutrition_requested = pyqtSignal(int)
     new_workout_requested = pyqtSignal()
     new_nutrition_requested = pyqtSignal()
+    back_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -125,6 +126,10 @@ class TemplatesManagerView(QWidget):
 
         # Header Title and Action Bar
         header = QHBoxLayout()
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("secondary_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
         title_box = QVBoxLayout()
         lbl_title = QLabel("📋 بانک و مدیریت الگوهای تمرینی و غذایی")
         lbl_title.setObjectName("h1")
@@ -137,6 +142,7 @@ class TemplatesManagerView(QWidget):
         btn_refresh.setObjectName("secondary_button")
         btn_refresh.clicked.connect(self.load_all_templates)
 
+        header.addWidget(btn_back)
         header.addLayout(title_box)
         header.addStretch()
         header.addWidget(btn_refresh)

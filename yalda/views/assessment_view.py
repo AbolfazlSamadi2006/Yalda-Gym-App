@@ -311,6 +311,11 @@ class AssessmentView(QWidget):
         btn_save.setFixedSize(120, 34)
         btn_save.clicked.connect(self.save_assessment)
 
+        btn_reset = QPushButton("🔄 بازنشانی فرم")
+        btn_reset.setFixedSize(120, 34)
+        btn_reset.setObjectName("secondary_button")
+        btn_reset.clicked.connect(self.reset_form)
+
         row1.addWidget(lbl_date)
         row1.addWidget(self.picker_date)
         row1.addSpacing(10)
@@ -326,6 +331,7 @@ class AssessmentView(QWidget):
         row1.addWidget(self.lbl_live_bmi)
         row1.addStretch()
         row1.addWidget(btn_save)
+        row1.addWidget(btn_reset)
 
         self.spin_height.valueChanged.connect(self.update_live_bmi)
         self.spin_weight.valueChanged.connect(self.update_live_bmi)
@@ -506,6 +512,13 @@ class AssessmentView(QWidget):
             "after_photo_path": self.after_photo_path
         }
         AssessmentService.add_assessment(self.member_id, data)
+        self.reset_form()
+        self.load_history()
+        if hasattr(self.parent(), 'load_member_info'):
+            self.parent().load_member_info()
+        QMessageBox.information(self, "موفقیت", "ارزیابی فیزیکی جدید ذخیره شد.")
+
+    def reset_form(self):
         self.spin_height.setValue(0.0)
         self.spin_weight.setValue(0.0)
         self.spin_fat.setValue(0.0)
@@ -520,11 +533,7 @@ class AssessmentView(QWidget):
         self.after_photo_path = None
         self.btn_before.setText("📷 عکس قبل")
         self.btn_after.setText("📷 عکس بعد")
-
-        self.load_history()
-        if hasattr(self.parent(), 'load_member_info'):
-            self.parent().load_member_info()
-        QMessageBox.information(self, "موفقیت", "ارزیابی فیزیکی جدید ذخیره شد.")
+        self.update_live_bmi()
 
     def update_live_bmi(self):
         from yalda.services.member_service import MemberService

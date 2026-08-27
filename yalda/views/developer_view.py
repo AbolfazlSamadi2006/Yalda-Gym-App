@@ -3,7 +3,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QGroupBox, QGridLayout, QComboBox, QFrame
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 import config
 from yalda.auth.authentication import (
@@ -14,6 +14,8 @@ from yalda.utils.image_utils import get_circular_pixmap
 
 
 class DeveloperView(QWidget):
+    back_requested = pyqtSignal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
@@ -29,10 +31,19 @@ class DeveloperView(QWidget):
         layout.setContentsMargins(25, 25, 25, 25)
         layout.setSpacing(20)
 
-        # Header Title
+        # Header Title and Back Button
+        header = QHBoxLayout()
         title = QLabel("👨‍💻 درباره برنامه‌نویس و وضعیت مجوز نرم‌افزار")
         title.setObjectName("h1")
-        layout.addWidget(title)
+
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("secondary_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
+        header.addWidget(btn_back)
+        header.addStretch()
+        header.addWidget(title)
+        layout.addLayout(header)
 
         # ----------------------------------------------------
         # BOX 1: Developer Display Card (For All Users)
@@ -230,6 +241,9 @@ class DeveloperView(QWidget):
 
         layout_dev_edit.addLayout(grid_dev)
 
+        row_dev_actions = QHBoxLayout()
+        row_dev_actions.setSpacing(12)
+
         self.btn_save_dev = QPushButton("💾 ذخیره تغییرات اطلاعات برنامه‌نویس")
         self.btn_save_dev.setFixedHeight(38)
         self.btn_save_dev.setFixedWidth(240)
@@ -241,7 +255,18 @@ class DeveloperView(QWidget):
         """)
         self.btn_save_dev.setEnabled(False)
         self.btn_save_dev.clicked.connect(self.save_dev_info)
-        layout_dev_edit.addWidget(self.btn_save_dev, alignment=Qt.AlignmentFlag.AlignLeft)
+        row_dev_actions.addWidget(self.btn_save_dev)
+
+        self.btn_reset_dev = QPushButton("🔄 بازنشانی / لغو تغییرات")
+        self.btn_reset_dev.setFixedHeight(38)
+        self.btn_reset_dev.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_reset_dev.setObjectName("secondary_button")
+        self.btn_reset_dev.setEnabled(False)
+        self.btn_reset_dev.clicked.connect(self.revert_dev_changes)
+        row_dev_actions.addWidget(self.btn_reset_dev)
+        row_dev_actions.addStretch()
+
+        layout_dev_edit.addLayout(row_dev_actions)
 
         # Connect listeners to detect dev info changes
         self.txt_dev_fname.textChanged.connect(self.check_dev_dirty)
@@ -268,6 +293,35 @@ class DeveloperView(QWidget):
         }
         is_dirty = (current != getattr(self, "_baseline_dev", {}))
         self.btn_save_dev.setEnabled(is_dirty)
+        if hasattr(self, "btn_reset_dev"):
+            self.btn_reset_dev.setEnabled(is_dirty)
+
+    def revert_dev_changes(self):
+        base = getattr(self, "_baseline_dev", {})
+        if not base:
+            return
+        self._loading_dev = True
+        self.txt_dev_fname.setText(base.get("first_name", ""))
+        self.txt_dev_lname.setText(base.get("last_name", ""))
+        self.txt_dev_phone.setText(base.get("phone", ""))
+        self.txt_dev_email.setText(base.get("email", ""))
+        self.txt_dev_telegram.setText(base.get("telegram", ""))
+        self.txt_dev_github.setText(base.get("github", ""))
+        self.selected_dev_photo_path = base.get("photo_path")
+        if self.selected_dev_photo_path and os.path.exists(self.selected_dev_photo_path):
+            pixmap = QPixmap(self.selected_dev_photo_path)
+            circ_edit = get_circular_pixmap(pixmap, 60)
+            self.lbl_dev_photo_edit.setPixmap(circ_edit)
+            self.lbl_dev_photo_edit.setText("")
+            self.lbl_dev_photo_edit.setStyleSheet("border: none; background: transparent;")
+        else:
+            self.lbl_dev_photo_edit.setPixmap(QPixmap())
+            self.lbl_dev_photo_edit.setText("📷")
+            self.lbl_dev_photo_edit.setStyleSheet("border: 1px dashed #666; border-radius: 30px; color: #888;")
+        self._loading_dev = False
+        self.btn_save_dev.setEnabled(False)
+        if hasattr(self, "btn_reset_dev"):
+            self.btn_reset_dev.setEnabled(False)
 
     def choose_dev_photo(self):
         from yalda.utils.image_source_chooser import get_image_file_path
@@ -421,6 +475,8 @@ class DeveloperView(QWidget):
             }
             self._loading_dev = False
             self.btn_save_dev.setEnabled(False)
+            if hasattr(self, "btn_reset_dev"):
+                self.btn_reset_dev.setEnabled(False)
         else:
             # Dimmed/disabled styling for non-admin trainers
             self.combo_license.setStyleSheet("""

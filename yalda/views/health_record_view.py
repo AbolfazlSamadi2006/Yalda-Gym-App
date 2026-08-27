@@ -432,11 +432,23 @@ class HealthRecordView(QWidget):
         layout_lim.addWidget(self.txt_limitations)
         layout.addWidget(group_lim)
 
-        # Save Health Record Button
+        # Save & Revert Health Record Buttons
+        row_save = QHBoxLayout()
+        row_save.setSpacing(12)
+
         btn_save = QPushButton("💾 ثبت و بروزرسانی سوابق پزشکی")
         btn_save.setFixedHeight(40)
         btn_save.clicked.connect(self.save_data)
-        layout.addWidget(btn_save)
+        row_save.addWidget(btn_save)
+
+        btn_reset = QPushButton("🔄 بازنشانی / لغو تغییرات")
+        btn_reset.setFixedHeight(40)
+        btn_reset.setObjectName("secondary_button")
+        btn_reset.clicked.connect(self.load_data)
+        row_save.addWidget(btn_reset)
+        row_save.addStretch()
+
+        layout.addLayout(row_save)
 
         # Medical Documents & Tests Group
         group_docs = QGroupBox("📁 اسناد، آزمایش‌ها و مدارک پزشکی ثبت‌شده")

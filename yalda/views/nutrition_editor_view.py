@@ -9,6 +9,7 @@ from yalda.views.components.searchable_combo_box import SearchableComboBox
 class NutritionEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
     open_food_bank_requested = pyqtSignal()
+    back_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,6 +33,14 @@ class NutritionEditorView(QWidget):
         self.lbl_header_title = QLabel("🥗 برنامه‌ریزی تغذیه")
         self.lbl_header_title.setObjectName("h1")
 
+        btn_back = QPushButton("⬅️ بازگشت به صفحه قبل")
+        btn_back.setObjectName("secondary_button")
+        btn_back.clicked.connect(self.back_requested.emit)
+
+        btn_reset = QPushButton("🔄 بازنشانی تغییرات")
+        btn_reset.setObjectName("secondary_button")
+        btn_reset.clicked.connect(self.revert_changes)
+
         btn_new_plan = QPushButton("➕ رژیم جدید")
         btn_new_plan.setObjectName("secondary_button")
         btn_new_plan.clicked.connect(self.reset_form)
@@ -44,8 +53,10 @@ class NutritionEditorView(QWidget):
         btn_food_bank.setObjectName("secondary_button")
         btn_food_bank.clicked.connect(self.open_food_bank_requested.emit)
 
+        header.addWidget(btn_back)
         header.addWidget(self.lbl_header_title)
         header.addStretch()
+        header.addWidget(btn_reset)
         header.addWidget(btn_new_plan)
         header.addWidget(btn_manage_tpl)
         header.addWidget(btn_food_bank)
@@ -600,6 +611,14 @@ class NutritionEditorView(QWidget):
         for w in [self.txt_title, self.combo_goal, self.combo_days, self.spin_cal, self.spin_protein,
                   self.spin_carbs, self.spin_fat, self.spin_total_grams, self.combo_templates]:
             w.blockSignals(False)
+
+    def revert_changes(self):
+        if self.editing_plan_id:
+            self.load_plan_for_edit(self.editing_plan_id)
+            QMessageBox.information(self, "بازنشانی", "تغییرات لغو شد و برنامه غذایی به حالت ذخیره‌شده اولیه بازگشت.")
+        else:
+            self.reset_form()
+            QMessageBox.information(self, "بازنشانی", "فرم برنامه غذایی بازنشانی شد.")
 
     def reset_form(self):
         self.editing_plan_id = None

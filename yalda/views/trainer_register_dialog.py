@@ -392,11 +392,11 @@ class TrainerRegisterDialog(QDialog):
                 return
 
             phone_digits = "".join(filter(str.isdigit, phone.translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))))
-            if not (len(phone_digits) == 11 and phone_digits.startswith("09")):
+            if len(phone_digits) > 11:
                 QMessageBox.warning(
                     self,
                     "خطا در شماره تلفن",
-                    "شماره همراه مربی معتبر نیست!\nشماره تلفن باید ۱۱ رقمی بوده و با 09 شروع شود (مثلاً 09123456789)."
+                    "شماره تماس نمی‌تواند بیشتر از ۱۱ رقم باشد."
                 )
                 self.txt_phone.setFocus()
                 return

@@ -352,16 +352,17 @@ class MemberFormDialog(QDialog):
             QMessageBox.warning(self, "خطا", msg)
             return
 
-        # Phone format check (Must be 11 digits starting with 09, or '-' for no phone)
+        # Phone format check (Must not exceed 11 digits, or '-' for no phone)
         if phone != "-":
             persian_to_eng = str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789')
             phone_eng = phone.translate(persian_to_eng)
-            if not (len(phone_eng) == 11 and phone_eng.isdigit() and phone_eng.startswith("09")):
+            if len(phone_eng) > 11:
                 QMessageBox.warning(
                     self,
                     "خطا در شماره تلفن",
-                    "شماره تلفن همراه واردشده معتبر نیست!\nشماره تلفن باید ۱۱ رقمی و با 09 شروع شود (مثلاً 09123456789).\nدر صورت عدم وجود تلفن، علامت - را قرار دهید."
+                    "شماره تماس نمی‌تواند بیشتر از ۱۱ رقم باشد.\nدر صورت عدم وجود تلفن، علامت - را قرار دهید."
                 )
+                self.txt_phone.setFocus()
                 return
 
         try:

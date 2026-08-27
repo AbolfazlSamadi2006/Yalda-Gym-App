@@ -285,11 +285,11 @@ class DeveloperView(QWidget):
 
         if data["phone"]:
             phone_digits = "".join(filter(str.isdigit, data["phone"].translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))))
-            if not (len(phone_digits) == 11 and phone_digits.startswith("09")):
+            if len(phone_digits) > 11:
                 QMessageBox.warning(
                     self,
                     "خطا در شماره تلفن",
-                    "شماره تماس برنامه‌نویس معتبر نیست!\nشماره تلفن باید ۱۱ رقمی بوده و با 09 شروع شود (مثلاً 09123456789)."
+                    "شماره تماس نمی‌تواند بیشتر از ۱۱ رقم باشد."
                 )
                 self.txt_dev_phone.setFocus()
                 return

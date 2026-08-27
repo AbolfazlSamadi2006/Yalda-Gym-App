@@ -1,4 +1,4 @@
-﻿from PyQt6.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QMessageBox, QFrame
 )
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -73,6 +73,7 @@ class CloudRestoreDialog(QDialog):
         card_l.addWidget(QLabel("شماره همراه مربی:"))
         self.txt_phone = QLineEdit()
         self.txt_phone.setPlaceholderText("09123456789")
+        self.txt_phone.setMaxLength(11)
         self.txt_phone.setText(self.initial_phone)
         self.txt_phone.setFixedHeight(40)
         self.txt_phone.returnPressed.connect(self.do_restore)

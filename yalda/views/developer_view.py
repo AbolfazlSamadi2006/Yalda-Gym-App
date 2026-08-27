@@ -209,6 +209,7 @@ class DeveloperView(QWidget):
 
         self.txt_dev_phone = QLineEdit()
         self.txt_dev_phone.setFixedHeight(36)
+        self.txt_dev_phone.setMaxLength(11)
         self.txt_dev_email = QLineEdit()
         self.txt_dev_email.setFixedHeight(36)
 
@@ -281,6 +282,17 @@ class DeveloperView(QWidget):
         }
         if self.selected_dev_photo_path:
             data["photo_path"] = self.selected_dev_photo_path
+
+        if data["phone"]:
+            phone_digits = "".join(filter(str.isdigit, data["phone"].translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))))
+            if not (len(phone_digits) == 11 and phone_digits.startswith("09")):
+                QMessageBox.warning(
+                    self,
+                    "خطا در شماره تلفن",
+                    "شماره تماس برنامه‌نویس معتبر نیست!\nشماره تلفن باید ۱۱ رقمی بوده و با 09 شروع شود (مثلاً 09123456789)."
+                )
+                self.txt_dev_phone.setFocus()
+                return
 
         try:
             set_developer_info(data)

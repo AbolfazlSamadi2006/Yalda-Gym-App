@@ -96,6 +96,7 @@ class BackupView(QWidget):
         self.txt_phone = QLineEdit()
         self.txt_phone.setFixedHeight(36)
         self.txt_phone.setPlaceholderText("شماره همراه مربی")
+        self.txt_phone.setMaxLength(11)
 
         self.picker_birth_date = JalaliDatePicker(default_today=False)
         self.picker_birth_date.setFixedHeight(36)
@@ -495,6 +496,17 @@ class BackupView(QWidget):
         if not username:
             QMessageBox.warning(self, "خطا", "لطفاً نام کاربری را وارد کنید.")
             return
+
+        if phone:
+            phone_digits = "".join(filter(str.isdigit, phone.translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))))
+            if not (len(phone_digits) == 11 and phone_digits.startswith("09")):
+                QMessageBox.warning(
+                    self,
+                    "خطا در شماره تلفن",
+                    "شماره همراه مربی معتبر نیست!\nشماره تلفن باید ۱۱ رقمی بوده و با 09 شروع شود (مثلاً 09123456789)."
+                )
+                self.txt_phone.setFocus()
+                return
 
         try:
             update_trainer_profile(

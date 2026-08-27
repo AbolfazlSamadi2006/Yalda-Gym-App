@@ -77,6 +77,7 @@ class PasswordRecoveryDialog(QDialog):
         self.txt_phone = QLineEdit()
         self.txt_phone.setFixedHeight(38)
         self.txt_phone.setPlaceholderText("مثال: 09123456789")
+        self.txt_phone.setMaxLength(11)
         card_layout.addWidget(self.txt_phone)
 
         card_layout.addWidget(QLabel("رمز ریکاوری مخفی:"))

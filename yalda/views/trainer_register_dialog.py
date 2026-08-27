@@ -109,6 +109,7 @@ class TrainerRegisterDialog(QDialog):
         self.txt_phone = QLineEdit()
         self.txt_phone.setFixedHeight(38)
         self.txt_phone.setPlaceholderText("09123456789")
+        self.txt_phone.setMaxLength(11)
         v3.addWidget(self.txt_phone)
 
         v4 = QVBoxLayout()
@@ -388,6 +389,16 @@ class TrainerRegisterDialog(QDialog):
 
             if not first_name or not last_name or not phone or not username or not password or not recovery_code:
                 QMessageBox.warning(self, "خطا در فرم ثبت‌نام", "لطفاً تمامی فیلدهای نام، نام خانوادگی، شماره موبایل، نام کاربری، کلمه عبور و رمز ریکاوری را تکمیل کنید.")
+                return
+
+            phone_digits = "".join(filter(str.isdigit, phone.translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))))
+            if not (len(phone_digits) == 11 and phone_digits.startswith("09")):
+                QMessageBox.warning(
+                    self,
+                    "خطا در شماره تلفن",
+                    "شماره همراه مربی معتبر نیست!\nشماره تلفن باید ۱۱ رقمی بوده و با 09 شروع شود (مثلاً 09123456789)."
+                )
+                self.txt_phone.setFocus()
                 return
 
             ERROR_STYLE = """

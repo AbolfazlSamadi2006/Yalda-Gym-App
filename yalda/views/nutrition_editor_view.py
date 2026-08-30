@@ -1,11 +1,12 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QGroupBox, QDoubleSpinBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QGroupBox, QDoubleSpinBox, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QKeySequence, QShortcut
 from yalda.services.nutrition_service import NutritionService
 from yalda.services.member_service import MemberService
 from yalda.views.components.searchable_combo_box import SearchableComboBox
+from yalda.views.components.day_management_dialogs import DaySelectionReductionDialog, DayIncreaseChoiceDialog
 
 class NutritionEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
@@ -22,6 +23,8 @@ class NutritionEditorView(QWidget):
         self._undo_buttons = []
         self._redo_buttons = []
         self._is_undoing_redoing = False
+        self._days_cache = {}
+        self._prev_days_mode = "7_days"
         self.init_ui()
 
         # Keyboard shortcuts
@@ -215,6 +218,8 @@ class NutritionEditorView(QWidget):
 
         # Tabs for Meals
         self.tabs = QTabWidget()
+        self.tabs.setMovable(True)
+        self.tabs.tabBar().tabMoved.connect(self._on_tab_moved)
         layout.addWidget(self.tabs)
         self.setup_meal_tabs()
 
@@ -305,13 +310,18 @@ class NutritionEditorView(QWidget):
             has_7_days = any(any(d in m.meal_name for d in ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"]) for m in plan.meals)
             has_2_days = any("تمرین" in m.meal_name or "استراحت" in m.meal_name for m in plan.meals)
 
+            self._days_cache.clear()
             self.combo_days.blockSignals(True)
             if has_2_days:
                 idx_d = self.combo_days.findData("2_days")
                 if idx_d >= 0: self.combo_days.setCurrentIndex(idx_d)
+                self._prev_days_mode = "2_days"
             elif has_7_days:
                 idx_d = self.combo_days.findData("7_days")
                 if idx_d >= 0: self.combo_days.setCurrentIndex(idx_d)
+                self._prev_days_mode = "7_days"
+            else:
+                self._prev_days_mode = self.combo_days.currentData() or "all_days"
             self.combo_days.blockSignals(False)
 
             # Rebuild meal tabs
@@ -383,8 +393,164 @@ class NutritionEditorView(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"خطا در بارگذاری الگوی رژیم: {str(e)}")
 
+    def _on_tab_moved(self, from_idx: int, to_idx: int):
+        if from_idx == to_idx:
+            return
+        days_mode = self.combo_days.currentData() or "all_days"
+        if days_mode == "all_days":
+            return
+
+        num_days = self.tabs.count()
+        if len(self.meal_tables) == num_days * 6 and 0 <= from_idx < num_days and 0 <= to_idx < num_days:
+            start_from = from_idx * 6
+            moved_chunk = self.meal_tables[start_from : start_from + 6]
+            del self.meal_tables[start_from : start_from + 6]
+            start_to = to_idx * 6
+            self.meal_tables[start_to : start_to] = moved_chunk
+
+            day_names_map = {
+                "3_days": ["روز اول", "روز دوم", "روز سوم"],
+                "4_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم"],
+                "5_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم", "روز پنجم"],
+                "6_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم", "روز پنجم", "روز ششم"],
+            }
+            if days_mode in day_names_map:
+                names = day_names_map[days_mode]
+                for i in range(self.tabs.count()):
+                    if i < len(names):
+                        self.tabs.setTabText(i, f"📅 {names[i]}")
+
+            for d in range(num_days):
+                day_tab_text = self.tabs.tabText(d).replace("📅", "").strip()
+                for m_idx in range(6):
+                    table_idx = d * 6 + m_idx
+                    if table_idx < len(self.meal_tables):
+                        old_key, tbl = self.meal_tables[table_idx]
+                        meal_title = old_key.split(":", 1)[1].strip() if ":" in old_key else old_key
+                        new_key = f"{day_tab_text}: {meal_title}"
+                        self.meal_tables[table_idx] = (new_key, tbl)
+
+            self._snapshot_change()
+
+    def _extract_table_items(self, table: QTableWidget) -> list:
+        items = []
+        for r in range(table.rowCount()):
+            combo = table.cellWidget(r, 0)
+            f_id = combo.currentData() if combo else None
+            f_text = combo.currentText() if combo else ""
+            txt_amount = table.cellWidget(r, 1)
+            txt_notes = table.cellWidget(r, 2)
+            items.append({
+                "food_id": f_id,
+                "food_text": f_text,
+                "amount": txt_amount.text() if txt_amount else "1.0",
+                "notes": txt_notes.text() if txt_notes else ""
+            })
+        return items
+
+    def _extract_current_nutrition_days_data(self) -> list:
+        days_data = []
+        days_mode = self.combo_days.currentData() or "all_days"
+
+        if days_mode == "all_days":
+            meals_list = []
+            for meal_key, table in self.meal_tables:
+                items = self._extract_table_items(table)
+                meals_list.append({"meal_title": meal_key, "items": items})
+            days_data.append({"day_title": "برنامه کلیه روزهای هفته", "meals": meals_list})
+        else:
+            num_days = self.tabs.count()
+            for d in range(num_days):
+                day_tab_text = self.tabs.tabText(d).replace("📅", "").strip()
+                meals_list = []
+                day_slice = self.meal_tables[d * 6 : (d + 1) * 6]
+                for full_key, table in day_slice:
+                    items = self._extract_table_items(table)
+                    meal_title = full_key.split(":", 1)[1].strip() if ":" in full_key else full_key
+                    meals_list.append({"meal_title": meal_title, "items": items})
+                days_data.append({"day_title": day_tab_text, "meals": meals_list})
+        return days_data
+
+    def _has_non_empty_nutrition_days(self, days_data: list) -> bool:
+        if not days_data:
+            return False
+        for d in days_data:
+            for m in d.get("meals", []):
+                for item in m.get("items", []):
+                    if item.get("food_id") or (item.get("food_text") and "انتخاب" not in item.get("food_text")):
+                        return True
+        return False
+
     def on_days_pattern_changed(self):
-        self.setup_meal_tabs()
+        new_mode = self.combo_days.currentData() or "all_days"
+        old_mode = getattr(self, '_prev_days_mode', "7_days")
+        if new_mode == old_mode:
+            return
+
+        mode_to_count = {
+            "all_days": 1,
+            "2_days": 2,
+            "3_days": 3,
+            "4_days": 4,
+            "5_days": 5,
+            "6_days": 6,
+            "7_days": 7
+        }
+        old_count = mode_to_count.get(old_mode, len(self.tabs))
+        new_count = mode_to_count.get(new_mode, 1)
+
+        current_days = self._extract_current_nutrition_days_data()
+        self._days_cache[old_mode] = current_days
+
+        selected_days = None
+
+        if new_count < old_count:
+            # Decreasing
+            if self._has_non_empty_nutrition_days(current_days):
+                summary = []
+                for idx, d in enumerate(current_days):
+                    tot_food = sum(len(m.get("items", [])) for m in d.get("meals", []))
+                    summary.append((idx, d.get("day_title", f"روز {idx+1}"), f"{tot_food} ماده غذایی"))
+
+                dlg = DaySelectionReductionDialog(summary, new_count, self, is_nutrition=True)
+                if dlg.exec() != QDialog.DialogCode.Accepted:
+                    self.combo_days.blockSignals(True)
+                    idx = self.combo_days.findData(old_mode)
+                    if idx >= 0: self.combo_days.setCurrentIndex(idx)
+                    self.combo_days.blockSignals(False)
+                    return
+
+                if dlg.start_fresh:
+                    selected_days = []
+                else:
+                    selected_days = [current_days[i] for i in dlg.selected_indices if i < len(current_days)]
+            else:
+                selected_days = current_days[:new_count]
+
+        else:
+            # Increasing
+            cached_plan = self._days_cache.get(new_mode)
+            if cached_plan and self._has_non_empty_nutrition_days(cached_plan):
+                dlg = DayIncreaseChoiceDialog(new_count, old_count, self, is_nutrition=True)
+                if dlg.exec() != QDialog.DialogCode.Accepted:
+                    self.combo_days.blockSignals(True)
+                    idx = self.combo_days.findData(old_mode)
+                    if idx >= 0: self.combo_days.setCurrentIndex(idx)
+                    self.combo_days.blockSignals(False)
+                    return
+
+                if dlg.choice == "restore":
+                    selected_days = cached_plan
+                elif dlg.choice == "fresh":
+                    selected_days = []
+                else:
+                    selected_days = current_days
+            else:
+                # No cached plan -> automatically append!
+                selected_days = current_days
+
+        self._prev_days_mode = new_mode
+        self.setup_meal_tabs_with_data(new_mode, selected_days)
         self._snapshot_change()
 
     def _capture_state(self):
@@ -486,12 +652,12 @@ class NutritionEditorView(QWidget):
             self.update_macro_calculations()
 
             foods_list = NutritionService.get_all_foods()
-            meal_state_map = {m["meal_key"]: m["items"] for m in state.get("meals", [])}
+            state_meals = state.get("meals", [])
 
-            for meal_key, table in self.meal_tables:
-                if meal_key in meal_state_map:
+            for idx, (meal_key, table) in enumerate(self.meal_tables):
+                if idx < len(state_meals):
                     table.setRowCount(0)
-                    for itm in meal_state_map[meal_key]:
+                    for itm in state_meals[idx].get("items", []):
                         r = table.rowCount()
                         table.insertRow(r)
                         self._create_food_row_widgets(table, r, foods_list, itm)
@@ -608,14 +774,17 @@ class NutritionEditorView(QWidget):
         return widget
 
     def setup_meal_tabs(self):
+        days_mode = self.combo_days.currentData() or "all_days"
+        self.setup_meal_tabs_with_data(days_mode, None)
+
+    def setup_meal_tabs_with_data(self, days_mode: str, days_data: list = None):
+        self.tabs.blockSignals(True)
         self.tabs.clear()
         self.meal_tables.clear()
         self._undo_buttons.clear()
         self._redo_buttons.clear()
         foods_list = NutritionService.get_all_foods()
 
-        days_mode = self.combo_days.currentData() or "all_days"
-        
         if days_mode == "7_days":
             days = [
                 ("sat", "شنبه"),
@@ -651,19 +820,49 @@ class NutritionEditorView(QWidget):
             ("evening_snack", "🥛 قبل از خواب")
         ]
 
+        if not days_data:
+            days_data = []
+
         if len(days) == 1:
-            for meal_key, meal_title in meals:
+            day_info = days_data[0] if len(days_data) > 0 else None
+            meals_map = {}
+            if day_info and day_info.get("meals"):
+                for m_idx, m in enumerate(day_info["meals"]):
+                    meals_map[m_idx] = m.get("items", [])
+                    meals_map[m.get("meal_title", "")] = m.get("items", [])
+
+            for m_idx, (meal_key, meal_title) in enumerate(meals):
                 widget = self._create_meal_widget(meal_key, meal_title, foods_list)
+                existing_items = meals_map.get(meal_title) or meals_map.get(m_idx) or []
+                table = self.meal_tables[-1][1]
+                for itm in existing_items:
+                    r = table.rowCount()
+                    table.insertRow(r)
+                    self._create_food_row_widgets(table, r, foods_list, itm)
                 self.tabs.addTab(widget, meal_title)
         else:
-            for day_key, day_title in days:
+            for d_idx, (day_key, day_title) in enumerate(days):
+                day_info = days_data[d_idx] if d_idx < len(days_data) else None
+                meals_map = {}
+                if day_info and day_info.get("meals"):
+                    for m_idx, m in enumerate(day_info["meals"]):
+                        meals_map[m_idx] = m.get("items", [])
+                        meals_map[m.get("meal_title", "")] = m.get("items", [])
+
                 day_tab_widget = QTabWidget()
-                for meal_key, meal_title in meals:
+                for m_idx, (meal_key, meal_title) in enumerate(meals):
                     full_key = f"{day_title}: {meal_title}"
                     widget = self._create_meal_widget(full_key, meal_title, foods_list)
+                    existing_items = meals_map.get(meal_title) or meals_map.get(m_idx) or []
+                    table = self.meal_tables[-1][1]
+                    for itm in existing_items:
+                        r = table.rowCount()
+                        table.insertRow(r)
+                        self._create_food_row_widgets(table, r, foods_list, itm)
                     day_tab_widget.addTab(widget, meal_title)
                 self.tabs.addTab(day_tab_widget, f"📅 {day_title}")
 
+        self.tabs.blockSignals(False)
         self._update_undo_redo_ui()
 
     def update_macro_calculations(self):
@@ -799,6 +998,8 @@ class NutritionEditorView(QWidget):
 
     def reset_form(self):
         self.editing_plan_id = None
+        self._days_cache.clear()
+        self._prev_days_mode = "7_days"
         self.lbl_header_title.setText("🥗 برنامه‌ریزی تغذیه")
         self._do_reset_fields()
         self.combo_templates.blockSignals(True)
@@ -813,6 +1014,7 @@ class NutritionEditorView(QWidget):
 
     def load_plan_for_edit(self, plan_id: int):
         self.editing_plan_id = plan_id
+        self._days_cache.clear()
         plan = NutritionService.get_plan_by_id(plan_id)
         if plan:
             self.lbl_header_title.setText(f"✏️ ویرایش الگوی غذایی: {plan.title}")

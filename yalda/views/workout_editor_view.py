@@ -1,11 +1,12 @@
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QGroupBox
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QComboBox, QPushButton, QTabWidget, QTableWidget, QTableWidgetItem, QHeaderView, QMessageBox, QGroupBox, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QKeySequence, QShortcut
 from yalda.services.workout_service import WorkoutService
 from yalda.services.member_service import MemberService
 from yalda.views.components.searchable_combo_box import SearchableComboBox
+from yalda.views.components.day_management_dialogs import DaySelectionReductionDialog, DayIncreaseChoiceDialog
 
 class WorkoutEditorView(QWidget):
     manage_templates_requested = pyqtSignal()
@@ -22,6 +23,8 @@ class WorkoutEditorView(QWidget):
         self._undo_buttons = []
         self._redo_buttons = []
         self._is_undoing_redoing = False
+        self._days_cache = {}
+        self._prev_num_days = 3
         self.init_ui()
 
         # Keyboard shortcuts
@@ -128,6 +131,8 @@ class WorkoutEditorView(QWidget):
 
         # Tabs for Training Days
         self.tabs = QTabWidget()
+        self.tabs.setMovable(True)
+        self.tabs.tabBar().tabMoved.connect(self._on_tab_moved)
         layout.addWidget(self.tabs)
         self.setup_day_tabs()
 
@@ -176,17 +181,143 @@ class WorkoutEditorView(QWidget):
         if idx >= 0:
             self.combo_member.setCurrentIndex(idx)
 
+    def _on_tab_moved(self, from_idx: int, to_idx: int):
+        if from_idx == to_idx:
+            return
+        if 0 <= from_idx < len(self.day_tables) and 0 <= to_idx < len(self.day_tables):
+            moved_item = self.day_tables.pop(from_idx)
+            self.day_tables.insert(to_idx, moved_item)
+            # Re-label tabs and day titles
+            for i in range(self.tabs.count()):
+                self.tabs.setTabText(i, f"روز {i + 1}")
+                if i < len(self.day_tables):
+                    txt_day_title, _ = self.day_tables[i]
+                    cur_title = txt_day_title.text().strip()
+                    if cur_title.startswith("روز ") and ":" in cur_title:
+                        suffix = cur_title.split(":", 1)[1]
+                        txt_day_title.setText(f"روز {i + 1}:{suffix}")
+                    elif cur_title.startswith("روز ") and len(cur_title.split()) == 2:
+                        txt_day_title.setText(f"روز {i + 1}")
+            self._snapshot_change()
+
+    def _extract_current_days_data(self) -> list:
+        days_data = []
+        for txt_day_title, table in self.day_tables:
+            ex_list = []
+            for r in range(table.rowCount()):
+                combo = table.cellWidget(r, 0)
+                ex_id = combo.currentData() if combo else None
+                ex_text = combo.currentText() if combo else ""
+                txt_sets = table.cellWidget(r, 1)
+                txt_reps = table.cellWidget(r, 2)
+                txt_weight = table.cellWidget(r, 3)
+                txt_rest = table.cellWidget(r, 4)
+                txt_tempo = table.cellWidget(r, 5)
+
+                ex_list.append({
+                    "exercise_id": ex_id,
+                    "exercise_text": ex_text,
+                    "sets": txt_sets.text() if txt_sets else "3",
+                    "reps": txt_reps.text() if txt_reps else "10-12",
+                    "weight": txt_weight.text() if txt_weight else "-",
+                    "rest": txt_rest.text() if txt_rest else "60",
+                    "tempo": txt_tempo.text() if txt_tempo else "2-0-2-0"
+                })
+            days_data.append({
+                "day_title": txt_day_title.text(),
+                "exercises": ex_list
+            })
+        return days_data
+
+    def _has_non_empty_days(self, days_data: list) -> bool:
+        if not days_data:
+            return False
+        for d in days_data:
+            ex_list = d.get("exercises", [])
+            for ex in ex_list:
+                if ex.get("exercise_id") or (ex.get("exercise_text") and "انتخاب" not in ex.get("exercise_text")):
+                    return True
+            title = d.get("day_title", "")
+            if title and not (title.startswith("روز ") and "تمرین عضلات" in title):
+                return True
+        return False
+
     def on_days_changed(self):
-        self.setup_day_tabs()
+        new_days = self.combo_days.currentData() or 3
+        old_days = getattr(self, '_prev_num_days', 3)
+        if new_days == old_days:
+            return
+
+        current_days = self._extract_current_days_data()
+        self._days_cache[old_days] = current_days
+
+        selected_days = None
+
+        if new_days < old_days:
+            # Decreasing days
+            if self._has_non_empty_days(current_days):
+                summary = []
+                for idx, d in enumerate(current_days):
+                    valid_ex_count = len([e for e in d.get("exercises", []) if e.get("exercise_id")])
+                    summary.append((idx, d.get("day_title", f"روز {idx+1}"), f"{valid_ex_count} حرکت"))
+
+                dlg = DaySelectionReductionDialog(summary, new_days, self, is_nutrition=False)
+                if dlg.exec() != QDialog.DialogCode.Accepted:
+                    # User cancelled
+                    self.combo_days.blockSignals(True)
+                    idx = self.combo_days.findData(old_days)
+                    if idx >= 0: self.combo_days.setCurrentIndex(idx)
+                    self.combo_days.blockSignals(False)
+                    return
+
+                if dlg.start_fresh:
+                    selected_days = []
+                else:
+                    selected_days = [current_days[i] for i in dlg.selected_indices if i < len(current_days)]
+            else:
+                selected_days = current_days[:new_days]
+
+        else:
+            # Increasing days
+            cached_plan = self._days_cache.get(new_days)
+            if cached_plan and self._has_non_empty_days(cached_plan):
+                dlg = DayIncreaseChoiceDialog(new_days, old_days, self, is_nutrition=False)
+                if dlg.exec() != QDialog.DialogCode.Accepted:
+                    # User cancelled
+                    self.combo_days.blockSignals(True)
+                    idx = self.combo_days.findData(old_days)
+                    if idx >= 0: self.combo_days.setCurrentIndex(idx)
+                    self.combo_days.blockSignals(False)
+                    return
+
+                if dlg.choice == "restore":
+                    selected_days = cached_plan
+                elif dlg.choice == "fresh":
+                    selected_days = []
+                else:
+                    selected_days = current_days
+            else:
+                # No cached plan or empty -> automatically append!
+                selected_days = current_days
+
+        self._prev_num_days = new_days
+        self.setup_day_tabs_with_data(new_days, selected_days)
         self._snapshot_change()
 
     def setup_day_tabs(self):
+        num_days = self.combo_days.currentData() or 3
+        self.setup_day_tabs_with_data(num_days, None)
+
+    def setup_day_tabs_with_data(self, num_days: int, days_data: list = None):
+        self.tabs.blockSignals(True)
         self.tabs.clear()
         self.day_tables.clear()
         self._undo_buttons.clear()
         self._redo_buttons.clear()
-        num_days = self.combo_days.currentData() or 3
         exercises_list = WorkoutService.get_all_exercises()
+
+        if not days_data:
+            days_data = []
 
         for d in range(1, num_days + 1):
             day_widget = QWidget()
@@ -195,7 +326,21 @@ class WorkoutEditorView(QWidget):
             # Header row for day
             row_top = QHBoxLayout()
             lbl_title = QLabel(f"عنوان روز {d}:")
-            txt_day_title = QLineEdit(f"روز {d}: تمرین عضلات")
+
+            existing_day = days_data[d - 1] if (d - 1) < len(days_data) else None
+            if existing_day and existing_day.get("day_title"):
+                orig_title = existing_day.get("day_title")
+                if orig_title.startswith("روز ") and ":" in orig_title:
+                    suffix = orig_title.split(":", 1)[1]
+                    day_title_text = f"روز {d}:{suffix}"
+                elif orig_title.startswith("روز ") and len(orig_title.split()) == 2:
+                    day_title_text = f"روز {d}"
+                else:
+                    day_title_text = orig_title
+            else:
+                day_title_text = f"روز {d}: تمرین عضلات"
+
+            txt_day_title = QLineEdit(day_title_text)
             txt_day_title.textEdited.connect(lambda: self._snapshot_change())
 
             btn_undo = QPushButton("↩️ Undo")
@@ -226,7 +371,6 @@ class WorkoutEditorView(QWidget):
             table = QTableWidget(0, 7)
             table.setHorizontalHeaderLabels(["نام حرکت ورزشی", "ست", "تکرار", "وزنه (kg)", "استراحت (ثانیه)", "ریتم (Tempo)", "حذف"])
             
-            # Row height & Column width setup
             table.verticalHeader().setDefaultSectionSize(50)
             table.verticalHeader().setMinimumSectionSize(45)
             
@@ -247,10 +391,17 @@ class WorkoutEditorView(QWidget):
 
             btn_add_row.clicked.connect(lambda _, t=table: self.add_exercise_row(t, exercises_list))
 
+            if existing_day and existing_day.get("exercises"):
+                for ex in existing_day.get("exercises", []):
+                    r = table.rowCount()
+                    table.insertRow(r)
+                    self._create_exercise_row_widgets(table, r, exercises_list, ex)
+
             layout_day.addWidget(table)
             self.tabs.addTab(day_widget, f"روز {d}")
             self.day_tables.append((txt_day_title, table))
 
+        self.tabs.blockSignals(False)
         self._update_undo_redo_ui()
 
     def _capture_state(self):
@@ -588,10 +739,14 @@ class WorkoutEditorView(QWidget):
 
     def reset_to_new_plan(self):
         self.editing_plan_id = None
+        self._days_cache.clear()
+        self._prev_num_days = 3
         self.lbl_header_title.setText("🏋️ برنامه‌ریزی تمرینی")
         self.txt_title.clear()
         self.combo_goal.setCurrentIndex(0)
+        self.combo_days.blockSignals(True)
         self.combo_days.setCurrentIndex(1)
+        self.combo_days.blockSignals(False)
         self.combo_level.setCurrentIndex(0)
         self.setup_day_tabs()
         self.combo_templates.blockSignals(True)
@@ -606,8 +761,10 @@ class WorkoutEditorView(QWidget):
         self._suppress_loaded_alert = True
         try:
             self.editing_plan_id = plan_id
+            self._days_cache.clear()
             plan = WorkoutService.get_plan_by_id(plan_id)
             if plan:
+                self._prev_num_days = plan.days_per_week
                 self.lbl_header_title.setText(f"✏️ ویرایش الگوی تمرینی: {plan.title}")
                 self._load_plan_data_to_form(plan)
         finally:

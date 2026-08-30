@@ -122,9 +122,12 @@ class NutritionService:
                 session.flush()
 
                 for item_info in m_info.get("items", []):
+                    f_id = item_info.get("food_id")
+                    if not f_id:
+                        continue
                     m_item = MealItem(
                         meal_id=meal.id,
-                        food_id=item_info.get("food_id"),
+                        food_id=f_id,
                         amount=float(item_info.get("amount", 1.0)),
                         unit=item_info.get("unit"),
                         notes=item_info.get("notes")
@@ -262,9 +265,12 @@ class NutritionService:
                 session.flush()
 
                 for item_info in m_info.get("items", []):
+                    f_id = item_info.get("food_id")
+                    if not f_id:
+                        continue
                     m_item = MealItem(
                         meal_id=meal.id,
-                        food_id=item_info.get("food_id"),
+                        food_id=f_id,
                         amount=float(item_info.get("amount", 1.0)),
                         unit=item_info.get("unit"),
                         notes=item_info.get("notes")

@@ -462,6 +462,8 @@ class WorkoutEditorView(QWidget):
                 if not combo_ex:
                     continue
                 ex_id = combo_ex.currentData()
+                if not ex_id:
+                    continue
                 sets = table.cellWidget(row, 1).text().strip()
                 reps = table.cellWidget(row, 2).text().strip()
                 weight = table.cellWidget(row, 3).text().strip()
@@ -613,15 +615,24 @@ class WorkoutEditorView(QWidget):
 
     def save_plan(self):
         plan_info, days_data = self.get_plan_data()
-        if self.editing_plan_id:
-            plan = WorkoutService.update_workout_plan(self.editing_plan_id, plan_info, days_data)
-            self.load_template_dropdown()
-            QMessageBox.information(self, "موفقیت", f"الگوی تمرینی «{plan.title}» با موفقیت به‌روزرسانی شد.")
-        else:
-            plan = WorkoutService.create_workout_plan(plan_info, days_data)
-            self.load_template_dropdown()
-            QMessageBox.information(self, "موفقیت", "الگوی برنامه تمرینی در بانک ذخیره گردید.")
-        return plan
+        total_exercises = sum(len(d.get("exercises", [])) for d in days_data)
+        if total_exercises == 0:
+            QMessageBox.warning(self, "خطا", "لطفاً ابتدا حداقل یک حرکت ورزشی به برنامه اضافه کنید.")
+            return None
+
+        try:
+            if self.editing_plan_id:
+                plan = WorkoutService.update_workout_plan(self.editing_plan_id, plan_info, days_data)
+                self.load_template_dropdown()
+                QMessageBox.information(self, "موفقیت", f"الگوی تمرینی «{plan.title}» با موفقیت به‌روزرسانی شد.")
+            else:
+                plan = WorkoutService.create_workout_plan(plan_info, days_data)
+                self.load_template_dropdown()
+                QMessageBox.information(self, "موفقیت", "الگوی برنامه تمرینی در بانک ذخیره گردید.")
+            return plan
+        except Exception as e:
+            QMessageBox.critical(self, "خطا", f"خطا در ذخیره الگوی تمرینی:\n{str(e)}")
+            return None
 
     def assign_plan(self):
         member_id = self.combo_member.currentData()
@@ -629,10 +640,14 @@ class WorkoutEditorView(QWidget):
             QMessageBox.warning(self, "خطا", "لطفاً یک ورزشکار را جهت تخصیص انتخاب کنید.")
             return
 
+        plan_info, days_data = self.get_plan_data()
+        total_exercises = sum(len(d.get("exercises", [])) for d in days_data)
+        if total_exercises == 0:
+            QMessageBox.warning(self, "خطا", "لطفاً ابتدا حداقل یک حرکت ورزشی به برنامه اضافه کنید.")
+            return
+
         # Check Smart Limitations
         health_rec = MemberService.get_health_record(member_id)
-        plan_info, days_data = self.get_plan_data()
-        
         warnings = []
         if health_rec:
             if health_rec.knee_injury:
@@ -648,7 +663,10 @@ class WorkoutEditorView(QWidget):
             if reply != QMessageBox.StandardButton.Yes:
                 return
 
-        plan = WorkoutService.create_workout_plan(plan_info, days_data)
-        WorkoutService.assign_plan_to_member(member_id, plan.id)
-        QMessageBox.information(self, "موفقیت", "برنامه تمرینی با موفقیت به ورزشکار تخصیص یافت.")
-        self.reset_to_new_plan()
+        try:
+            plan = WorkoutService.create_workout_plan(plan_info, days_data)
+            WorkoutService.assign_plan_to_member(member_id, plan.id)
+            QMessageBox.information(self, "موفقیت", "برنامه تمرینی با موفقیت به ورزشکار تخصیص یافت.")
+            self.reset_to_new_plan()
+        except Exception as e:
+            QMessageBox.critical(self, "خطا", f"خطا در تخصیص برنامه تمرینی:\n{str(e)}")

@@ -127,9 +127,12 @@ class WorkoutService:
                 session.flush()
 
                 for idx, ex_info in enumerate(day_info.get("exercises", []), start=1):
+                    ex_id = ex_info.get("exercise_id")
+                    if not ex_id:
+                        continue
                     w_ex = WorkoutExercise(
                         day_id=w_day.id,
-                        exercise_id=ex_info.get("exercise_id"),
+                        exercise_id=ex_id,
                         sets=int(ex_info.get("sets", 3)),
                         reps=str(ex_info.get("reps", "10")),
                         weight_suggestion=ex_info.get("weight_suggestion"),
@@ -309,9 +312,12 @@ class WorkoutService:
                 session.flush()
 
                 for idx, ex_info in enumerate(day_info.get("exercises", []), start=1):
+                    ex_id = ex_info.get("exercise_id")
+                    if not ex_id:
+                        continue
                     w_ex = WorkoutExercise(
                         day_id=w_day.id,
-                        exercise_id=ex_info.get("exercise_id"),
+                        exercise_id=ex_id,
                         sets=int(ex_info.get("sets", 3)),
                         reps=str(ex_info.get("reps", "10")),
                         weight_suggestion=ex_info.get("weight_suggestion"),

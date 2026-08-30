@@ -705,6 +705,8 @@ class NutritionEditorView(QWidget):
                 if not combo_food:
                     continue
                 food_id = combo_food.currentData()
+                if not food_id:
+                    continue
                 amount_str = table.cellWidget(row, 1).text().strip()
                 notes = table.cellWidget(row, 2).text().strip()
 
@@ -737,26 +739,35 @@ class NutritionEditorView(QWidget):
 
     def save_plan(self, auto_reset: bool = True):
         plan_info, meals_data = self.get_plan_data()
-        if self.editing_plan_id:
-            plan = NutritionService.update_nutrition_plan(self.editing_plan_id, plan_info, meals_data)
-            if auto_reset:
-                self.reset_form()
+        total_items = sum(len(m.get("items", [])) for m in meals_data)
+        if total_items == 0:
+            QMessageBox.warning(self, "خطا", "لطفاً ابتدا حداقل یک ماده غذایی به برنامه اضافه کنید.")
+            return None
+
+        try:
+            if self.editing_plan_id:
+                plan = NutritionService.update_nutrition_plan(self.editing_plan_id, plan_info, meals_data)
+                if auto_reset:
+                    self.reset_form()
+                else:
+                    self.combo_templates.blockSignals(True)
+                    self.load_template_dropdown()
+                    self.combo_templates.blockSignals(False)
+                QMessageBox.information(self, "موفقیت", f"الگوی برنامه غذایی «{plan.title}» با موفقیت به‌روزرسانی شد.")
             else:
+                plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
+                if auto_reset:
+                    self._do_reset_fields()
                 self.combo_templates.blockSignals(True)
                 self.load_template_dropdown()
                 self.combo_templates.blockSignals(False)
-            QMessageBox.information(self, "موفقیت", f"الگوی برنامه غذایی «{plan.title}» با موفقیت به‌روزرسانی شد.")
-        else:
-            plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
-            if auto_reset:
-                self._do_reset_fields()
-            self.combo_templates.blockSignals(True)
-            self.load_template_dropdown()
-            self.combo_templates.blockSignals(False)
-            if auto_reset:
-                self.setup_meal_tabs()
-            QMessageBox.information(self, "موفقیت", "الگوی برنامه غذایی با موفقیت در بانک ذخیره شد.")
-        return plan
+                if auto_reset:
+                    self.setup_meal_tabs()
+                QMessageBox.information(self, "موفقیت", "الگوی برنامه غذایی با موفقیت در بانک ذخیره شد.")
+            return plan
+        except Exception as e:
+            QMessageBox.critical(self, "خطا", f"خطا در ذخیره الگوی برنامه غذایی:\n{str(e)}")
+            return None
 
     def _do_reset_fields(self):
         """فقط پاکسازی فیلدهای کادر اهداف فیزیکی، بدون لمس جدول وعده‌ها"""
@@ -814,10 +825,18 @@ class NutritionEditorView(QWidget):
             return
 
         plan_info, meals_data = self.get_plan_data()
-        plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
-        NutritionService.assign_nutrition_plan(member_id, plan.id)
-        QMessageBox.information(self, "موفقیت", "برنامه غذایی با موفقیت به ورزشکار تخصیص یافت.")
-        self.reset_form()
+        total_items = sum(len(m.get("items", [])) for m in meals_data)
+        if total_items == 0:
+            QMessageBox.warning(self, "خطا", "لطفاً ابتدا حداقل یک ماده غذایی به برنامه اضافه کنید.")
+            return
+
+        try:
+            plan = NutritionService.create_nutrition_plan(plan_info, meals_data)
+            NutritionService.assign_nutrition_plan(member_id, plan.id)
+            QMessageBox.information(self, "موفقیت", "برنامه غذایی با موفقیت به ورزشکار تخصیص یافت.")
+            self.reset_form()
+        except Exception as e:
+            QMessageBox.critical(self, "خطا", f"خطا در تخصیص برنامه غذایی:\n{str(e)}")
 
     def open_food_bank(self):
         from yalda.views.food_library_dialog import FoodLibraryDialog

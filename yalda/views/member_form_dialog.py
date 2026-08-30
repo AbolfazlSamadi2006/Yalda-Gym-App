@@ -299,31 +299,38 @@ class MemberFormDialog(QDialog):
                 self.txt_tuition_fee.blockSignals(False)
 
     def recalculate_expiry(self):
-        start_date = self.picker_start.text().strip()
-        if start_date:
-            expire_date = add_months_shamsi(start_date, 1)
-            self.picker_expire.setText(expire_date)
-        else:
-            self.picker_expire.setText("")
+        try:
+            start_date = self.picker_start.text().strip()
+            if start_date:
+                expire_date = add_months_shamsi(start_date, 1)
+                if expire_date:
+                    self.picker_expire.setText(expire_date)
+            else:
+                self.picker_expire.setText("")
+        except Exception:
+            pass
         self.auto_update_status()
 
     def auto_update_status(self):
-        from yalda.utils.jalali_date import is_membership_active
-        start_date = self.picker_start.text().strip()
-        expire_date = self.picker_expire.text().strip()
+        try:
+            from yalda.utils.jalali_date import is_membership_active
+            start_date = self.picker_start.text().strip()
+            expire_date = self.picker_expire.text().strip()
 
-        if not start_date:
-            idx = self.combo_status.findData("archived")
-            if idx >= 0:
-                self.combo_status.setCurrentIndex(idx)
-        elif expire_date and not is_membership_active(expire_date):
-            idx = self.combo_status.findData("expired")
-            if idx >= 0:
-                self.combo_status.setCurrentIndex(idx)
-        else:
-            idx = self.combo_status.findData("active")
-            if idx >= 0:
-                self.combo_status.setCurrentIndex(idx)
+            if not start_date:
+                idx = self.combo_status.findData("archived")
+                if idx >= 0:
+                    self.combo_status.setCurrentIndex(idx)
+            elif expire_date and not is_membership_active(expire_date):
+                idx = self.combo_status.findData("expired")
+                if idx >= 0:
+                    self.combo_status.setCurrentIndex(idx)
+            else:
+                idx = self.combo_status.findData("active")
+                if idx >= 0:
+                    self.combo_status.setCurrentIndex(idx)
+        except Exception:
+            pass
 
     def on_membership_type_changed(self):
         self.recalculate_expiry()

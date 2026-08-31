@@ -76,11 +76,11 @@ class NutritionEditorView(QWidget):
         header.addWidget(btn_food_bank)
         layout.addLayout(header)
 
-        # Macros Goal Box
-        goal_box = QGroupBox("اهداف فیزیکی و درشت‌مغذی‌های رژیم (Macronutrients)")
-        layout_goal = QVBoxLayout(goal_box)
-        layout_goal.setSpacing(12)
-        layout_goal.setContentsMargins(12, 12, 12, 12)
+        # Program Details Form Box
+        form_box = QGroupBox("مشخصات کلی برنامه غذایی")
+        layout_form = QVBoxLayout(form_box)
+        layout_form.setSpacing(12)
+        layout_form.setContentsMargins(12, 12, 12, 12)
 
         # Row 1: Title -> Goal -> Days Pattern -> Template Picker
         row1 = QHBoxLayout()
@@ -123,98 +123,9 @@ class NutritionEditorView(QWidget):
         row1.addWidget(self.combo_days, 1)
         row1.addWidget(lbl_template)
         row1.addWidget(self.combo_templates, 2)
-        layout_goal.addLayout(row1)
+        layout_form.addLayout(row1)
 
-        # Row 2: Target Calories & Macros
-        row2 = QHBoxLayout()
-        row2.setSpacing(12)
-
-        self.spin_cal = QDoubleSpinBox()
-        self.spin_cal.setRange(500, 10000)
-        self.spin_cal.setValue(2000.0)
-        self.spin_cal.setDecimals(0)
-        self.spin_cal.setFixedWidth(100)
-        self.spin_cal.valueChanged.connect(lambda: self._snapshot_change())
-
-        self.spin_protein = QDoubleSpinBox()
-        self.spin_protein.setRange(0, 1000)
-        self.spin_protein.setValue(150.0)
-        self.spin_protein.setDecimals(0)
-        self.spin_protein.setFixedWidth(90)
-        self.spin_protein.valueChanged.connect(lambda: self._snapshot_change())
-
-        self.spin_carbs = QDoubleSpinBox()
-        self.spin_carbs.setRange(0, 1000)
-        self.spin_carbs.setValue(200.0)
-        self.spin_carbs.setDecimals(0)
-        self.spin_carbs.setFixedWidth(90)
-        self.spin_carbs.valueChanged.connect(lambda: self._snapshot_change())
-
-        self.spin_fat = QDoubleSpinBox()
-        self.spin_fat.setRange(0, 1000)
-        self.spin_fat.setValue(60.0)
-        self.spin_fat.setDecimals(0)
-        self.spin_fat.setFixedWidth(90)
-        self.spin_fat.valueChanged.connect(lambda: self._snapshot_change())
-
-        self.spin_total_grams = QDoubleSpinBox()
-        self.spin_total_grams.setRange(0, 5000)
-        self.spin_total_grams.setReadOnly(True)
-        self.spin_total_grams.setDecimals(0)
-        self.spin_total_grams.setFixedWidth(90)
-        self.spin_total_grams.setStyleSheet("font-weight: bold; color: #4ADE80; background-color: #1A1A1A;")
-
-        self.txt_calorie_percent = QLineEdit()
-        self.txt_calorie_percent.setReadOnly(True)
-        self.txt_calorie_percent.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.txt_calorie_percent.setFixedWidth(210)
-
-        h_cal = QHBoxLayout()
-        h_cal.setSpacing(4)
-        h_cal.addWidget(QLabel("کالری (kcal):"))
-        h_cal.addWidget(self.spin_cal)
-
-        h_pro = QHBoxLayout()
-        h_pro.setSpacing(4)
-        h_pro.addWidget(QLabel("پروتئین (g):"))
-        h_pro.addWidget(self.spin_protein)
-
-        h_carbs = QHBoxLayout()
-        h_carbs.setSpacing(4)
-        h_carbs.addWidget(QLabel("کربوهیدرات (g):"))
-        h_carbs.addWidget(self.spin_carbs)
-
-        h_fat = QHBoxLayout()
-        h_fat.setSpacing(4)
-        h_fat.addWidget(QLabel("چربی (g):"))
-        h_fat.addWidget(self.spin_fat)
-
-        h_total_g = QHBoxLayout()
-        h_total_g.setSpacing(4)
-        h_total_g.addWidget(QLabel("گرم مواد غذایی (g):"))
-        h_total_g.addWidget(self.spin_total_grams)
-
-        h_pct = QHBoxLayout()
-        h_pct.setSpacing(4)
-        h_pct.addWidget(QLabel("درصد کالری (٪):"))
-        h_pct.addWidget(self.txt_calorie_percent)
-
-        row2.addLayout(h_cal)
-        row2.addLayout(h_pro)
-        row2.addLayout(h_carbs)
-        row2.addLayout(h_fat)
-        row2.addLayout(h_total_g)
-        row2.addLayout(h_pct)
-        row2.addStretch()
-        layout_goal.addLayout(row2)
-
-        self.spin_cal.valueChanged.connect(self.update_macro_calculations)
-        self.spin_protein.valueChanged.connect(self.update_macro_calculations)
-        self.spin_carbs.valueChanged.connect(self.update_macro_calculations)
-        self.spin_fat.valueChanged.connect(self.update_macro_calculations)
-        self.update_macro_calculations()
-
-        layout.addWidget(goal_box)
+        layout.addWidget(form_box)
 
         # Tabs for Meals
         self.tabs = QTabWidget()
@@ -281,7 +192,7 @@ class NutritionEditorView(QWidget):
                 "weight_gain": "افزایش وزن",
                 "maintenance": "تثبیت وزن"
             }.get(p.goal, p.goal)
-            self.combo_templates.addItem(f"🥗 {p.title} ({int(p.target_calories)} kcal - {goal_title})", p.id)
+            self.combo_templates.addItem(f"🥗 {p.title} ({goal_title})", p.id)
         if cur is not None:
             idx = self.combo_templates.findData(cur)
             if idx >= 0:
@@ -300,11 +211,6 @@ class NutritionEditorView(QWidget):
             idx_g = self.combo_goal.findData(plan.goal)
             if idx_g >= 0:
                 self.combo_goal.setCurrentIndex(idx_g)
-
-            self.spin_cal.setValue(plan.target_calories or 2000.0)
-            self.spin_protein.setValue(plan.target_protein or 150.0)
-            self.spin_carbs.setValue(plan.target_carbs or 200.0)
-            self.spin_fat.setValue(plan.target_fat or 60.0)
 
             # Detect days pattern from meal names in plan
             has_7_days = any(any(d in m.meal_name for d in ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"]) for m in plan.meals)
@@ -562,10 +468,6 @@ class NutritionEditorView(QWidget):
             "title": self.txt_title.text(),
             "goal": self.combo_goal.currentData(),
             "days_pattern": self.combo_days.currentData(),
-            "cal": self.spin_cal.value(),
-            "protein": self.spin_protein.value(),
-            "carbs": self.spin_carbs.value(),
-            "fat": self.spin_fat.value(),
             "tab_index": self.tabs.currentIndex(),
             "meals": []
         }
@@ -648,12 +550,6 @@ class NutritionEditorView(QWidget):
                 self.combo_days.setCurrentIndex(idx_d)
                 self.combo_days.blockSignals(False)
                 self.setup_meal_tabs()
-
-            self.spin_cal.setValue(state.get("cal", 2000.0))
-            self.spin_protein.setValue(state.get("protein", 150.0))
-            self.spin_carbs.setValue(state.get("carbs", 200.0))
-            self.spin_fat.setValue(state.get("fat", 60.0))
-            self.update_macro_calculations()
 
             foods_list = NutritionService.get_all_foods()
             state_meals = state.get("meals", [])
@@ -875,23 +771,6 @@ class NutritionEditorView(QWidget):
         self.tabs.blockSignals(False)
         self._update_undo_redo_ui()
 
-    def update_macro_calculations(self):
-        cal = self.spin_cal.value()
-        p = self.spin_protein.value()
-        c = self.spin_carbs.value()
-        f = self.spin_fat.value()
-
-        total_g = p + c + f
-        self.spin_total_grams.setValue(total_g if total_g > 0 else 0.0)
-
-        if cal > 0 and total_g > 0:
-            p_pct = (p * 4 / cal) * 100
-            c_pct = (c * 4 / cal) * 100
-            f_pct = (f * 9 / cal) * 100
-            self.txt_calorie_percent.setText(f"{p_pct:.0f}% پروتئین | {c_pct:.0f}% کربوهیدرات | {f_pct:.0f}% چربی")
-        else:
-            self.txt_calorie_percent.setText("")
-
     def refresh_editor(self):
         self.load_members_dropdown()
         cur_tpl = self.combo_templates.currentData()
@@ -939,10 +818,10 @@ class NutritionEditorView(QWidget):
         plan_info = {
             "title": title,
             "goal": self.combo_goal.currentData(),
-            "target_calories": self.spin_cal.value(),
-            "target_protein": self.spin_protein.value(),
-            "target_carbs": self.spin_carbs.value(),
-            "target_fat": self.spin_fat.value()
+            "target_calories": 0.0,
+            "target_protein": 0.0,
+            "target_carbs": 0.0,
+            "target_fat": 0.0
         }
         return plan_info, meals_data
 
@@ -979,23 +858,15 @@ class NutritionEditorView(QWidget):
             return None
 
     def _do_reset_fields(self):
-        """فقط پاکسازی فیلدهای کادر اهداف فیزیکی، بدون لمس جدول وعده‌ها"""
-        for w in [self.txt_title, self.combo_goal, self.combo_days, self.spin_cal, self.spin_protein,
-                  self.spin_carbs, self.spin_fat, self.spin_total_grams, self.combo_templates]:
+        """پاکسازی فیلدهای مشخصات کلی رژیم"""
+        for w in [self.txt_title, self.combo_goal, self.combo_days, self.combo_templates]:
             w.blockSignals(True)
 
         self.txt_title.setText("")
         self.combo_goal.setCurrentIndex(0)
         self.combo_days.setCurrentIndex(0)
-        self.spin_cal.setValue(0.0)
-        self.spin_protein.setValue(0.0)
-        self.spin_carbs.setValue(0.0)
-        self.spin_fat.setValue(0.0)
-        self.spin_total_grams.setValue(0.0)
-        self.txt_calorie_percent.setText("")
 
-        for w in [self.txt_title, self.combo_goal, self.combo_days, self.spin_cal, self.spin_protein,
-                  self.spin_carbs, self.spin_fat, self.spin_total_grams, self.combo_templates]:
+        for w in [self.txt_title, self.combo_goal, self.combo_days, self.combo_templates]:
             w.blockSignals(False)
 
     def revert_changes(self):

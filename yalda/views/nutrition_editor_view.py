@@ -393,6 +393,17 @@ class NutritionEditorView(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "خطا", f"خطا در بارگذاری الگوی رژیم: {str(e)}")
 
+    def _get_day_names_for_mode(self, days_mode: str) -> list:
+        day_names_map = {
+            "7_days": ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه"],
+            "2_days": ["روزهای تمرینی", "روزهای استراحت"],
+            "3_days": ["روز اول", "روز دوم", "روز سوم"],
+            "4_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم"],
+            "5_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم", "روز پنجم"],
+            "6_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم", "روز پنجم", "روز ششم"],
+        }
+        return day_names_map.get(days_mode, ["برنامه کلیه روزهای هفته"])
+
     def _on_tab_moved(self, from_idx: int, to_idx: int):
         if from_idx == to_idx:
             return
@@ -408,17 +419,10 @@ class NutritionEditorView(QWidget):
             start_to = to_idx * 6
             self.meal_tables[start_to : start_to] = moved_chunk
 
-            day_names_map = {
-                "3_days": ["روز اول", "روز دوم", "روز سوم"],
-                "4_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم"],
-                "5_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم", "روز پنجم"],
-                "6_days": ["روز اول", "روز دوم", "روز سوم", "روز چهارم", "روز پنجم", "روز ششم"],
-            }
-            if days_mode in day_names_map:
-                names = day_names_map[days_mode]
-                for i in range(self.tabs.count()):
-                    if i < len(names):
-                        self.tabs.setTabText(i, f"📅 {names[i]}")
+            names = self._get_day_names_for_mode(days_mode)
+            for i in range(self.tabs.count()):
+                if i < len(names):
+                    self.tabs.setTabText(i, f"📅 {names[i]}")
 
             for d in range(num_days):
                 day_tab_text = self.tabs.tabText(d).replace("📅", "").strip()
@@ -661,6 +665,12 @@ class NutritionEditorView(QWidget):
                         r = table.rowCount()
                         table.insertRow(r)
                         self._create_food_row_widgets(table, r, foods_list, itm)
+
+            names = self._get_day_names_for_mode(pattern)
+            if pattern != "all_days":
+                for i in range(self.tabs.count()):
+                    if i < len(names):
+                        self.tabs.setTabText(i, f"📅 {names[i]}")
 
             tab_idx = state.get("tab_index", 0)
             if 0 <= tab_idx < self.tabs.count():

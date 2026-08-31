@@ -66,7 +66,7 @@ class AssignTemplateDialog(QDialog):
         self.combo_member.clear()
         members = MemberService.get_all_members(status_filter="active")
         for m in members:
-            self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
+            self.combo_member.addItem(m.full_name, m.id)
         self.combo_member.set_empty()
 
     def assign(self):

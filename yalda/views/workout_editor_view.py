@@ -141,6 +141,8 @@ class WorkoutEditorView(QWidget):
         layout_assign = QHBoxLayout(assign_box)
 
         self.combo_member = SearchableComboBox(placeholder="جستجو یا تایپ نام ورزشکار...")
+        self.combo_member.setFixedHeight(36)
+        self.combo_member.setMinimumWidth(260)
         self.load_members_dropdown()
 
         btn_save = QPushButton("💾 ذخیره الگو در بانک")
@@ -164,7 +166,7 @@ class WorkoutEditorView(QWidget):
         self.combo_member.clear()
         members = MemberService.get_all_members(status_filter="active")
         for m in members:
-            self.combo_member.addItem(f"{m.full_name} ({m.phone})", m.id)
+            self.combo_member.addItem(m.full_name, m.id)
         if cur is not None:
             idx = self.combo_member.findData(cur)
             if idx >= 0:

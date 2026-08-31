@@ -28,6 +28,9 @@ class SearchableComboBox(QComboBox):
                 le.setPlaceholderText(placeholder)
             le.editingFinished.connect(self._on_editing_finished)
 
+        self.currentIndexChanged.connect(self._ensure_centered)
+        self.currentTextChanged.connect(self._ensure_centered)
+
         comp = self.completer()
         if comp:
             comp.setFilterMode(Qt.MatchFlag.MatchContains)
@@ -36,11 +39,17 @@ class SearchableComboBox(QComboBox):
             if comp.popup():
                 comp.popup().setItemDelegate(CenteredItemDelegate(self))
 
+    def _ensure_centered(self, *args):
+        le = self.lineEdit()
+        if le:
+            le.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
     def set_empty(self):
         """Clears selection and lineEdit text so placeholder is visible."""
         self.setCurrentIndex(-1)
         if self.lineEdit():
             self.lineEdit().clear()
+            self.lineEdit().setAlignment(Qt.AlignmentFlag.AlignCenter)
 
     def _on_editing_finished(self):
         text = self.currentText().strip()

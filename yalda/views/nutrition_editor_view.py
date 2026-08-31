@@ -79,10 +79,22 @@ class NutritionEditorView(QWidget):
         # Program Details Form Box
         form_box = QGroupBox("مشخصات کلی برنامه غذایی")
         layout_form = QVBoxLayout(form_box)
-        layout_form.setSpacing(12)
+        layout_form.setSpacing(10)
         layout_form.setContentsMargins(12, 12, 12, 12)
 
-        # Row 1: Title -> Goal -> Days Pattern -> Template Picker
+        # Template Picker Row (Full width like Workout Editor)
+        row_tpl = QHBoxLayout()
+        row_tpl.setSpacing(10)
+        self.combo_templates = QComboBox()
+        self.combo_templates.addItem("--- انتخاب و بارگذاری الگوی آماده از بانک ---", None)
+        self.load_template_dropdown()
+        self.combo_templates.currentIndexChanged.connect(self.on_template_selected)
+
+        row_tpl.addWidget(QLabel("📂 الگوهای آماده بانک:"))
+        row_tpl.addWidget(self.combo_templates)
+        layout_form.addLayout(row_tpl)
+
+        # Row 2: Title -> Goal -> Days Pattern
         row1 = QHBoxLayout()
         row1.setSpacing(12)
 
@@ -110,19 +122,12 @@ class NutritionEditorView(QWidget):
         self.combo_days.addItem("📅 الگوی ثابت (کلیه روزهای هفته)", "all_days")
         self.combo_days.currentIndexChanged.connect(self.on_days_pattern_changed)
 
-        lbl_template = QLabel("الگوی آماده:")
-        self.combo_templates = QComboBox()
-        self.load_template_dropdown()
-        self.combo_templates.currentIndexChanged.connect(self.on_template_selected)
-
         row1.addWidget(lbl_title)
         row1.addWidget(self.txt_title, 2)
         row1.addWidget(lbl_goal)
         row1.addWidget(self.combo_goal, 1)
         row1.addWidget(lbl_days)
         row1.addWidget(self.combo_days, 1)
-        row1.addWidget(lbl_template)
-        row1.addWidget(self.combo_templates, 2)
         layout_form.addLayout(row1)
 
         layout.addWidget(form_box)

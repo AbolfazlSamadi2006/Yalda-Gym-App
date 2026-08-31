@@ -1,0 +1,154 @@
+import os
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame
+)
+from PyQt6.QtCore import Qt
+
+
+class BackupDestinationDialog(QDialog):
+    """Dialog to choose backup destination: System (custom path), Server (cloud), or Installation directory."""
+
+    CHOICE_SYSTEM = "system"
+    CHOICE_SERVER = "server"
+    CHOICE_INSTALL_DIR = "install_dir"
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.selected_choice = None
+        self.setWindowTitle("انتخاب محل ذخیره‌سازی فایل پشتیبان")
+        self.setFixedWidth(540)
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #18181B;
+                border: 1px solid #27272A;
+                border-radius: 10px;
+            }
+        """)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+
+        # Header Title
+        lbl_title = QLabel("💾 ایجاد نسخه پشتیبان جدید")
+        lbl_title.setStyleSheet("""
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            font-family: "Segoe UI Emoji", "Noto Color Emoji", "Vazirmatn", sans-serif;
+        """)
+        layout.addWidget(lbl_title)
+
+        # Subtitle
+        lbl_msg = QLabel("لطفاً مقصد مورد نظر جهت ذخیره نسخه پشتیبان (پایگاه‌داده و تصاویر) را انتخاب نمایید:")
+        lbl_msg.setStyleSheet("color: #CCCCCC; font-size: 13px;")
+        lbl_msg.setWordWrap(True)
+        layout.addWidget(lbl_msg)
+
+        layout.addSpacing(6)
+
+        # ----------------------------------------------------
+        # Option 1: Save to Custom System Path
+        # ----------------------------------------------------
+        btn_system = self._create_option_button(
+            title="💻 ذخیره در سیستم (مسیر دلخواه شما)",
+            description="انتخاب پوشه دلخواه در حافظه سیستم (دسکتاپ، فلش مموری، درایو دیگر و...)",
+            bg_color="#059669",
+            hover_color="#047857"
+        )
+        btn_system.clicked.connect(lambda: self._select_choice(self.CHOICE_SYSTEM))
+        layout.addWidget(btn_system)
+
+        # ----------------------------------------------------
+        # Option 2: Save to Cloud Server
+        # ----------------------------------------------------
+        btn_server = self._create_option_button(
+            title="☁️ ذخیره در سرور ابری (آنلاین)",
+            description="ارسال مستقیم و امن فایل پشتیبان به سرور ابری یلدا جهت حفاظت در برابر خرابی سیستم",
+            bg_color="#2563EB",
+            hover_color="#1D4ED8"
+        )
+        btn_server.clicked.connect(lambda: self._select_choice(self.CHOICE_SERVER))
+        layout.addWidget(btn_server)
+
+        # ----------------------------------------------------
+        # Option 3: Save to Default Installation Directory
+        # ----------------------------------------------------
+        btn_install_dir = self._create_option_button(
+            title="📁 ذخیره در مسیر نصب برنامه (پیش‌فرض)",
+            description="ذخیره خودکار در پوشه پیش‌فرض آرشیو نرم‌افزار (پوشه data/backups)",
+            bg_color="#4F46E5",
+            hover_color="#4338CA"
+        )
+        btn_install_dir.clicked.connect(lambda: self._select_choice(self.CHOICE_INSTALL_DIR))
+        layout.addWidget(btn_install_dir)
+
+        layout.addSpacing(6)
+
+        # ----------------------------------------------------
+        # Cancel Button
+        # ----------------------------------------------------
+        btn_cancel = QPushButton("انصراف و بستن")
+        btn_cancel.setFixedHeight(36)
+        btn_cancel.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_cancel.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #9CA3AF;
+                font-size: 13px;
+                border: 1px solid #4B5563;
+                border-radius: 6px;
+                padding: 4px 16px;
+            }
+            QPushButton:hover {
+                color: #F3F4F6;
+                background-color: #374151;
+                border-color: #6B7280;
+            }
+        """)
+        btn_cancel.clicked.connect(self.reject)
+        layout.addWidget(btn_cancel, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    def _create_option_button(self, title: str, description: str, bg_color: str, hover_color: str) -> QPushButton:
+        btn = QPushButton()
+        btn.setFixedHeight(66)
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {bg_color};
+                color: #FFFFFF;
+                border-radius: 8px;
+                border: none;
+                text-align: right;
+                padding: 10px 16px;
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color};
+            }}
+        """)
+
+        # Custom layout inside button for Title + Description
+        btn_layout = QVBoxLayout(btn)
+        btn_layout.setContentsMargins(12, 6, 12, 6)
+        btn_layout.setSpacing(2)
+
+        lbl_t = QLabel(title)
+        lbl_t.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        lbl_t.setStyleSheet("font-size: 14px; font-weight: bold; color: #FFFFFF; background: transparent; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+
+        lbl_d = QLabel(description)
+        lbl_d.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        lbl_d.setStyleSheet("font-size: 11px; color: #E0E7FF; background: transparent;")
+
+        btn_layout.addWidget(lbl_t)
+        btn_layout.addWidget(lbl_d)
+
+        return btn
+
+    def _select_choice(self, choice: str):
+        self.selected_choice = choice
+        self.accept()

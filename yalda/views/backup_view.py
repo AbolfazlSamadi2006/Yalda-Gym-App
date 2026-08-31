@@ -366,15 +366,16 @@ class BackupView(QWidget):
         layout.addLayout(row_table_header)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(5)
-        self.table.setHorizontalHeaderLabels(["ردیف", "نام فایل پشتیبان", "تاریخ و زمان ثبت (شمسی)", "حجم فایل", "عملیات"])
+        self.table.setColumnCount(6)
+        self.table.setHorizontalHeaderLabels(["ردیف", "نام فایل پشتیبان", "مسیر ذخیره‌سازی فایل", "تاریخ و زمان ثبت (شمسی)", "حجم فایل", "عملیات"])
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table.setColumnWidth(0, 50)
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
-        self.table.setColumnWidth(2, 175)
-        self.table.setColumnWidth(3, 90)
-        self.table.setColumnWidth(4, 190)
+        self.table.setColumnWidth(0, 45)
+        self.table.setColumnWidth(1, 210)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(3, 160)
+        self.table.setColumnWidth(4, 85)
+        self.table.setColumnWidth(5, 230)
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(44)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -626,12 +627,26 @@ class BackupView(QWidget):
         self.table.setRowCount(len(backups))
 
         for row, b in enumerate(backups):
+            # 0: Row number
             self.table.setItem(row, 0, QTableWidgetItem(str(row + 1)))
-            self.table.setItem(row, 1, QTableWidgetItem(b.file_name))
-            self.table.setItem(row, 2, QTableWidgetItem(b.backup_date_shamsi))
-            self.table.setItem(row, 3, QTableWidgetItem(f"{b.backup_size_mb} MB"))
 
-            for c in (0, 2, 3):
+            # 1: File name
+            item_name = QTableWidgetItem(b.file_name)
+            item_name.setToolTip(b.file_name)
+            self.table.setItem(row, 1, item_name)
+
+            # 2: File Path / Location
+            item_path = QTableWidgetItem(b.file_path or "-")
+            item_path.setToolTip(b.file_path or "-")
+            self.table.setItem(row, 2, item_path)
+
+            # 3: Shamsi Date & Time
+            self.table.setItem(row, 3, QTableWidgetItem(b.backup_date_shamsi))
+
+            # 4: File Size
+            self.table.setItem(row, 4, QTableWidgetItem(f"{b.backup_size_mb} MB"))
+
+            for c in (0, 3, 4):
                 item = self.table.item(row, c)
                 if item:
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -656,8 +671,35 @@ class BackupView(QWidget):
             btn_delete.clicked.connect(lambda _, b_id=b.id, fn=b.file_name: self.delete_backup_item(b_id, fn))
 
             action_l.addWidget(btn_restore)
+
+            # If local file exists, add Open Folder button
+            if b.file_path and not b.file_path.startswith("☁️"):
+                btn_open_folder = QPushButton("📂 پوشه")
+                btn_open_folder.setCursor(Qt.CursorShape.PointingHandCursor)
+                btn_open_folder.setFixedHeight(30)
+                btn_open_folder.setStyleSheet("background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
+                btn_open_folder.clicked.connect(lambda _, fp=b.file_path: self.open_backup_folder(fp))
+                action_l.addWidget(btn_open_folder)
+
             action_l.addWidget(btn_delete)
-            self.table.setCellWidget(row, 4, action_w)
+            self.table.setCellWidget(row, 5, action_w)
+
+    def open_backup_folder(self, filepath: str):
+        if not filepath or filepath.startswith("☁️"):
+            return
+        p = Path(filepath)
+        folder = p.parent if p.suffix else p
+        if not folder.exists():
+            QMessageBox.warning(self, "خطا", f"پوشه مورد نظر در حافظه سیستم یافت نشد:\n{folder}")
+            return
+        try:
+            import subprocess
+            if p.exists() and p.is_file():
+                subprocess.Popen(f'explorer /select,"{os.path.normpath(str(p))}"')
+            else:
+                os.startfile(os.path.normpath(str(folder)))
+        except Exception as e:
+            QMessageBox.warning(self, "خطا", f"خطا در باز کردن پوشه: {e}")
 
     def delete_backup_item(self, backup_id: int, file_name: str):
         reply = QMessageBox.warning(
@@ -678,12 +720,67 @@ class BackupView(QWidget):
                 QMessageBox.critical(self, "خطا", f"خطا در حذف فایل پشتیبان: {str(e)}")
 
     def create_backup(self):
-        try:
-            filepath = BackupService.create_backup()
-            self.load_backups()
-            QMessageBox.information(self, "موفقیت", f"فایل پشتیبان با موفقیت ایجاد شد:\n{filepath}")
-        except Exception as e:
-            QMessageBox.critical(self, "خطا", f"خطا در ایجاد پشتیبان: {str(e)}")
+        from yalda.views.components.backup_destination_dialog import BackupDestinationDialog
+        from yalda.services.backup_service import upload_cloud_backup
+        from datetime import datetime
+        from yalda.utils.jalali_date import gregorian_to_shamsi
+
+        dlg = BackupDestinationDialog(self)
+        if dlg.exec() != QDialog.DialogCode.Accepted or not dlg.selected_choice:
+            return
+
+        choice = dlg.selected_choice
+
+        if choice == BackupDestinationDialog.CHOICE_SYSTEM:
+            now = datetime.now()
+            shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "-")
+            time_str = now.strftime("%H-%M-%S")
+            default_filename = f"yalda_backup_{shamsi_date}_{time_str}.zip"
+
+            chosen_file, _ = QFileDialog.getSaveFileName(
+                self,
+                "انتخاب محل ذخیره نسخه پشتیبان در سیستم",
+                default_filename,
+                "فایل فشرده پشتیبان (*.zip)"
+            )
+            if not chosen_file:
+                return
+
+            try:
+                filepath = BackupService.create_backup(target_filepath=chosen_file)
+                self.load_backups()
+                QMessageBox.information(
+                    self,
+                    "موفقیت",
+                    f"✅ نسخه پشتیبان با موفقیت در مسیر زیر در سیستم ذخیره گردید:\n\n{filepath}"
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "خطا", f"خطا در ایجاد نسخه پشتیبان: {str(e)}")
+
+        elif choice == BackupDestinationDialog.CHOICE_SERVER:
+            u = CurrentUser.get()
+            phone = u.phone if (u and u.phone) else "09336427711"
+            trainer_name = u.full_name if u else "مدیر باشگاه"
+
+            success, msg = upload_cloud_backup(trainer_phone=phone, trainer_name=trainer_name)
+            if success:
+                BackupService.record_cloud_backup(phone)
+                self.load_backups()
+                QMessageBox.information(self, "موفقیت", f"✅ {msg}")
+            else:
+                QMessageBox.critical(self, "خطا در سرور ابری", f"❌ {msg}")
+
+        elif choice == BackupDestinationDialog.CHOICE_INSTALL_DIR:
+            try:
+                filepath = BackupService.create_backup()
+                self.load_backups()
+                QMessageBox.information(
+                    self,
+                    "موفقیت",
+                    f"✅ نسخه پشتیبان با موفقیت در پوشه پیش‌فرض نصب نرم‌افزار ایجاد گردید:\n\n{filepath}"
+                )
+            except Exception as e:
+                QMessageBox.critical(self, "خطا", f"خطا در ایجاد نسخه پشتیبان: {str(e)}")
 
     def open_cloud_restore_dialog(self):
         from yalda.views.cloud_restore_dialog import CloudRestoreDialog
@@ -699,6 +796,12 @@ class BackupView(QWidget):
             self.restore_backup(filepath)
 
     def restore_backup(self, filepath: str):
+        if not filepath:
+            return
+        if filepath.startswith("☁️"):
+            self.open_cloud_restore_dialog()
+            return
+
         reply = QMessageBox.warning(
             self,
             "تایید بازگردانی اطلاعات",

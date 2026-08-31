@@ -223,13 +223,26 @@ class BackupService:
             return db.query(BackupRecord).order_by(BackupRecord.created_at.desc()).all()
 
     @staticmethod
-    def create_backup() -> str:
+    def create_backup(target_filepath: str = None) -> str:
         config.BACKUPS_DIR.mkdir(parents=True, exist_ok=True)
         now = datetime.now()
         shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "-")
         time_str = now.strftime("%H-%M-%S")
-        filename = f"yalda_backup_{shamsi_date}_{time_str}.zip"
-        filepath = config.BACKUPS_DIR / filename
+        default_filename = f"yalda_backup_{shamsi_date}_{time_str}.zip"
+
+        if target_filepath:
+            p = Path(target_filepath)
+            if p.is_dir() or not p.suffix:
+                p.mkdir(parents=True, exist_ok=True)
+                filepath = p / default_filename
+                filename = default_filename
+            else:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                filepath = p
+                filename = p.name
+        else:
+            filepath = config.BACKUPS_DIR / default_filename
+            filename = default_filename
 
         with zipfile.ZipFile(filepath, "w", zipfile.ZIP_DEFLATED) as zipf:
             if config.DB_PATH.exists():
@@ -257,6 +270,29 @@ class BackupService:
 
         create_local_backup()
         return str(filepath)
+
+    @staticmethod
+    def record_cloud_backup(trainer_phone: str = "") -> None:
+        """Records a successful cloud backup in the database history."""
+        now = datetime.now()
+        shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "-")
+        time_str = now.strftime("%H-%M-%S")
+        filename = f"yalda_cloud_backup_{shamsi_date}_{time_str}.db"
+        shamsi_display = f"{gregorian_to_shamsi(now.date())} {now.strftime('%H:%M:%S')}"
+        size_mb = 0.0
+        if config.DB_PATH.exists():
+            size_mb = round(os.path.getsize(config.DB_PATH) / (1024 * 1024), 2)
+
+        with SessionLocal() as db:
+            record = BackupRecord(
+                file_name=filename,
+                file_path="☁️ سرور ابری یلدا (Cloud Server)",
+                backup_size_mb=size_mb,
+                backup_date_shamsi=shamsi_display,
+                created_at=now
+            )
+            db.add(record)
+            db.commit()
 
     @staticmethod
     def delete_backup(backup_id: int) -> bool:

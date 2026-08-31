@@ -53,8 +53,10 @@ class YaldaApplication:
                 content = f.read()
                 arrow_down_path = (config.BASE_DIR / "resources" / "images" / "arrow_down.svg").as_posix()
                 arrow_up_path = (config.BASE_DIR / "resources" / "images" / "arrow_up.svg").as_posix()
+                check_path = (config.BASE_DIR / "resources" / "images" / "check.svg").as_posix()
                 content = content.replace("resources/images/arrow_down.svg", arrow_down_path)
                 content = content.replace("resources/images/arrow_up.svg", arrow_up_path)
+                content = content.replace("resources/images/check.svg", check_path)
                 self.app.setStyleSheet(content)
 
     def run(self):

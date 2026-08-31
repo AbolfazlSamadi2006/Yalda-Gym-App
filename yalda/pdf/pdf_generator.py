@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 import arabic_reshaper
 from bidi.algorithm import get_display
@@ -16,12 +17,34 @@ from reportlab.pdfbase.ttfonts import TTFont
 import config
 from yalda.utils.jalali_date import get_today_shamsi
 
+EMOJI_PATTERN = re.compile(
+    "["
+    "\U00010000-\U0010FFFF"
+    "\u2600-\u27BF"
+    "\u2300-\u23FF"
+    "\u2B50-\u2B55"
+    "\uFE00-\uFE0F"
+    "\u200D"
+    "]+",
+    flags=re.UNICODE
+)
+
+def clean_for_pdf(text: str) -> str:
+    """Removes unsupported unicode emojis and collapses redundant spaces/colons for PDF."""
+    if not text:
+        return ""
+    cleaned = EMOJI_PATTERN.sub("", str(text))
+    cleaned = re.sub(r":\s*:", ":", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
 def reshape_text(text: str) -> str:
     """Helper to reshape Persian text and apply BiDi algorithm for ReportLab rendering."""
     if not text:
         return ""
     try:
-        reshaped = arabic_reshaper.reshape(str(text))
+        cleaned = clean_for_pdf(text)
+        reshaped = arabic_reshaper.reshape(cleaned)
         return get_display(reshaped)
     except Exception:
         return str(text)
@@ -202,7 +225,10 @@ class PDFGenerator:
 
         # Days and Exercises
         for day in workout_plan.days:
-            day_title = Paragraph(reshape_text(f"◄ {day.day_title}"), ParagraphStyle('DayTitle', fontName=FONT_NAME, fontSize=12, textColor=colors.HexColor(config.COLOR_PRIMARY_ACCENT)))
+            day_title = Paragraph(
+                reshape_text(f"◄ {day.day_title}"),
+                ParagraphStyle('DayTitle', fontName=FONT_NAME, fontSize=12, leading=16, alignment=2, textColor=colors.HexColor(config.COLOR_PRIMARY_ACCENT))
+            )
             elements.append(day_title)
             elements.append(Spacer(1, 5))
 
@@ -304,8 +330,19 @@ class PDFGenerator:
         n_goal_fa = nutrition_goals.get(nutrition_plan.goal, nutrition_plan.goal or "-")
         trainer_name, trainer_phone = PDFGenerator._get_trainer_info(member)
 
-        # Target Macros Box
-        macro_text = f"کالری: {int(nutrition_plan.target_calories)} ک‌کال | پروتئین: {int(nutrition_plan.target_protein)}g | کربوهیدرات: {int(nutrition_plan.target_carbs)}g | چربی: {int(nutrition_plan.target_fat)}g"
+        # Target Macros / Details Box
+        if nutrition_plan.target_calories and nutrition_plan.target_calories > 0:
+            macro_text = f"کالری: {int(nutrition_plan.target_calories)} ک‌کال | پروتئین: {int(nutrition_plan.target_protein)}g | کربوهیدرات: {int(nutrition_plan.target_carbs)}g | چربی: {int(nutrition_plan.target_fat)}g"
+            third_row = [
+                Paragraph(reshape_text(macro_text), subtitle_style),
+                Paragraph(reshape_text(f"شماره تماس مربی: {trainer_phone}"), subtitle_style)
+            ]
+        else:
+            third_row = [
+                Paragraph(reshape_text(f"تاریخ صدور برنامه: {get_today_shamsi()}"), subtitle_style),
+                Paragraph(reshape_text(f"شماره تماس مربی: {trainer_phone}"), subtitle_style)
+            ]
+
         info_data = [
             [
                 Paragraph(reshape_text(f"عنوان رژیم: {nutrition_plan.title}"), subtitle_style),
@@ -315,10 +352,7 @@ class PDFGenerator:
                 Paragraph(reshape_text(f"هدف رژیم: {n_goal_fa}"), subtitle_style),
                 Paragraph(reshape_text(f"مربی: {trainer_name}"), subtitle_style)
             ],
-            [
-                Paragraph(reshape_text(macro_text), subtitle_style),
-                Paragraph(reshape_text(f"شماره تماس مربی: {trainer_phone}"), subtitle_style)
-            ]
+            third_row
         ]
         info_table = Table(info_data, colWidths=[260, 260])
         info_table.setStyle(TableStyle([
@@ -341,8 +375,18 @@ class PDFGenerator:
         for meal in nutrition_plan.meals:
             if not meal.items:
                 continue
-            fa_meal_name = meal_names_map.get(meal.meal_name, meal.meal_name)
-            meal_header = Paragraph(reshape_text(f"◄ وعده: {fa_meal_name}"), ParagraphStyle('MealTitle', fontName=FONT_NAME, fontSize=12, textColor=colors.HexColor(config.COLOR_PRIMARY_ACCENT)))
+            clean_m = clean_for_pdf(meal.meal_name)
+            fa_meal_name = meal_names_map.get(clean_m, clean_m)
+            if ":" in fa_meal_name:
+                parts = fa_meal_name.split(":", 1)
+                formatted_meal_name = f"{parts[0].strip()}: {parts[1].strip()}"
+            else:
+                formatted_meal_name = fa_meal_name
+
+            meal_header = Paragraph(
+                reshape_text(f"◄ وعده {formatted_meal_name}"),
+                ParagraphStyle('MealTitle', fontName=FONT_NAME, fontSize=12, leading=16, alignment=2, textColor=colors.HexColor(config.COLOR_PRIMARY_ACCENT))
+            )
             elements.append(meal_header)
             elements.append(Spacer(1, 5))
 

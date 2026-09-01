@@ -21,7 +21,7 @@ class ViewWorkoutPlanDialog(QDialog):
         self.member = member
         self.setWindowTitle(f"📋 جزئیات برنامه تمرینی: {plan.title or 'بدون عنوان'}")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.resize(920, 620)
+        self.resize(980, 620)
         self.init_ui()
 
     def init_ui(self):
@@ -59,18 +59,18 @@ class ViewWorkoutPlanDialog(QDialog):
         table = QTableWidget()
         table.setColumnCount(9)
         table.setHorizontalHeaderLabels([
-            "ردیف", "روز تمرین", "نام حرکت ورزشی", "ست", "تکرار", "وزنه پیشنهادی", "زمان استراحت", "ریتم / توضیحات مربی", "آموزش تصویری"
+            "ردیف", "روز تمرین", "نام حرکت ورزشی", "ست", "تکرار", "وزنه پیشنهادی", "زمان استراحت", "ریتم", "آموزش تصویری"
         ])
         header = table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
         table.setColumnWidth(0, 45)
-        table.setColumnWidth(1, 130)
+        table.setColumnWidth(1, 195)
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
         table.setColumnWidth(3, 45)
         table.setColumnWidth(4, 65)
         table.setColumnWidth(5, 95)
         table.setColumnWidth(6, 85)
-        table.setColumnWidth(7, 150)
+        table.setColumnWidth(7, 75)
         table.setColumnWidth(8, 100)
         table.verticalHeader().setVisible(False)
         table.verticalHeader().setDefaultSectionSize(42)
@@ -94,7 +94,7 @@ class ViewWorkoutPlanDialog(QDialog):
             notes = f"{we.tempo or ''} {we.trainer_notes or ''}".strip()
             table.setItem(idx, 7, QTableWidgetItem(notes or "-"))
 
-            for c in (0, 1, 3, 4, 5, 6):
+            for c in (0, 1, 3, 4, 5, 6, 7):
                 it = table.item(idx, c)
                 if it: it.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
 

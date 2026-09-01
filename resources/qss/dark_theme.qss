@@ -84,6 +84,12 @@ QPushButton#secondary_button:hover {
     color: #FFFFFF;
 }
 
+QPushButton#secondary_button:disabled {
+    background-color: #2D2D2D;
+    color: #777777;
+    border: 1px solid #444444;
+}
+
 QPushButton#back_button {
     background-color: #262626;
     color: #E0E0E0;

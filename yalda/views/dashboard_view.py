@@ -47,14 +47,17 @@ class DashboardView(QWidget):
         lbl_quick.setStyleSheet("font-weight: bold; color: #FFFFFF; background: transparent;")
 
         btn_add_member = QPushButton("➕ ثبت عضو جدید")
+        btn_add_member.setFixedHeight(36)
         btn_add_member.clicked.connect(lambda: self.navigate_to.emit("add_member"))
 
         btn_new_workout = QPushButton("🏋️ ساخت برنامه تمرینی")
         btn_new_workout.setObjectName("secondary_button")
+        btn_new_workout.setFixedHeight(36)
         btn_new_workout.clicked.connect(lambda: self.navigate_to.emit("new_workout"))
 
         btn_new_nutrition = QPushButton("🥗 ساخت برنامه غذایی")
         btn_new_nutrition.setObjectName("secondary_button")
+        btn_new_nutrition.setFixedHeight(36)
         btn_new_nutrition.clicked.connect(lambda: self.navigate_to.emit("new_nutrition"))
 
         actions_layout.addWidget(lbl_quick)

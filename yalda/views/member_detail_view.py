@@ -411,7 +411,7 @@ class MemberDetailView(QWidget):
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
         self.table_workout.setColumnWidth(7, 280)
         self.table_workout.verticalHeader().setVisible(False)
-        self.table_workout.verticalHeader().setDefaultSectionSize(46)
+        self.table_workout.verticalHeader().setDefaultSectionSize(52)
         self.table_workout.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_workout.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table_workout)
@@ -476,7 +476,7 @@ class MemberDetailView(QWidget):
 
             btn_view = QPushButton("👁️ مشاهده")
             btn_view.setToolTip("مشاهده کامل جدول برنامه تمرینی")
-            btn_view.setFixedHeight(30)
+            btn_view.setFixedHeight(28)
             btn_view.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_view.setStyleSheet("background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
@@ -484,7 +484,7 @@ class MemberDetailView(QWidget):
 
             btn_edit = QPushButton("✏️ ویرایش")
             btn_edit.setToolTip("باز کردن در طراح برنامه تمرینی جهت ویرایش")
-            btn_edit.setFixedHeight(30)
+            btn_edit.setFixedHeight(28)
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
@@ -492,7 +492,7 @@ class MemberDetailView(QWidget):
 
             btn_pdf = QPushButton("📄 PDF")
             btn_pdf.setToolTip("صدور فایل PDF برای چاپ")
-            btn_pdf.setFixedHeight(30)
+            btn_pdf.setFixedHeight(28)
             btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_pdf.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
@@ -500,7 +500,7 @@ class MemberDetailView(QWidget):
 
             btn_del = QPushButton("🗑️")
             btn_del.setToolTip("حذف این برنامه از بایگانی ورزشکار")
-            btn_del.setFixedSize(30, 30)
+            btn_del.setFixedSize(28, 28)
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
             btn_del.clicked.connect(lambda _, aid=asgn.id, ptitle=plan_title: self.delete_workout_plan(aid, ptitle))
@@ -518,24 +518,26 @@ class MemberDetailView(QWidget):
 
         # Header Row
         top_box = QHBoxLayout()
-        title_box = QVBoxLayout()
-        lbl_title = QLabel("🥗 بایگانی و تاریخچه برنامه‌های غذایی ورزشکار")
-        lbl_title.setStyleSheet("font-size: 15px; font-weight: bold; color: #FFFFFF;")
-        lbl_sub = QLabel("مشاهده جزئیات، ویرایش، صدور PDF و حذف رژیم‌های غذایی به ترتیب تاریخ تخصیص")
-        lbl_sub.setStyleSheet("font-size: 12px; color: #888888;")
-        title_box.addWidget(lbl_title)
-        title_box.addWidget(lbl_sub)
+        title = QLabel("🥗 تاریخچه و بایگانی برنامه‌های غذایی")
+        title.setStyleSheet("font-size: 15px; font-weight: bold; color: #FFFFFF;")
+        subtitle = QLabel("مشاهده جزئیات، ویرایش، صدور PDF و حذف برنامه‌های غذایی به ترتیب تاریخ تخصیص")
+        subtitle.setStyleSheet("color: #AAAAAA; font-size: 12px;")
 
-        btn_assign_new = QPushButton("➕ تخصیص برنامه غذایی")
-        btn_assign_new.setFixedHeight(36)
-        btn_assign_new.clicked.connect(lambda: self.create_nutrition_requested.emit(self.member_id))
-
-        top_box.addLayout(title_box)
+        top_info = QVBoxLayout()
+        top_info.setSpacing(4)
+        top_info.addWidget(title)
+        top_info.addWidget(subtitle)
+        top_box.addLayout(top_info)
         top_box.addStretch()
-        top_box.addWidget(btn_assign_new)
+
+        btn_assign = QPushButton("🥗 تخصیص برنامه غذایی جدید")
+        btn_assign.setFixedHeight(36)
+        btn_assign.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_assign.clicked.connect(lambda: self.create_nutrition_requested.emit(self.member_id))
+        top_box.addWidget(btn_assign)
         layout.addLayout(top_box)
 
-        # Table & Empty Label
+        # Nutrition Plans Table
         self.table_nutrition = QTableWidget()
         self.table_nutrition.setColumnCount(8)
         self.table_nutrition.setHorizontalHeaderLabels([
@@ -553,7 +555,7 @@ class MemberDetailView(QWidget):
         header.setSectionResizeMode(7, QHeaderView.ResizeMode.Fixed)
         self.table_nutrition.setColumnWidth(7, 280)
         self.table_nutrition.verticalHeader().setVisible(False)
-        self.table_nutrition.verticalHeader().setDefaultSectionSize(46)
+        self.table_nutrition.verticalHeader().setDefaultSectionSize(52)
         self.table_nutrition.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_nutrition.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         layout.addWidget(self.table_nutrition)
@@ -615,7 +617,7 @@ class MemberDetailView(QWidget):
 
             btn_view = QPushButton("👁️ مشاهده")
             btn_view.setToolTip("مشاهده کامل جدول برنامه غذایی")
-            btn_view.setFixedHeight(30)
+            btn_view.setFixedHeight(28)
             btn_view.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_view.setStyleSheet("background-color: #2563EB; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
@@ -623,7 +625,7 @@ class MemberDetailView(QWidget):
 
             btn_edit = QPushButton("✏️ ویرایش")
             btn_edit.setToolTip("باز کردن در طراح برنامه غذایی جهت ویرایش")
-            btn_edit.setFixedHeight(30)
+            btn_edit.setFixedHeight(28)
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
@@ -631,7 +633,7 @@ class MemberDetailView(QWidget):
 
             btn_pdf = QPushButton("📄 PDF")
             btn_pdf.setToolTip("صدور فایل PDF برای چاپ")
-            btn_pdf.setFixedHeight(30)
+            btn_pdf.setFixedHeight(28)
             btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_pdf.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 6px; font-size: 11px;")
             if p:
@@ -639,7 +641,7 @@ class MemberDetailView(QWidget):
 
             btn_del = QPushButton("🗑️")
             btn_del.setToolTip("حذف این برنامه از بایگانی ورزشکار")
-            btn_del.setFixedSize(30, 30)
+            btn_del.setFixedSize(28, 28)
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
             btn_del.clicked.connect(lambda _, aid=asgn.id, ptitle=plan_title: self.delete_nutrition_plan(aid, ptitle))

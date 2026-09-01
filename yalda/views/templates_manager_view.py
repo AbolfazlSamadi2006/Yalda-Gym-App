@@ -208,7 +208,7 @@ class TemplatesManagerView(QWidget):
         self.table_workouts.setColumnWidth(7, 290)  # عملیات
 
         self.table_workouts.verticalHeader().setVisible(False)
-        self.table_workouts.verticalHeader().setDefaultSectionSize(48)
+        self.table_workouts.verticalHeader().setDefaultSectionSize(52)
         self.table_workouts.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_workouts.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -262,7 +262,7 @@ class TemplatesManagerView(QWidget):
         self.table_nutrition.setColumnWidth(7, 290)  # عملیات
 
         self.table_nutrition.verticalHeader().setVisible(False)
-        self.table_nutrition.verticalHeader().setDefaultSectionSize(48)
+        self.table_nutrition.verticalHeader().setDefaultSectionSize(52)
         self.table_nutrition.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table_nutrition.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -341,28 +341,28 @@ class TemplatesManagerView(QWidget):
 
             btn_assign = QPushButton("🎯 تخصیص")
             btn_assign.setToolTip("تخصیص این الگو به یکی از شاگردان باشگاه")
-            btn_assign.setFixedHeight(30)
+            btn_assign.setFixedHeight(28)
             btn_assign.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_assign.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_assign.clicked.connect(lambda _, pid=p.id, ptitle=p.title: self.open_assign_dialog("workout", pid, ptitle))
 
             btn_edit = QPushButton("✏️ ویرایش")
             btn_edit.setToolTip("بارگذاری در طراح تمرین جهت تغییر و ذخیره")
-            btn_edit.setFixedHeight(30)
+            btn_edit.setFixedHeight(28)
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_workout_requested.emit(pid))
 
             btn_pdf = QPushButton("📄 PDF")
             btn_pdf.setToolTip("خروجی و چاپ فایل PDF این الگو")
-            btn_pdf.setFixedHeight(30)
+            btn_pdf.setFixedHeight(28)
             btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_pdf.setStyleSheet("background-color: #3B82F6; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_pdf.clicked.connect(lambda _, plan=p: self.export_workout_pdf(plan))
 
             btn_del = QPushButton("🗑️")
             btn_del.setToolTip("حذف الگو از بانک")
-            btn_del.setFixedSize(30, 30)
+            btn_del.setFixedSize(28, 28)
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
             btn_del.clicked.connect(lambda _, pid=p.id, ptitle=p.title: self.delete_workout_template(pid, ptitle))
@@ -432,28 +432,28 @@ class TemplatesManagerView(QWidget):
 
             btn_assign = QPushButton("🎯 تخصیص")
             btn_assign.setToolTip("تخصیص این الگو به یکی از شاگردان باشگاه")
-            btn_assign.setFixedHeight(30)
+            btn_assign.setFixedHeight(28)
             btn_assign.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_assign.setStyleSheet("background-color: #10B981; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_assign.clicked.connect(lambda _, pid=p.id, ptitle=p.title: self.open_assign_dialog("nutrition", pid, ptitle))
 
             btn_edit = QPushButton("✏️ ویرایش")
             btn_edit.setToolTip("بارگذاری در طراح رژیم جهت تغییر و ذخیره")
-            btn_edit.setFixedHeight(30)
+            btn_edit.setFixedHeight(28)
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_edit.clicked.connect(lambda _, pid=p.id: self.edit_nutrition_requested.emit(pid))
 
             btn_pdf = QPushButton("📄 PDF")
             btn_pdf.setToolTip("خروجی و چاپ فایل PDF این الگو")
-            btn_pdf.setFixedHeight(30)
+            btn_pdf.setFixedHeight(28)
             btn_pdf.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_pdf.setStyleSheet("background-color: #3B82F6; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_pdf.clicked.connect(lambda _, plan=p: self.export_nutrition_pdf(plan))
 
             btn_del = QPushButton("🗑️")
             btn_del.setToolTip("حذف الگو از بانک")
-            btn_del.setFixedSize(30, 30)
+            btn_del.setFixedSize(28, 28)
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 4px; font-size: 12px;")
             btn_del.clicked.connect(lambda _, pid=p.id, ptitle=p.title: self.delete_nutrition_template(pid, ptitle))

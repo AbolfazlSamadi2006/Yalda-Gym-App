@@ -464,18 +464,24 @@ class HealthRecordView(QWidget):
                 background-color: #059669;
                 color: #FFFFFF;
                 font-weight: bold;
-                padding: 6px 12px;
+                padding: 8px 16px;
                 border-radius: 6px;
-                font-size: 12px;
+                font-size: 13px;
             }
             QPushButton:hover {
                 background-color: #047857;
             }
         """)
+        btn_export_zip.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_export_zip.setFixedHeight(36)
+        btn_export_zip.setFixedWidth(230)
         btn_export_zip.clicked.connect(self.export_medical_package)
 
         btn_add_doc = QPushButton("➕ افزودن مدرک / آزمایش جدید")
         btn_add_doc.setObjectName("secondary_button")
+        btn_add_doc.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_add_doc.setFixedHeight(36)
+        btn_add_doc.setFixedWidth(230)
         btn_add_doc.clicked.connect(self.open_add_doc_dialog)
 
         row_docs_top.addWidget(self.lbl_docs_count)

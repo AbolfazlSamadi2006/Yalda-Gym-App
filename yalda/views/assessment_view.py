@@ -466,7 +466,7 @@ class AssessmentView(QWidget):
         self.table.setColumnWidth(13, 140) # عملیات
 
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(46)
+        self.table.verticalHeader().setDefaultSectionSize(52)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
 
@@ -491,32 +491,45 @@ class AssessmentView(QWidget):
             self.btn_after.setText(f"📷 عکس بعد: {os.path.basename(fp)[:12]}")
 
     def save_assessment(self):
-        w = self.spin_weight.value()
-        if w <= 0:
-            QMessageBox.warning(self, "خطا", "لطفاً وزن را وارد کنید.")
+        from yalda.services.assessment_service import AssessmentService
+        from yalda.services.member_service import MemberService
+        date_str = self.picker_date.text()
+        if not date_str:
+            QMessageBox.warning(self, "خطا", "لطفاً تاریخ ارزیابی را وارد کنید.")
+            return
+
+        weight = self.spin_weight.value()
+        height = self.spin_height.value()
+
+        if weight <= 0:
+            QMessageBox.warning(self, "خطا", "لطفاً وزن را به درستی وارد کنید.")
             return
 
         data = {
-            "assessment_date_shamsi": self.picker_date.text(),
-            "height_cm": self.spin_height.value() if self.spin_height.value() > 0 else None,
-            "weight_kg": w,
+            "assessment_date_shamsi": date_str,
+            "weight_kg": weight,
             "body_fat_percentage": self.spin_fat.value() if self.spin_fat.value() > 0 else None,
+            "height_cm": height if height > 0 else None,
             "neck_circ": self.spin_neck.value() if self.spin_neck.value() > 0 else None,
             "chest_circ": self.spin_chest.value() if self.spin_chest.value() > 0 else None,
             "arm_circ": self.spin_arm.value() if self.spin_arm.value() > 0 else None,
-            "abdomen_circ": self.spin_abdomen.value() if self.spin_abdomen.value() > 0 else None,
             "waist_circ": self.spin_waist.value() if self.spin_waist.value() > 0 else None,
+            "abdomen_circ": self.spin_abdomen.value() if self.spin_abdomen.value() > 0 else None,
             "hip_circ": self.spin_hip.value() if self.spin_hip.value() > 0 else None,
             "thigh_circ": self.spin_thigh.value() if self.spin_thigh.value() > 0 else None,
             "before_photo_path": self.before_photo_path,
             "after_photo_path": self.after_photo_path
         }
-        AssessmentService.add_assessment(self.member_id, data)
-        self.reset_form()
-        self.load_history()
-        if hasattr(self.parent(), 'load_member_info'):
-            self.parent().load_member_info()
-        QMessageBox.information(self, "موفقیت", "ارزیابی فیزیکی جدید ذخیره شد.")
+
+        try:
+            AssessmentService.add_assessment(self.member_id, data)
+            QMessageBox.information(self, "موفقیت", "ارزیابی با موفقیت ذخیره شد.")
+            self.reset_form()
+            self.load_history()
+            if hasattr(self.parent(), 'load_member_info'):
+                self.parent().load_member_info()
+        except Exception as e:
+            QMessageBox.critical(self, "خطا", f"خطا در ذخیره ارزیابی: {str(e)}")
 
     def reset_form(self):
         self.spin_height.setValue(0.0)
@@ -558,6 +571,7 @@ class AssessmentView(QWidget):
 
     def load_history(self):
         from yalda.services.member_service import MemberService
+        from yalda.services.assessment_service import AssessmentService
         from yalda.utils.bmi_calculator import calculate_bmi_info
         member = MemberService.get_member_by_id(self.member_id)
         fallback_height = member.height_cm if member else 175.0
@@ -584,7 +598,7 @@ class AssessmentView(QWidget):
                 QTableWidgetItem(str(rec.arm_circ or "-")),
                 QTableWidgetItem(str(getattr(rec, 'abdomen_circ', None) or "-")),
                 QTableWidgetItem(str(rec.waist_circ or "-")),
-                QTableWidgetItem(str(getattr(rec, 'hip_circ', None) or "-")),
+                QTableWidgetItem(str(rec.hip_circ or "-")),
                 QTableWidgetItem(str(rec.thigh_circ or "-")),
             ]
 
@@ -597,6 +611,8 @@ class AssessmentView(QWidget):
             if photos:
                 btn_photos = QPushButton(f"🖼️ {len(photos)} عکس")
                 btn_photos.setObjectName("secondary_button")
+                btn_photos.setFixedHeight(28)
+                btn_photos.setStyleSheet("font-size: 11px; padding: 2px 6px;")
                 btn_photos.clicked.connect(lambda _, d=rec.assessment_date_shamsi, p=photos: self.view_progress_photos(d, p))
                 self.table.setCellWidget(row, 12, btn_photos)
             else:
@@ -613,14 +629,14 @@ class AssessmentView(QWidget):
             action_layout.setSpacing(5)
 
             btn_edit = QPushButton("✏️ ویرایش")
-            btn_edit.setFixedHeight(30)
+            btn_edit.setFixedHeight(28)
             btn_edit.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 6px; padding: 2px 8px; font-size: 11px;")
+            btn_edit.setStyleSheet("background-color: #D97706; color: #FFFFFF; font-weight: bold; border-radius: 4px; padding: 2px 8px; font-size: 11px;")
             btn_edit.clicked.connect(lambda _, r=rec: self.edit_assessment(r))
 
             btn_del = QPushButton("🗑️")
             btn_del.setToolTip("حذف ارزیابی")
-            btn_del.setFixedSize(30, 30)
+            btn_del.setFixedSize(28, 28)
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.setStyleSheet("background-color: #DC2626; color: #FFFFFF; font-weight: bold; border-radius: 6px; font-size: 12px;")
             btn_del.clicked.connect(lambda _, r=rec: self.delete_assessment_confirm(r))

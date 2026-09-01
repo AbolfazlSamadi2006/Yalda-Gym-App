@@ -514,6 +514,9 @@ class NutritionEditorView(QWidget):
         self._last_state = new_state
         self._update_undo_redo_ui()
 
+    def _push_undo_state(self):
+        self._snapshot_change()
+
     def undo(self):
         if not self._undo_stack:
             return

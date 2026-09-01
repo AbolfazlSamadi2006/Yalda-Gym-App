@@ -94,7 +94,7 @@ class WorkoutEditorView(QWidget):
         row1 = QHBoxLayout()
         self.txt_title = QLineEdit()
         self.txt_title.setPlaceholderText("عنوان برنامه (مثلاً: برنامه حجمی ۴ روزه)...")
-        self.txt_title.textEdited.connect(lambda: self._push_undo_state())
+        self.txt_title.textEdited.connect(lambda: self._snapshot_change())
 
         self.combo_goal = QComboBox()
         self.combo_goal.addItem("هایپرتروفی (عضله‌سازی)", "hypertrophy")
@@ -103,7 +103,7 @@ class WorkoutEditorView(QWidget):
         self.combo_goal.addItem("حرکات اصلاحی و بهبود قامت", "corrective")
         self.combo_goal.addItem("آمادگی جسمانی عمومی", "general_fitness")
         self.combo_goal.addItem("استقامت عضلانی", "endurance")
-        self.combo_goal.currentIndexChanged.connect(lambda: self._push_undo_state())
+        self.combo_goal.currentIndexChanged.connect(lambda: self._snapshot_change())
 
         self.combo_days = QComboBox()
         for d in range(2, 7):
@@ -115,7 +115,7 @@ class WorkoutEditorView(QWidget):
         self.combo_level.addItem("مبتدی", "beginner")
         self.combo_level.addItem("متوسط", "intermediate")
         self.combo_level.addItem("پیشرفته", "advanced")
-        self.combo_level.currentIndexChanged.connect(lambda: self._push_undo_state())
+        self.combo_level.currentIndexChanged.connect(lambda: self._snapshot_change())
 
         row1.addWidget(QLabel("عنوان:"))
         row1.addWidget(self.txt_title)
@@ -457,6 +457,9 @@ class WorkoutEditorView(QWidget):
         self._redo_stack.clear()
         self._last_state = new_state
         self._update_undo_redo_ui()
+
+    def _push_undo_state(self):
+        self._snapshot_change()
 
     def undo(self):
         if not self._undo_stack:

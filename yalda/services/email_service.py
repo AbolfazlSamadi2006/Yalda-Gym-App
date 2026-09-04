@@ -113,7 +113,7 @@ class EmailService:
         msg["Reply-To"] = formataddr((str(Header(sender_name, "utf-8")), sender_email))
         msg["Date"] = formatdate(localtime=True)
         msg["Message-ID"] = make_msgid(domain="gmail.com")
-        msg["X-Mailer"] = f"YaldaGymApp/{getattr(config, 'APP_VERSION', '2.2.0')}"
+        msg["X-Mailer"] = f"YaldaGymApp/{getattr(config, 'APP_VERSION', '2.3.0')}"
         msg["Auto-Submitted"] = "auto-generated"
 
         html_content = f"""<!DOCTYPE html>
@@ -292,7 +292,7 @@ class EmailService:
         msg["Reply-To"] = formataddr((str(Header(sender_name, "utf-8")), sender_email))
         msg["Date"] = formatdate(localtime=True)
         msg["Message-ID"] = make_msgid(domain="gmail.com")
-        msg["X-Mailer"] = f"YaldaGymApp/{getattr(config, 'APP_VERSION', '2.2.0')}"
+        msg["X-Mailer"] = f"YaldaGymApp/{getattr(config, 'APP_VERSION', '2.3.0')}"
         msg["Auto-Submitted"] = "auto-generated"
 
         html_body = f"""<!DOCTYPE html>

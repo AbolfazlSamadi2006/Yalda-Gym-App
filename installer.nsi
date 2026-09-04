@@ -1,11 +1,11 @@
-﻿; NSIS Script for Yalda Gym Management Application
+; NSIS Script for Yalda Gym Management Application
 Unicode True
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 
 !define PRODUCT_NAME "نرم‌افزار مدیریت باشگاه یلدا"
 !define PRODUCT_NAME_EN "Yalda Gym"
-!define PRODUCT_VERSION "2.2.0"
+!define PRODUCT_VERSION "2.3.0"
 !define PRODUCT_PUBLISHER "ابوالفضل صمدی کوچکسرائی"
 !define PRODUCT_WEB_SITE "https://github.com/AbolfazlSamadi2006/Yalda-Gym-App"
 !define PRODUCT_EXE "Yalda.exe"
@@ -41,7 +41,7 @@ SetCompressorDictSize 64
 ; English UI (Default)
 !insertmacro MUI_LANGUAGE "English"
 
-VIProductVersion "2.2.0.0"
+VIProductVersion "2.3.0.0"
 VIAddVersionKey "ProductName" "${PRODUCT_NAME}"
 VIAddVersionKey "CompanyName" "${PRODUCT_PUBLISHER}"
 VIAddVersionKey "FileDescription" "${PRODUCT_NAME}"

@@ -360,8 +360,8 @@ class BackupView(QWidget):
         header_tr.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table_trainers.setColumnWidth(2, 160)
         self.table_trainers.setColumnWidth(3, 160)
-        self.table_trainers.setColumnWidth(4, 140)
-        self.table_trainers.setColumnWidth(5, 200)
+        self.table_trainers.setColumnWidth(4, 130)
+        self.table_trainers.setColumnWidth(5, 295)
         self.table_trainers.verticalHeader().setVisible(False)
         self.table_trainers.verticalHeader().setDefaultSectionSize(54)
         self.table_trainers.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -681,10 +681,33 @@ class BackupView(QWidget):
             action_w = QWidget()
             action_w.setStyleSheet("background: transparent;")
             action_l = QHBoxLayout(action_w)
-            action_l.setContentsMargins(8, 6, 8, 6)
+            action_l.setContentsMargins(4, 4, 4, 4)
+            action_l.setSpacing(6)
             action_l.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            btn_del = QPushButton("🗑️ حذف مربی و شاگردان")
+            btn_details = QPushButton("👁️ مشخصات مربی")
+            btn_details.setToolTip("مشاهده مشخصات کامل، رمز ریکاوری و تغییر رمز این مربی")
+            btn_details.setCursor(Qt.CursorShape.PointingHandCursor)
+            btn_details.setFixedHeight(34)
+            btn_details.setStyleSheet("""
+                QPushButton {
+                    background-color: #1E3A8A;
+                    color: #93C5FD;
+                    border: 1px solid #2563EB;
+                    border-radius: 6px;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    font-size: 11px;
+                }
+                QPushButton:hover {
+                    background-color: #2563EB;
+                    color: #FFFFFF;
+                }
+            """)
+            btn_details.clicked.connect(lambda _, tr=t: self.open_trainer_details(tr))
+
+            btn_del = QPushButton("🗑️ حذف مربی")
+            btn_del.setToolTip("حذف کامل حساب مربی به همراه تمام شاگردان، سوابق و برنامه‌ها")
             btn_del.setCursor(Qt.CursorShape.PointingHandCursor)
             btn_del.setFixedHeight(34)
             btn_del.setStyleSheet("""
@@ -694,8 +717,8 @@ class BackupView(QWidget):
                     border: 1px solid #DC2626;
                     border-radius: 6px;
                     font-weight: bold;
-                    padding: 4px 14px;
-                    font-size: 12px;
+                    padding: 4px 10px;
+                    font-size: 11px;
                 }
                 QPushButton:hover {
                     background-color: #DC2626;
@@ -703,8 +726,15 @@ class BackupView(QWidget):
                 }
             """)
             btn_del.clicked.connect(lambda _, t_id=t["id"], t_name=t["full_name"], m_cnt=t["member_count"]: self.admin_delete_trainer(t_id, t_name, m_cnt))
+            action_l.addWidget(btn_details)
             action_l.addWidget(btn_del)
             self.table_trainers.setCellWidget(row, 5, action_w)
+
+    def open_trainer_details(self, trainer_data: dict):
+        from yalda.views.components.trainer_details_dialog import TrainerDetailsDialog
+        dlg = TrainerDetailsDialog(self, trainer_data=trainer_data)
+        dlg.exec()
+        self.load_trainers_for_admin()
 
     def admin_delete_trainer(self, trainer_id: int, trainer_name: str, member_count: int):
         reply1 = QMessageBox.warning(

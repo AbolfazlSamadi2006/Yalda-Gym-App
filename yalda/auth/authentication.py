@@ -245,6 +245,8 @@ def get_all_trainers() -> list:
                 "phone": u.phone or "-",
                 "email": u.email or "-",
                 "birth_date_shamsi": u.birth_date_shamsi or "-",
+                "recovery_code": u.recovery_code or "-",
+                "photo_path": u.photo_path or "",
                 "member_count": m_count
             })
         return results

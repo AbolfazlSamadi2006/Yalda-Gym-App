@@ -193,7 +193,7 @@ def verify_recovery_credentials(phone: str, recovery_code: str) -> User:
     finally:
         session.close()
 
-def register_trainer(first_name: str, last_name: str, phone: str, birth_date_shamsi: str, username: str, password: str, recovery_code: str, photo_path: str = None) -> User:
+def register_trainer(first_name: str, last_name: str, phone: str, birth_date_shamsi: str, username: str, password: str, recovery_code: str, photo_path: str = None, email: str = None) -> User:
     """Registers a new trainer account in the system."""
     session = get_session()
     try:
@@ -209,6 +209,7 @@ def register_trainer(first_name: str, last_name: str, phone: str, birth_date_sha
             last_name=last_name.strip(),
             full_name=f"{first_name.strip()} {last_name.strip()}",
             phone=normalize_digits(phone),
+            email=email.strip().lower() if (email and email.strip()) else None,
             birth_date_shamsi=birth_date_shamsi.strip() if birth_date_shamsi else None,
             photo_path=photo_path,
             recovery_code=normalize_digits(recovery_code),
@@ -242,6 +243,7 @@ def get_all_trainers() -> list:
                 "full_name": u.display_name,
                 "username": u.username,
                 "phone": u.phone or "-",
+                "email": u.email or "-",
                 "birth_date_shamsi": u.birth_date_shamsi or "-",
                 "member_count": m_count
             })
@@ -249,7 +251,33 @@ def get_all_trainers() -> list:
     finally:
         session.close()
 
-def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone: str, birth_date_shamsi: str, photo_path: str, username: str, password: str = None, recovery_code: str = None, new_password: str = None) -> bool:
+def find_user_by_email_or_phone(identity: str) -> User:
+    """Finds a user by email, phone, or username for recovery purposes."""
+    if not identity:
+        return None
+    session = get_session()
+    try:
+        ident_clean = identity.strip().lower()
+        ident_digits = normalize_digits(identity).strip()
+
+        # Check by email
+        user = session.query(User).filter(User.email.isnot(None), User.email == ident_clean).first()
+        if user:
+            return user
+
+        # Check by phone
+        if ident_digits:
+            user = session.query(User).filter(User.phone.isnot(None), User.phone == ident_digits).first()
+            if user:
+                return user
+
+        # Check by username
+        user = session.query(User).filter(User.username == ident_clean).first()
+        return user
+    finally:
+        session.close()
+
+def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone: str, birth_date_shamsi: str, photo_path: str, username: str, password: str = None, recovery_code: str = None, new_password: str = None, email: str = None) -> bool:
     """Updates trainer's profile and credentials."""
     session = get_session()
     try:
@@ -273,6 +301,8 @@ def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone:
 
         if phone:
             user.phone = normalize_digits(phone)
+        if email is not None:
+            user.email = email.strip().lower() if email.strip() else None
         if birth_date_shamsi:
             user.birth_date_shamsi = birth_date_shamsi.strip()
         if photo_path is not None:

@@ -115,3 +115,12 @@ FONT_FAMILY = "Vazirmatn"
 # Cloud Backup Server Settings
 DEFAULT_CLOUD_BACKUP_URL = "https://gymassistantbackup.a-samadi2006.workers.dev"
 CLOUD_BACKUP_SECRET_KEY = "yalda_cloud_sec_2006_gym"
+
+# Support Email Settings (Gmail SMTP)
+SUPPORT_EMAIL_ADDRESS = "gymassistantapp.support@gmail.com"
+SUPPORT_EMAIL_APP_PASSWORD = "xngruboohbruxqwk"
+SUPPORT_EMAIL_SENDER_NAME = "پشتیبانی نرم افزار همیار باشگاه یلدا"
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT_SSL = 465
+SMTP_PORT_TLS = 587
+

@@ -123,6 +123,13 @@ class TrainerRegisterDialog(QDialog):
         row_contact.addLayout(v4)
         form_layout.addLayout(row_contact)
 
+        # Email Field (Optional / Recommended for recovery and backup)
+        form_layout.addWidget(QLabel("آدرس ایمیل مربی (جهت بازیابی رمز و دریافت فایل پشتیبان):"))
+        self.txt_email = QLineEdit()
+        self.txt_email.setFixedHeight(38)
+        self.txt_email.setPlaceholderText("مثال: coach@example.com (اختیاری اما توصیه‌شده)")
+        form_layout.addWidget(self.txt_email)
+
         # Row 3: Photo Selection Preview
         photo_box = QHBoxLayout()
         photo_box.setSpacing(12)
@@ -429,6 +436,8 @@ class TrainerRegisterDialog(QDialog):
                 self.txt_recovery_confirm.setFocus()
                 return
 
+            email = self.txt_email.text().strip()
+
             user = register_trainer(
                 first_name=first_name,
                 last_name=last_name,
@@ -437,7 +446,8 @@ class TrainerRegisterDialog(QDialog):
                 username=username,
                 password=password,
                 recovery_code=recovery_code,
-                photo_path=self.selected_photo_path
+                photo_path=self.selected_photo_path,
+                email=email
             )
             CurrentUser.set(user)
             QMessageBox.information(self, "ثبت‌نام موفقیت‌آمیز", f"حساب کاربری مربی با موفقیت ایجاد شد! خوش آمدید {user.display_name} 🌸")

@@ -1,18 +1,101 @@
 import os
+import time
 from pathlib import Path
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog, QMessageBox, QGroupBox, QGridLayout, QComboBox, QFrame, QDialog, QScrollArea
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog, QMessageBox, QGroupBox, QGridLayout, QComboBox, QFrame, QDialog, QScrollArea, QProgressBar, QInputDialog
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QThread
 from PyQt6.QtGui import QPixmap
 import config
 from yalda.services.backup_service import BackupService
+from yalda.services.email_service import EmailService
 from yalda.auth.authentication import (
     CurrentUser, update_trainer_profile, is_app_license_active, set_app_license_active, register_trainer, delete_trainer_account, get_all_trainers
 )
 from yalda.views.components.jalali_calendar_widget import JalaliDatePicker
 from yalda.utils.image_utils import get_circular_pixmap
 
+
+class CloudBackupThread(QThread):
+    progress_signal = pyqtSignal(int, str)
+    finished_signal = pyqtSignal(bool, str)
+
+    def __init__(self, phone: str, trainer_name: str):
+        super().__init__()
+        self.phone = phone
+        self.trainer_name = trainer_name
+
+    def run(self):
+        try:
+            self.progress_signal.emit(15, "در حال آماده‌سازی و استخراج پایگاه‌داده...")
+            time.sleep(0.3)
+            self.progress_signal.emit(45, "در حال اتصال به سرور ابری یلدا...")
+            time.sleep(0.3)
+            self.progress_signal.emit(75, "در حال بارگذاری اطلاعات در سرور ابری...")
+            from yalda.services.backup_service import upload_cloud_backup
+            success, msg = upload_cloud_backup(trainer_phone=self.phone, trainer_name=self.trainer_name)
+            if success:
+                self.progress_signal.emit(100, "پشتیبان‌گیری ابری با موفقیت تکمیل شد.")
+                self.finished_signal.emit(True, msg)
+            else:
+                self.finished_signal.emit(False, msg)
+        except Exception as e:
+            self.finished_signal.emit(False, str(e))
+
+
+class EmailBackupThread(QThread):
+    progress_signal = pyqtSignal(int, str)
+    finished_signal = pyqtSignal(bool, str, str, float)  # ok, msg, filename, size_mb
+
+    def __init__(self, email: str, trainer_name: str):
+        super().__init__()
+        self.email = email
+        self.trainer_name = trainer_name
+
+    def run(self):
+        try:
+            self.progress_signal.emit(15, "در حال ایجاد بسته فشرده پایگاه‌داده و تصاویر...")
+            from datetime import datetime
+            from yalda.utils.jalali_date import gregorian_to_shamsi
+
+            zip_path = BackupService.create_backup()
+            now = datetime.now()
+            shamsi_display = f"{gregorian_to_shamsi(now.date())} {now.strftime('%H:%M:%S')}"
+            size_mb = round(os.path.getsize(zip_path) / (1024 * 1024), 2)
+            zip_filename = os.path.basename(zip_path)
+
+            self.progress_signal.emit(45, "در حال اتصال امن به سرویس ایمیل (Gmail SSL/TLS)...")
+            time.sleep(0.3)
+            self.progress_signal.emit(75, f"در حال ارسال فایل پشتیبان ({size_mb} MB) به ایمیل مربی...")
+
+            metadata = {
+                "date": shamsi_display,
+                "size": f"{size_mb} MB",
+                "filename": zip_filename,
+                "members_count": "-"
+            }
+            try:
+                from yalda.database.connection import SessionLocal
+                from yalda.models.database_models import Member
+                with SessionLocal() as db:
+                    metadata["members_count"] = str(db.query(Member).count())
+            except Exception:
+                pass
+
+            success, msg = EmailService.send_backup_email(
+                to_email=self.email,
+                trainer_name=self.trainer_name,
+                backup_filepath=zip_path,
+                metadata=metadata
+            )
+
+            if success:
+                self.progress_signal.emit(100, "فایل پشتیبان با موفقیت به ایمیل مربی ارسال شد.")
+                self.finished_signal.emit(True, msg, zip_filename, size_mb)
+            else:
+                self.finished_signal.emit(False, msg, zip_filename, size_mb)
+        except Exception as e:
+            self.finished_signal.emit(False, str(e), "", 0.0)
 
 
 class BackupView(QWidget):
@@ -175,6 +258,13 @@ class BackupView(QWidget):
         grid_prof.addWidget(QLabel("رمز ریکاوری مخفی:"), 3, 1)
         grid_prof.addLayout(rec_box, 3, 2, 1, 3)
 
+        # Row 4: Email Address
+        self.txt_email = QLineEdit()
+        self.txt_email.setFixedHeight(36)
+        self.txt_email.setPlaceholderText("ایمیل مربی (جهت بازیابی رمز و دریافت نسخه پشتیبان)")
+        grid_prof.addWidget(QLabel("ایمیل مربی:"), 4, 1)
+        grid_prof.addWidget(self.txt_email, 4, 2, 1, 3)
+
         layout_prof.addLayout(grid_prof)
 
         # Action Buttons for Profile
@@ -223,6 +313,7 @@ class BackupView(QWidget):
         self.txt_username.textChanged.connect(self.check_profile_dirty)
         self.txt_password.textChanged.connect(self.check_profile_dirty)
         self.txt_recovery_code.textChanged.connect(self.check_profile_dirty)
+        self.txt_email.textChanged.connect(self.check_profile_dirty)
 
         btn_del_account = QPushButton("🗑️ حذف حساب مربی و کلیه شاگردان")
         btn_del_account.setFixedHeight(40)
@@ -316,6 +407,67 @@ class BackupView(QWidget):
         layout_act.addStretch()
         layout_act.addWidget(btn_create)
         layout.addWidget(action_box)
+
+        # Non-blocking Backup Progress Card (styled in Red as requested)
+        self.progress_card = QFrame()
+        self.progress_card.setObjectName("progressCard")
+        self.progress_card.setStyleSheet("""
+            QFrame#progressCard {
+                background-color: #18181B;
+                border: 1.5px solid #DC2626;
+                border-radius: 8px;
+                padding: 8px 12px;
+            }
+        """)
+        prog_layout = QVBoxLayout(self.progress_card)
+        prog_layout.setContentsMargins(12, 10, 12, 10)
+        prog_layout.setSpacing(6)
+
+        header_prog = QHBoxLayout()
+        self.lbl_prog_title = QLabel("⏳ در حال پردازش نسخه پشتیبان...")
+        self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #F87171; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+        header_prog.addWidget(self.lbl_prog_title)
+        header_prog.addStretch()
+
+        self.btn_prog_close = QPushButton("✕")
+        self.btn_prog_close.setFixedSize(24, 24)
+        self.btn_prog_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_prog_close.setStyleSheet("background: transparent; color: #9CA3AF; border: none; font-size: 13px; font-weight: bold;")
+        self.btn_prog_close.clicked.connect(lambda: self.progress_card.setVisible(False))
+        self.btn_prog_close.setVisible(False)
+        header_prog.addWidget(self.btn_prog_close)
+        prog_layout.addLayout(header_prog)
+
+        self.lbl_prog_detail = QLabel("در حال شروع فرآیند...")
+        self.lbl_prog_detail.setStyleSheet("color: #D1D5DB; font-size: 11px;")
+        prog_layout.addWidget(self.lbl_prog_detail)
+
+        self.backup_progress_bar = QProgressBar()
+        self.backup_progress_bar.setFixedHeight(18)
+        self.backup_progress_bar.setTextVisible(True)
+        self.backup_progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #444444;
+                border-radius: 6px;
+                background-color: #111111;
+                text-align: center;
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 11px;
+            }
+            QProgressBar::chunk {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #991B1B, stop:0.5 #DC2626, stop:1 #EF4444);
+                border-radius: 5px;
+            }
+        """)
+        prog_layout.addWidget(self.backup_progress_bar)
+
+        lbl_notice = QLabel("💡 این عملیات در پس‌زمینه انجام می‌شود و مانع کار با سایر بخش‌های برنامه نخواهد بود.")
+        lbl_notice.setStyleSheet("color: #9CA3AF; font-size: 10px;")
+        prog_layout.addWidget(lbl_notice)
+
+        layout.addWidget(self.progress_card)
+        self.progress_card.setVisible(False)
 
         # Backups List Table
         row_table_header = QHBoxLayout()
@@ -437,6 +589,7 @@ class BackupView(QWidget):
             "first_name": self.txt_first_name.text().strip(),
             "last_name": self.txt_last_name.text().strip(),
             "phone": self.txt_phone.text().strip(),
+            "email": self.txt_email.text().strip(),
             "birth_date": self.picker_birth_date.get_date().strip(),
             "username": self.txt_username.text().strip(),
             "recovery_code": self.txt_recovery_code.text().strip(),
@@ -456,6 +609,7 @@ class BackupView(QWidget):
         self.txt_first_name.setText(base.get("first_name", ""))
         self.txt_last_name.setText(base.get("last_name", ""))
         self.txt_phone.setText(base.get("phone", ""))
+        self.txt_email.setText(base.get("email", ""))
         self.picker_birth_date.set_date(base.get("birth_date", ""))
         self.txt_username.setText(base.get("username", ""))
         self.txt_password.clear()
@@ -475,6 +629,7 @@ class BackupView(QWidget):
             self.txt_first_name.setText(u.first_name or "")
             self.txt_last_name.setText(u.last_name or "")
             self.txt_phone.setText(u.phone or "")
+            self.txt_email.setText(u.email or "")
             self.picker_birth_date.set_date(u.birth_date_shamsi or "")
             self.txt_username.setText(u.username or "")
             self.txt_password.clear()
@@ -486,6 +641,7 @@ class BackupView(QWidget):
                 "first_name": (u.first_name or "").strip(),
                 "last_name": (u.last_name or "").strip(),
                 "phone": (u.phone or "").strip(),
+                "email": (u.email or "").strip(),
                 "birth_date": (u.birth_date_shamsi or "").strip(),
                 "username": (u.username or "").strip(),
                 "recovery_code": (u.recovery_code or "").strip(),
@@ -585,6 +741,7 @@ class BackupView(QWidget):
         first_name = self.txt_first_name.text().strip()
         last_name = self.txt_last_name.text().strip()
         phone = self.txt_phone.text().strip()
+        email = self.txt_email.text().strip()
         birth_date = self.picker_birth_date.get_date()
         password = self.txt_password.text().strip()
         recovery_code = self.txt_recovery_code.text().strip()
@@ -610,6 +767,7 @@ class BackupView(QWidget):
                 first_name=first_name,
                 last_name=last_name,
                 phone=phone,
+                email=email,
                 birth_date_shamsi=birth_date,
                 photo_path=self.selected_photo_path,
                 username=username,
@@ -673,7 +831,7 @@ class BackupView(QWidget):
             action_l.addWidget(btn_restore)
 
             # If local file exists, add Open Folder button
-            if b.file_path and not b.file_path.startswith("☁️"):
+            if b.file_path and not b.file_path.startswith("☁️") and not b.file_path.startswith("📧"):
                 btn_open_folder = QPushButton("📂 پوشه")
                 btn_open_folder.setCursor(Qt.CursorShape.PointingHandCursor)
                 btn_open_folder.setFixedHeight(30)
@@ -685,7 +843,7 @@ class BackupView(QWidget):
             self.table.setCellWidget(row, 5, action_w)
 
     def open_backup_folder(self, filepath: str):
-        if not filepath or filepath.startswith("☁️"):
+        if not filepath or filepath.startswith("☁️") or filepath.startswith("📧"):
             return
         p = Path(filepath)
         folder = p.parent if p.suffix else p
@@ -721,7 +879,6 @@ class BackupView(QWidget):
 
     def create_backup(self):
         from yalda.views.components.backup_destination_dialog import BackupDestinationDialog
-        from yalda.services.backup_service import upload_cloud_backup
         from datetime import datetime
         from yalda.utils.jalali_date import gregorian_to_shamsi
 
@@ -761,14 +918,40 @@ class BackupView(QWidget):
             u = CurrentUser.get()
             phone = u.phone if (u and u.phone) else "09336427711"
             trainer_name = u.full_name if u else "مدیر باشگاه"
+            self._start_cloud_backup_async(phone, trainer_name)
 
-            success, msg = upload_cloud_backup(trainer_phone=phone, trainer_name=trainer_name)
-            if success:
-                BackupService.record_cloud_backup(phone)
-                self.load_backups()
-                QMessageBox.information(self, "موفقیت", f"✅ {msg}")
-            else:
-                QMessageBox.critical(self, "خطا در سرور ابری", f"❌ {msg}")
+        elif choice == BackupDestinationDialog.CHOICE_EMAIL:
+            u = CurrentUser.get()
+            current_email = (u.email if u else "") or self.txt_email.text().strip()
+            if not current_email:
+                email_input, ok = QInputDialog.getText(
+                    self,
+                    "ثبت ایمیل مربی",
+                    "آدرس ایمیل مربی جهت دریافت نسخه پشتیبان ثبت نشده است.\nلطفاً آدرس ایمیل خود را وارد نمایید:",
+                    QLineEdit.EchoMode.Normal,
+                    ""
+                )
+                if not ok or not email_input.strip():
+                    return
+                current_email = email_input.strip()
+                self.txt_email.setText(current_email)
+                if u:
+                    try:
+                        update_trainer_profile(
+                            user_id=u.id,
+                            first_name=u.first_name,
+                            last_name=u.last_name,
+                            phone=u.phone,
+                            email=current_email,
+                            birth_date_shamsi=u.birth_date_shamsi,
+                            photo_path=u.photo_path,
+                            username=u.username
+                        )
+                    except Exception:
+                        pass
+
+            trainer_name = u.full_name if u else "مدیر باشگاه"
+            self._start_email_backup_async(current_email, trainer_name)
 
         elif choice == BackupDestinationDialog.CHOICE_INSTALL_DIR:
             try:
@@ -781,6 +964,92 @@ class BackupView(QWidget):
                 )
             except Exception as e:
                 QMessageBox.critical(self, "خطا", f"خطا در ایجاد نسخه پشتیبان: {str(e)}")
+
+    def _start_cloud_backup_async(self, phone: str, trainer_name: str):
+        self.progress_card.setVisible(True)
+        self.btn_prog_close.setVisible(False)
+        self.lbl_prog_title.setText("☁️ در حال ارسال نسخه پشتیبان به سرور ابری...")
+        self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #F87171; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+        self.lbl_prog_detail.setText("در حال برقراری ارتباط با سرور ابری یلدا...")
+        self.backup_progress_bar.setValue(10)
+        self.backup_progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #444444; border-radius: 6px; background-color: #18181B; text-align: center; color: #FFFFFF; font-weight: bold; font-size: 11px;
+            }
+            QProgressBar::chunk {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #991B1B, stop:0.5 #DC2626, stop:1 #EF4444);
+                border-radius: 5px;
+            }
+        """)
+
+        self.cloud_worker = CloudBackupThread(phone, trainer_name)
+        self.cloud_worker.progress_signal.connect(self._on_backup_progress)
+        self.cloud_worker.finished_signal.connect(lambda ok, msg: self._on_cloud_backup_finished(ok, msg, phone))
+        self.cloud_worker.start()
+
+    def _start_email_backup_async(self, email: str, trainer_name: str):
+        self.progress_card.setVisible(True)
+        self.btn_prog_close.setVisible(False)
+        self.lbl_prog_title.setText("📧 در حال آماده‌سازی و ارسال نسخه پشتیبان به ایمیل مربی...")
+        self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #F87171; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+        self.lbl_prog_detail.setText(f"در حال ایجاد بسته و ارسال به نشانی {email}...")
+        self.backup_progress_bar.setValue(10)
+        self.backup_progress_bar.setStyleSheet("""
+            QProgressBar {
+                border: 1px solid #444444; border-radius: 6px; background-color: #18181B; text-align: center; color: #FFFFFF; font-weight: bold; font-size: 11px;
+            }
+            QProgressBar::chunk {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #991B1B, stop:0.5 #DC2626, stop:1 #EF4444);
+                border-radius: 5px;
+            }
+        """)
+
+        self.email_worker = EmailBackupThread(email, trainer_name)
+        self.email_worker.progress_signal.connect(self._on_backup_progress)
+        self.email_worker.finished_signal.connect(lambda ok, msg, fn, sz: self._on_email_backup_finished(ok, msg, email, fn, sz))
+        self.email_worker.start()
+
+    def _on_backup_progress(self, percent: int, detail_msg: str):
+        self.backup_progress_bar.setValue(percent)
+        self.lbl_prog_detail.setText(detail_msg)
+
+    def _on_cloud_backup_finished(self, success: bool, msg: str, phone: str):
+        self.btn_prog_close.setVisible(True)
+        if success:
+            BackupService.record_cloud_backup(phone)
+            self.load_backups()
+            self.lbl_prog_title.setText("✅ پشتیبان‌گیری در سرور ابری با موفقیت تکمیل شد!")
+            self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #10B981; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+            self.lbl_prog_detail.setText(msg)
+            self.backup_progress_bar.setValue(100)
+            self.backup_progress_bar.setStyleSheet("""
+                QProgressBar { border: 1px solid #059669; border-radius: 6px; background-color: #18181B; text-align: center; color: #FFFFFF; font-weight: bold; font-size: 11px; }
+                QProgressBar::chunk { background-color: #10B981; border-radius: 5px; }
+            """)
+            QTimer.singleShot(6000, lambda: self.progress_card.setVisible(False))
+        else:
+            self.lbl_prog_title.setText("❌ خطا در پشتیبان‌گیری ابری")
+            self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #EF4444; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+            self.lbl_prog_detail.setText(f"خطا: {msg}")
+
+    def _on_email_backup_finished(self, success: bool, msg: str, email: str, filename: str, size_mb: float):
+        self.btn_prog_close.setVisible(True)
+        if success:
+            BackupService.record_email_backup(email, filename, size_mb)
+            self.load_backups()
+            self.lbl_prog_title.setText("✅ نسخه پشتیبان با موفقیت به ایمیل مربی ارسال شد!")
+            self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #10B981; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+            self.lbl_prog_detail.setText(f"فایل {filename} ({size_mb} MB) به نشانی {email} فرستاده شد.")
+            self.backup_progress_bar.setValue(100)
+            self.backup_progress_bar.setStyleSheet("""
+                QProgressBar { border: 1px solid #059669; border-radius: 6px; background-color: #18181B; text-align: center; color: #FFFFFF; font-weight: bold; font-size: 11px; }
+                QProgressBar::chunk { background-color: #10B981; border-radius: 5px; }
+            """)
+            QTimer.singleShot(6000, lambda: self.progress_card.setVisible(False))
+        else:
+            self.lbl_prog_title.setText("❌ خطا در ارسال ایمیل پشتیبان")
+            self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #EF4444; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
+            self.lbl_prog_detail.setText(f"خطا: {msg}")
 
     def open_cloud_restore_dialog(self):
         from yalda.views.cloud_restore_dialog import CloudRestoreDialog
@@ -800,6 +1069,13 @@ class BackupView(QWidget):
             return
         if filepath.startswith("☁️"):
             self.open_cloud_restore_dialog()
+            return
+        if filepath.startswith("📧"):
+            QMessageBox.information(
+                self,
+                "نسخه ارسالی به ایمیل",
+                "این نسخه پشتیبان به ایمیل مربی ارسال شده است.\nجهت بازگردانی، فایل پیوست ارسال‌شده به ایمیلتان را دانلود نموده و از طریق دکمه «📁 بازگردانی از فایل خارجی...» آن را انتخاب کنید."
+            )
             return
 
         reply = QMessageBox.warning(

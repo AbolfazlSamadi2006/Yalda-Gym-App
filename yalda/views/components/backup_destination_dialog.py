@@ -10,6 +10,7 @@ class BackupDestinationDialog(QDialog):
 
     CHOICE_SYSTEM = "system"
     CHOICE_SERVER = "server"
+    CHOICE_EMAIL = "email"
     CHOICE_INSTALL_DIR = "install_dir"
 
     def __init__(self, parent=None):
@@ -76,7 +77,19 @@ class BackupDestinationDialog(QDialog):
         layout.addWidget(btn_server)
 
         # ----------------------------------------------------
-        # Option 3: Save to Default Installation Directory
+        # Option 3: Send directly to Coach Email
+        # ----------------------------------------------------
+        btn_email = self._create_option_button(
+            title="📧 ارسال به ایمیل مربی (پشتیبان ابری ایمیل)",
+            description="ارسال مستقیم و امن فایل فشرده پشتیبان به آدرس ایمیل ثبت‌شده مربی باشگاه",
+            bg_color="#0D9488",
+            hover_color="#0F766E"
+        )
+        btn_email.clicked.connect(lambda: self._select_choice(self.CHOICE_EMAIL))
+        layout.addWidget(btn_email)
+
+        # ----------------------------------------------------
+        # Option 4: Save to Default Installation Directory
         # ----------------------------------------------------
         btn_install_dir = self._create_option_button(
             title="📁 ذخیره در مسیر نصب برنامه (پیش‌فرض)",

@@ -69,6 +69,8 @@ def check_and_migrate_db():
                 conn.execute(text("ALTER TABLE users ADD COLUMN photo_path VARCHAR(255);"))
             if "recovery_code" not in u_columns:
                 conn.execute(text("ALTER TABLE users ADD COLUMN recovery_code VARCHAR(100);"))
+            if "email" not in u_columns:
+                conn.execute(text("ALTER TABLE users ADD COLUMN email VARCHAR(120);"))
             conn.commit()
 
     if "exercises" in inspector.get_table_names():

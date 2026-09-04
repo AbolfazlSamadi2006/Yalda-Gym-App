@@ -22,6 +22,7 @@ class User(Base):
     last_name = Column(String(50), nullable=True)
     full_name = Column(String(100), nullable=True)
     phone = Column(String(20), nullable=True)
+    email = Column(String(120), nullable=True)
     birth_date_shamsi = Column(String(10), nullable=True)
     photo_path = Column(String(255), nullable=True)
     recovery_code = Column(String(100), nullable=True)

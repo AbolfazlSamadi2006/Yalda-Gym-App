@@ -7,7 +7,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email.header import Header
-from email.utils import formataddr
+from email.utils import formataddr, formatdate, make_msgid
 from email import encoders
 from pathlib import Path
 
@@ -107,9 +107,14 @@ class EmailService:
         sender_name = getattr(config, "SUPPORT_EMAIL_SENDER_NAME", "پشتیبانی نرم افزار همیار باشگاه یلدا")
 
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = Header(f"کد تایید یک‌بارمصرف بازیابی کلمه عبور - {config.APP_NAME}", "utf-8")
+        msg["Subject"] = Header("کد تایید بازیابی کلمه عبور - باشگاه ورزشی یلدا", "utf-8")
         msg["From"] = formataddr((str(Header(sender_name, "utf-8")), sender_email))
         msg["To"] = to_email
+        msg["Reply-To"] = formataddr((str(Header(sender_name, "utf-8")), sender_email))
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid(domain="gmail.com")
+        msg["X-Mailer"] = f"YaldaGymApp/{getattr(config, 'APP_VERSION', '2.2.0')}"
+        msg["Auto-Submitted"] = "auto-generated"
 
         html_content = f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -228,6 +233,20 @@ class EmailService:
 </body>
 </html>"""
 
+        plain_text = f"""درود بر شما مربی گرامی، {trainer_name or 'همکار گرامی'}؛
+
+درخواست بازیابی کلمه عبور برای حساب کاربری شما در نرم‌افزار مدیریت باشگاه یلدا ثبت شده است.
+
+کد تایید یک‌بارمصرف شما (OTP):
+{otp_code}
+
+⏱️ مدت اعتبار این کد ۵ دقیقه می‌باشد.
+⚠️ نکته امنیتی: این کد صرفاً جهت استفاده شخصی شما صادر شده است. لطفاً آن را در اختیار افراد دیگر قرار ندهید.
+
+سیستم خودکار مدیریت باشگاه ورزشی {config.APP_NAME}
+{config.GYM_ADDRESS}
+"""
+        msg.attach(MIMEText(plain_text, "plain", "utf-8"))
         msg.attach(MIMEText(html_content, "html", "utf-8"))
 
         try:
@@ -253,16 +272,21 @@ class EmailService:
         sender_email = getattr(config, "SUPPORT_EMAIL_ADDRESS", "gymassistantapp.support@gmail.com")
         sender_name = getattr(config, "SUPPORT_EMAIL_SENDER_NAME", "پشتیبانی نرم افزار همیار باشگاه یلدا")
 
-        msg = MIMEMultipart("mixed")
-        msg["Subject"] = Header(f"📦 نسخه پشتیبان پایگاه‌داده - {config.APP_NAME}", "utf-8")
-        msg["From"] = formataddr((str(Header(sender_name, "utf-8")), sender_email))
-        msg["To"] = to_email
-
         metadata = metadata or {}
         shamsi_date = metadata.get("date", "-")
         backup_size = metadata.get("size", "-")
         members_count = metadata.get("members_count", "-")
         filename = os.path.basename(backup_filepath)
+
+        msg = MIMEMultipart("mixed")
+        msg["Subject"] = Header(f"نسخه پشتیبان پایگاه داده باشگاه یلدا - {shamsi_date}", "utf-8")
+        msg["From"] = formataddr((str(Header(sender_name, "utf-8")), sender_email))
+        msg["To"] = to_email
+        msg["Reply-To"] = formataddr((str(Header(sender_name, "utf-8")), sender_email))
+        msg["Date"] = formatdate(localtime=True)
+        msg["Message-ID"] = make_msgid(domain="gmail.com")
+        msg["X-Mailer"] = f"YaldaGymApp/{getattr(config, 'APP_VERSION', '2.2.0')}"
+        msg["Auto-Submitted"] = "auto-generated"
 
         html_body = f"""<!DOCTYPE html>
 <html lang="fa" dir="rtl">
@@ -395,7 +419,27 @@ class EmailService:
 </body>
 </html>"""
 
-        msg.attach(MIMEText(html_body, "html", "utf-8"))
+        plain_text = f"""با سلام خدمت مربی محترم، {trainer_name or 'همکار گرامی'}؛
+
+نسخه پشتیبان جدید از پایگاه‌داده باشگاه ورزشی یلدا با موفقیت تهیه شد و فایل دیتابیس ({filename}) به این پیام پیوست گردیده است.
+
+مشخصات نسخه پشتیبان:
+- نام فایل دیتابیس: {filename}
+- تاریخ و ساعت ثبت: {shamsi_date}
+- حجم فایل دیتابیس: {backup_size}
+- تعداد ورزشکاران فعال: {members_count} نفر
+
+راهنما:
+این ایمیل را به عنوان نسخه ذخیره امن در اینباکس خود نگه دارید. در صورت تعویض سیستم یا نیاز به بازیابی، می‌توانید همین فایل پایگاه‌داده (.db) پیوست را دانلود کرده و از منوی «بازگردانی از فایل خارجی» بارگذاری نمایید.
+
+سیستم خودکار مدیریت باشگاه ورزشی {config.APP_NAME}
+{config.GYM_ADDRESS}
+"""
+
+        body_part = MIMEMultipart("alternative")
+        body_part.attach(MIMEText(plain_text, "plain", "utf-8"))
+        body_part.attach(MIMEText(html_body, "html", "utf-8"))
+        msg.attach(body_part)
 
         # Attach the backup archive file
         try:

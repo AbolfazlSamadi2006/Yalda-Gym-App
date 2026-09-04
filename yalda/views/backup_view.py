@@ -269,8 +269,36 @@ class BackupView(QWidget):
         self.txt_email = QLineEdit()
         self.txt_email.setFixedHeight(36)
         self.txt_email.setPlaceholderText("ایمیل مربی (جهت بازیابی رمز و دریافت نسخه پشتیبان)")
+
+        btn_spam_guide = QPushButton("🛡️ راهنمای پوشه هرزنامه")
+        btn_spam_guide.setFixedHeight(36)
+        btn_spam_guide.setFixedWidth(155)
+        btn_spam_guide.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_spam_guide.setToolTip("راهنمای گام‌به‌گام خروج ایمیل‌های ارسالی برنامه از پوشه هرزنامه (Spam) جیمیل")
+        btn_spam_guide.setStyleSheet("""
+            QPushButton {
+                background-color: #1E293B;
+                color: #38BDF8;
+                border: 1px solid #0284C7;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 11px;
+                padding: 0 12px;
+            }
+            QPushButton:hover {
+                background-color: #0284C7;
+                color: #FFFFFF;
+            }
+        """)
+        btn_spam_guide.clicked.connect(self.open_spam_guide_dialog)
+
+        email_row_box = QHBoxLayout()
+        email_row_box.setSpacing(8)
+        email_row_box.addWidget(self.txt_email, 1)
+        email_row_box.addWidget(btn_spam_guide)
+
         grid_prof.addWidget(QLabel("ایمیل مربی:"), 4, 1)
-        grid_prof.addWidget(self.txt_email, 4, 2, 1, 3)
+        grid_prof.addLayout(email_row_box, 4, 2, 1, 3)
 
         layout_prof.addLayout(grid_prof)
 
@@ -435,6 +463,28 @@ class BackupView(QWidget):
         self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #F87171; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
         header_prog.addWidget(self.lbl_prog_title)
         header_prog.addStretch()
+
+        self.btn_prog_spam_guide = QPushButton("🛡️ راهنمای پوشه اسپم")
+        self.btn_prog_spam_guide.setFixedHeight(24)
+        self.btn_prog_spam_guide.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_prog_spam_guide.setStyleSheet("""
+            QPushButton {
+                background-color: #1E293B;
+                color: #38BDF8;
+                border: 1px solid #0284C7;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 0 8px;
+            }
+            QPushButton:hover {
+                background-color: #0284C7;
+                color: #FFFFFF;
+            }
+        """)
+        self.btn_prog_spam_guide.clicked.connect(self.open_spam_guide_dialog)
+        self.btn_prog_spam_guide.setVisible(False)
+        header_prog.addWidget(self.btn_prog_spam_guide)
 
         self.btn_prog_close = QPushButton("✕")
         self.btn_prog_close.setFixedSize(24, 24)
@@ -1043,6 +1093,8 @@ class BackupView(QWidget):
     def _start_cloud_backup_async(self, phone: str, trainer_name: str):
         self.progress_card.setVisible(True)
         self.btn_prog_close.setVisible(False)
+        if hasattr(self, "btn_prog_spam_guide"):
+            self.btn_prog_spam_guide.setVisible(False)
         self.lbl_prog_title.setText("☁️ در حال ارسال نسخه پشتیبان به سرور ابری...")
         self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #F87171; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
         self.lbl_prog_detail.setText("در حال برقراری ارتباط با سرور ابری یلدا...")
@@ -1065,6 +1117,8 @@ class BackupView(QWidget):
     def _start_email_backup_async(self, email: str, trainer_name: str):
         self.progress_card.setVisible(True)
         self.btn_prog_close.setVisible(False)
+        if hasattr(self, "btn_prog_spam_guide"):
+            self.btn_prog_spam_guide.setVisible(False)
         self.lbl_prog_title.setText("📧 در حال آماده‌سازی و ارسال نسخه پشتیبان به ایمیل مربی...")
         self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #F87171; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
         self.lbl_prog_detail.setText(f"در حال ایجاد بسته و ارسال به نشانی {email}...")
@@ -1114,17 +1168,24 @@ class BackupView(QWidget):
             self.load_backups()
             self.lbl_prog_title.setText("✅ نسخه پشتیبان با موفقیت به ایمیل مربی ارسال شد!")
             self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #10B981; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
-            self.lbl_prog_detail.setText(f"فایل {filename} ({size_mb} MB) به نشانی {email} فرستاده شد.")
+            self.lbl_prog_detail.setText(f"فایل {filename} ({size_mb} MB) به نشانی {email} فرستاده شد. (در صورت عدم مشاهده در اینباکس، پوشه Spam را بررسی فرمایید)")
             self.backup_progress_bar.setValue(100)
             self.backup_progress_bar.setStyleSheet("""
                 QProgressBar { border: 1px solid #059669; border-radius: 6px; background-color: #18181B; text-align: center; color: #FFFFFF; font-weight: bold; font-size: 11px; }
                 QProgressBar::chunk { background-color: #10B981; border-radius: 5px; }
             """)
-            QTimer.singleShot(6000, lambda: self.progress_card.setVisible(False))
+            if hasattr(self, "btn_prog_spam_guide"):
+                self.btn_prog_spam_guide.setVisible(True)
+            QTimer.singleShot(15000, lambda: self.progress_card.setVisible(False))
         else:
             self.lbl_prog_title.setText("❌ خطا در ارسال ایمیل پشتیبان")
             self.lbl_prog_title.setStyleSheet("font-weight: bold; font-size: 13px; color: #EF4444; font-family: 'Segoe UI Emoji', 'Noto Color Emoji', 'Vazirmatn', sans-serif;")
             self.lbl_prog_detail.setText(f"خطا: {msg}")
+
+    def open_spam_guide_dialog(self):
+        from yalda.views.components.email_spam_guide_dialog import EmailSpamGuideDialog
+        dialog = EmailSpamGuideDialog(self)
+        dialog.exec()
 
     def open_cloud_restore_dialog(self):
         from yalda.views.cloud_restore_dialog import CloudRestoreDialog

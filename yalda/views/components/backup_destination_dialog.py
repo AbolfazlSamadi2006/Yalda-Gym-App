@@ -103,6 +103,27 @@ class BackupDestinationDialog(QDialog):
         layout.addSpacing(6)
 
         # ----------------------------------------------------
+        # Spam Guide Link
+        # ----------------------------------------------------
+        btn_help_spam = QPushButton("💡 راهنمای دریافت ایمیل در اینباکس (خروج از پوشه هرزنامه)")
+        btn_help_spam.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_help_spam.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #38BDF8;
+                border: none;
+                font-size: 11px;
+                text-decoration: underline;
+                padding: 4px;
+            }
+            QPushButton:hover {
+                color: #7DD3FC;
+            }
+        """)
+        btn_help_spam.clicked.connect(self._open_spam_guide)
+        layout.addWidget(btn_help_spam, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # ----------------------------------------------------
         # Cancel Button
         # ----------------------------------------------------
         btn_cancel = QPushButton("انصراف و بستن")
@@ -125,6 +146,10 @@ class BackupDestinationDialog(QDialog):
         """)
         btn_cancel.clicked.connect(self.reject)
         layout.addWidget(btn_cancel, alignment=Qt.AlignmentFlag.AlignCenter)
+
+    def _open_spam_guide(self):
+        from yalda.views.components.email_spam_guide_dialog import EmailSpamGuideDialog
+        EmailSpamGuideDialog(self).exec()
 
     def _create_option_button(self, title: str, description: str, bg_color: str, hover_color: str) -> QPushButton:
         btn = QPushButton()

@@ -182,6 +182,24 @@ class PasswordRecoveryDialog(QDialog):
         self.btn_confirm_otp.clicked.connect(self.do_verify_email_otp)
         otp_box_layout.addWidget(self.btn_confirm_otp)
 
+        self.btn_otp_spam_help = QPushButton("❓ کد تایید نیامد؟ راهنمای پوشه Spam (هرزنامه)")
+        self.btn_otp_spam_help.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_otp_spam_help.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #38BDF8;
+                border: none;
+                font-size: 11px;
+                text-decoration: underline;
+                padding: 4px;
+            }
+            QPushButton:hover {
+                color: #7DD3FC;
+            }
+        """)
+        self.btn_otp_spam_help.clicked.connect(self._open_spam_guide)
+        otp_box_layout.addWidget(self.btn_otp_spam_help, alignment=Qt.AlignmentFlag.AlignCenter)
+
         page_email_layout.addWidget(self.otp_verify_box)
         self.otp_verify_box.setVisible(False)
 
@@ -368,9 +386,12 @@ class PasswordRecoveryDialog(QDialog):
     def _on_otp_sent(self, success: bool, msg: str):
         if success:
             masked = self._mask_email(self.pending_user.email)
-            self.lbl_otp_sent_info.setText(f"✅ کد تایید ۵ رقمی به ایمیل «{masked}» فرستاده شد.")
+            self.lbl_otp_sent_info.setText(
+                f"✅ کد تایید ۵ رقمی به ایمیل «{masked}» فرستاده شد.\n"
+                "💡 در صورت عدم مشاهده در Inbox، حتماً پوشه Spam (هرزنامه) را بررسی نمایید."
+            )
             self.otp_verify_box.setVisible(True)
-            self.setFixedSize(520, 680)
+            self.setFixedSize(520, 690)
 
             # Start 60 second countdown timer
             self.countdown_seconds = 60
@@ -381,6 +402,10 @@ class PasswordRecoveryDialog(QDialog):
             self.btn_send_otp.setEnabled(True)
             self.btn_send_otp.setText("📩 دریافت کد تایید در ایمیل")
             QMessageBox.critical(self, "خطا در ارسال ایمیل", msg)
+
+    def _open_spam_guide(self):
+        from yalda.views.components.email_spam_guide_dialog import EmailSpamGuideDialog
+        EmailSpamGuideDialog(self).exec()
 
     def _update_resend_countdown(self):
         self.countdown_seconds -= 1

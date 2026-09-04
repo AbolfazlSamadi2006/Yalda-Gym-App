@@ -80,8 +80,8 @@ class BackupDestinationDialog(QDialog):
         # Option 3: Send directly to Coach Email
         # ----------------------------------------------------
         btn_email = self._create_option_button(
-            title="📧 ارسال به ایمیل مربی (پشتیبان ابری ایمیل)",
-            description="ارسال مستقیم و امن فایل فشرده پشتیبان به آدرس ایمیل ثبت‌شده مربی باشگاه",
+            title="📧 ارسال به ایمیل مربی (فایل دیتابیس .db)",
+            description="ارسال مستقیم و امن فایل پایگاه‌داده (.db) به آدرس ایمیل ثبت‌شده مربی باشگاه",
             bg_color="#0D9488",
             hover_color="#0F766E"
         )

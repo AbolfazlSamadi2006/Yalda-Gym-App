@@ -54,24 +54,31 @@ class EmailBackupThread(QThread):
 
     def run(self):
         try:
-            self.progress_signal.emit(15, "در حال ایجاد بسته فشرده پایگاه‌داده و تصاویر...")
+            self.progress_signal.emit(15, "در حال ایجاد نسخه پشتیبان دیتابیس (.db)...")
             from datetime import datetime
             from yalda.utils.jalali_date import gregorian_to_shamsi
 
-            zip_path = BackupService.create_backup()
             now = datetime.now()
+            shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "-")
+            time_str = now.strftime("%H-%M-%S")
             shamsi_display = f"{gregorian_to_shamsi(now.date())} {now.strftime('%H:%M:%S')}"
-            size_mb = round(os.path.getsize(zip_path) / (1024 * 1024), 2)
-            zip_filename = os.path.basename(zip_path)
+
+            db_filename = f"yalda_backup_{shamsi_date}_{time_str}.db"
+            db_target_path = config.BACKUPS_DIR / db_filename
+            config.BACKUPS_DIR.mkdir(parents=True, exist_ok=True)
+
+            import shutil
+            shutil.copy2(config.DB_PATH, db_target_path)
+            size_mb = round(os.path.getsize(db_target_path) / (1024 * 1024), 2)
 
             self.progress_signal.emit(45, "در حال اتصال امن به سرویس ایمیل (Gmail SSL/TLS)...")
             time.sleep(0.3)
-            self.progress_signal.emit(75, f"در حال ارسال فایل پشتیبان ({size_mb} MB) به ایمیل مربی...")
+            self.progress_signal.emit(75, f"در حال ارسال فایل دیتابیس ({size_mb} MB) به ایمیل مربی...")
 
             metadata = {
                 "date": shamsi_display,
                 "size": f"{size_mb} MB",
-                "filename": zip_filename,
+                "filename": db_filename,
                 "members_count": "-"
             }
             try:
@@ -85,15 +92,15 @@ class EmailBackupThread(QThread):
             success, msg = EmailService.send_backup_email(
                 to_email=self.email,
                 trainer_name=self.trainer_name,
-                backup_filepath=zip_path,
+                backup_filepath=str(db_target_path),
                 metadata=metadata
             )
 
             if success:
                 self.progress_signal.emit(100, "فایل پشتیبان با موفقیت به ایمیل مربی ارسال شد.")
-                self.finished_signal.emit(True, msg, zip_filename, size_mb)
+                self.finished_signal.emit(True, msg, db_filename, size_mb)
             else:
-                self.finished_signal.emit(False, msg, zip_filename, size_mb)
+                self.finished_signal.emit(False, msg, db_filename, size_mb)
         except Exception as e:
             self.finished_signal.emit(False, str(e), "", 0.0)
 
@@ -1128,7 +1135,12 @@ class BackupView(QWidget):
             self.load_all_data()
 
     def restore_from_file(self):
-        filepath, _ = QFileDialog.getOpenFileName(self, "انتخاب فایل پشتیبان ZIP", "", "Backup Files (*.zip *.yalda_bak)")
+        filepath, _ = QFileDialog.getOpenFileName(
+            self,
+            "انتخاب فایل پشتیبان",
+            "",
+            "فایل‌های پشتیبان (*.db *.zip *.yalda_bak);;پایگاه‌داده SQLite (*.db);;فایل فشرده (*.zip)"
+        )
         if filepath:
             self.restore_backup(filepath)
 

@@ -357,12 +357,12 @@ class EmailService:
 
     <p style="font-size: 14px; line-height: 1.8;">
       با سلام خدمت مربی محترم، <b>{trainer_name or 'همکار گرامی'}</b>؛<br>
-      نسخه پشتیبان جدید از پایگاه‌داده و داده‌های باشگاه با موفقیت تهیه شد و فایل فشرده آن به این پیام پیوست شده است.
+      نسخه پشتیبان جدید از پایگاه‌داده باشگاه با موفقیت تهیه شد و فایل دیتابیس (<b>.db</b>) آن به این پیام پیوست شده است.
     </p>
 
     <table class="info-table">
       <tr>
-        <td class="info-label">نام فایل آرشیو:</td>
+        <td class="info-label">نام فایل دیتابیس:</td>
         <td class="info-value" dir="ltr" style="text-align: right;">{filename}</td>
       </tr>
       <tr>
@@ -370,7 +370,7 @@ class EmailService:
         <td class="info-value">{shamsi_date}</td>
       </tr>
       <tr>
-        <td class="info-label">حجم فایل پشتیبان:</td>
+        <td class="info-label">حجم فایل دیتابیس:</td>
         <td class="info-value">{backup_size}</td>
       </tr>
       <tr>
@@ -378,13 +378,13 @@ class EmailService:
         <td class="info-value"><span class="badge">{members_count} ورزشکار</span></td>
       </tr>
       <tr>
-        <td class="info-label">وضعیت سلامت آرشیو:</td>
+        <td class="info-label">وضعیت سلامت دیتابیس:</td>
         <td class="info-value" style="color: #10B981;">✅ تاییدشده و قابل بازگردانی</td>
       </tr>
     </table>
 
     <div style="background-color: #1E293B; border-right: 4px solid #3B82F6; padding: 12px; border-radius: 6px; font-size: 12px; color: #CBD5E1; line-height: 1.7;">
-      💡 <b>راهنما:</b> این ایمیل را به عنوان نسخه ذخیره امن در اینباکس خود نگه دارید. در صورت تعویض سیستم یا نیاز به بازیابی، می‌توانید همین فایل پیوست را دانلود کرده و از منوی «بازگردانی از فایل خارجی» بارگذاری نمایید.
+      💡 <b>راهنما:</b> این ایمیل را به عنوان نسخه ذخیره امن در اینباکس خود نگه دارید. در صورت تعویض سیستم یا نیاز به بازیابی، می‌توانید همین فایل پایگاه‌داده (.db) پیوست را دانلود کرده و از منوی «بازگردانی از فایل خارجی» بارگذاری نمایید.
     </div>
 
     <div class="footer">

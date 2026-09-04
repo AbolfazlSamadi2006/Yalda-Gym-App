@@ -301,7 +301,7 @@ class BackupService:
         shamsi_date = gregorian_to_shamsi(now.date()).replace("/", "-")
         time_str = now.strftime("%H-%M-%S")
         if not filename:
-            filename = f"yalda_backup_{shamsi_date}_{time_str}.zip"
+            filename = f"yalda_backup_{shamsi_date}_{time_str}.db"
         shamsi_display = f"{gregorian_to_shamsi(now.date())} {now.strftime('%H:%M:%S')}"
         if size_mb <= 0.0 and config.DB_PATH.exists():
             size_mb = round(os.path.getsize(config.DB_PATH) / (1024 * 1024), 2)
@@ -342,5 +342,10 @@ class BackupService:
                 zipf.extractall(config.DATA_DIR)
         elif filepath.endswith(".db"):
             shutil.copy2(filepath, config.DB_PATH)
+            try:
+                config.APPDATA_DATA_DIR.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(filepath, config.APPDATA_DATA_DIR / "yalda.db")
+            except Exception:
+                pass
 
         create_local_backup()

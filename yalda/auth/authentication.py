@@ -319,7 +319,7 @@ def update_trainer_profile(user_id: int, first_name: str, last_name: str, phone:
         session.commit()
         mark_data_changed()
         # update current user session object
-        if CurrentUser.get() and CurrentUser.get().id == user_id:
+        if CurrentUser.get_id() == user_id:
             CurrentUser.set(user)
         return True
     except Exception as e:

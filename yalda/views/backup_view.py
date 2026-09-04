@@ -629,7 +629,10 @@ class BackupView(QWidget):
             self.txt_first_name.setText(u.first_name or "")
             self.txt_last_name.setText(u.last_name or "")
             self.txt_phone.setText(u.phone or "")
-            self.txt_email.setText(u.email or "")
+            email_val = (u.email or "").strip()
+            if email_val.lower() == getattr(config, "SUPPORT_EMAIL_ADDRESS", "").lower():
+                email_val = ""
+            self.txt_email.setText(email_val)
             self.picker_birth_date.set_date(u.birth_date_shamsi or "")
             self.txt_username.setText(u.username or "")
             self.txt_password.clear()
@@ -641,7 +644,7 @@ class BackupView(QWidget):
                 "first_name": (u.first_name or "").strip(),
                 "last_name": (u.last_name or "").strip(),
                 "phone": (u.phone or "").strip(),
-                "email": (u.email or "").strip(),
+                "email": email_val,
                 "birth_date": (u.birth_date_shamsi or "").strip(),
                 "username": (u.username or "").strip(),
                 "recovery_code": (u.recovery_code or "").strip(),
@@ -779,6 +782,16 @@ class BackupView(QWidget):
         if not username:
             QMessageBox.warning(self, "خطا", "لطفاً نام کاربری را وارد کنید.")
             return
+
+        if email:
+            if "@" not in email or "." not in email:
+                QMessageBox.warning(
+                    self,
+                    "خطا در آدرس ایمیل",
+                    "لطفاً آدرس ایمیل را در قالب صحیح وارد کنید (مثال: coach@example.com)."
+                )
+                self.txt_email.setFocus()
+                return
 
         if phone:
             phone_digits = "".join(filter(str.isdigit, phone.translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹', '0123456789'))))
@@ -952,8 +965,19 @@ class BackupView(QWidget):
 
         elif choice == BackupDestinationDialog.CHOICE_EMAIL:
             u = CurrentUser.get()
-            current_email = (u.email if u else "") or self.txt_email.text().strip()
-            if not current_email:
+            # 1. First priority: whatever is currently entered in the email field on screen
+            input_email = self.txt_email.text().strip()
+            if input_email.lower() == getattr(config, "SUPPORT_EMAIL_ADDRESS", "").lower():
+                input_email = ""
+
+            # 2. Second priority: email stored in trainer user record (excluding support email)
+            db_email = (u.email or "").strip() if u else ""
+            if db_email.lower() == getattr(config, "SUPPORT_EMAIL_ADDRESS", "").lower():
+                db_email = ""
+
+            target_email = input_email or db_email
+
+            if not target_email:
                 email_input, ok = QInputDialog.getText(
                     self,
                     "ثبت ایمیل مربی",
@@ -963,25 +987,39 @@ class BackupView(QWidget):
                 )
                 if not ok or not email_input.strip():
                     return
-                current_email = email_input.strip()
-                self.txt_email.setText(current_email)
-                if u:
-                    try:
-                        update_trainer_profile(
-                            user_id=u.id,
-                            first_name=u.first_name,
-                            last_name=u.last_name,
-                            phone=u.phone,
-                            email=current_email,
-                            birth_date_shamsi=u.birth_date_shamsi,
-                            photo_path=u.photo_path,
-                            username=u.username
-                        )
-                    except Exception:
-                        pass
+                target_email = email_input.strip()
+
+            # Validate basic email structure
+            if "@" not in target_email or "." not in target_email:
+                QMessageBox.warning(
+                    self,
+                    "خطا در آدرس ایمیل",
+                    "لطفاً یک آدرس ایمیل معتبر (مانند user@example.com) وارد نمایید."
+                )
+                self.txt_email.setFocus()
+                return
+
+            self.txt_email.setText(target_email)
+
+            # 3. Always save & sync this email to the coach profile in database so it is recognized permanently
+            if u and (target_email != db_email):
+                try:
+                    update_trainer_profile(
+                        user_id=u.id,
+                        first_name=u.first_name,
+                        last_name=u.last_name,
+                        phone=u.phone,
+                        email=target_email,
+                        birth_date_shamsi=u.birth_date_shamsi,
+                        photo_path=u.photo_path,
+                        username=u.username
+                    )
+                    self.load_all_data()
+                except Exception as ex:
+                    print(f"Auto-sync email error: {ex}")
 
             trainer_name = u.full_name if u else "مدیر باشگاه"
-            self._start_email_backup_async(current_email, trainer_name)
+            self._start_email_backup_async(target_email, trainer_name)
 
         elif choice == BackupDestinationDialog.CHOICE_INSTALL_DIR:
             try:
